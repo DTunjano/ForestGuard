@@ -1,0 +1,99 @@
+# =========================================================
+# GLOBAL
+# =========================================================
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# =========================================================
+# REACT / FRONTEND
+# =========================================================
+
+# Dependencies
+node_modules/
+
+# Build
+dist/
+dist-ssr/
+build/
+
+# Local configs
+*.local
+
+# Vite
+.vite/
+
+# Coverage
+coverage/
+
+# =========================================================
+# DJANGO / BACKEND
+# =========================================================
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.env/
+ENV/
+env/
+
+# Django stuff
+*.sqlite3
+db.sqlite3
+media/
+
+# Static files
+staticfiles/
+
+# Migrations cache
+*.mo
+*.pot
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Ruff / lint
+.ruff_cache/
+
+# PyCharm
+.idea/
+
+# VSCode
+.vscode/*
+!.vscode/extensions.json
+
+# =========================================================
+# Editor files
+# =========================================================
+
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
