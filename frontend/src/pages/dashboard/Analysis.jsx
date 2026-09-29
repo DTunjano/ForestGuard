@@ -1,128 +1,52 @@
+import { LuArrowUpRight, LuCloudUpload, LuFileImage, LuInfo, LuPlay, LuScanLine } from "react-icons/lu"
 import { MainLayout } from "../../components/layout/MainLayout"
 
 export const Analysis = () => {
   return (
     <MainLayout>
-      <div className="space-y-4">
+      <div className="mx-auto max-w-400 space-y-7">
+        <header className="flex flex-col justify-between gap-5 border-b border-white/10 pb-6 md:flex-row md:items-end">
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#b9e75c]">Centro de monitoreo / 01</p>
+            <h1 className="text-3xl font-semibold tracking-[-0.03em] text-white sm:text-4xl">Nuevo análisis</h1>
+            <p className="mt-2 max-w-xl text-sm text-white/45">Carga una escena satelital para identificar cambios en la cobertura forestal.</p>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-white/45"><span className="size-2 rounded-full bg-[#b9e75c] shadow-[0_0_12px_#b9e75c]" />Modelo NDVI activo <span className="text-white/20">·</span> v2.4</div>
+        </header>
 
-        {/* SECCIÓN SUPERIOR */}
-        <div className="grid grid-cols-12 gap-4">
-
-          {/* CARGA DE IMAGEN */}
-          <section className="col-span-3 bg-[#0b1728] rounded-2xl p-4 border border-[#1e293b]">
-
-            <h2 className="font-semibold text-lg mb-6">
-              1. CARGAR IMAGEN
-            </h2>
-
-            {/* DROPZONE */}
-            <div className="border-2 border-dashed border-[#334155] rounded-2xl h-52 flex items-center justify-center text-gray-400 text-sm cursor-pointer hover:border-green-500 transition">
-              Arrastra una imagen .tif
-            </div>
-
-            {/* PREVIEW */}
-            <div className="mt-6">
-
-              <p className="text-sm text-gray-400 mb-2">
-                Vista previa
-              </p>
-
-              <div className="rounded-xl overflow-hidden border border-[#1e293b]">
-                <img
-                  src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e"
-                  className="w-full h-52 object-cover"
-                />
-              </div>
-
-            </div>
-
-            {/* BOTÓN */}
-            <button className="mt-6 w-full bg-green-600 hover:bg-green-500 transition p-3 rounded-xl font-semibold">
-              Procesar imagen
-            </button>
-
+        <div className="grid gap-5 xl:grid-cols-[minmax(250px,0.3fr)_minmax(0,0.7fr)]">
+          <section className="rounded-2xl border border-white/10 bg-[#0b1728] p-5">
+            <div className="mb-5 flex items-start justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#b9e75c]">Paso 01</p><h2 className="mt-2 text-xl font-semibold text-white">Fuente de datos</h2></div><LuFileImage className="text-white/30" size={22} /></div>
+            <label className="flex min-h-44 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-white/20 bg-white/2.5 px-5 text-center transition hover:border-[#b9e75c]/70 hover:bg-[#b9e75c]/4">
+              <LuCloudUpload className="mb-3 text-[#b9e75c]" size={28} />
+              <span className="text-sm font-medium text-white">Arrastra tu imagen aquí</span>
+              <span className="mt-2 text-xs text-white/35">o selecciona un archivo GeoTIFF</span>
+              <input type="file" accept=".tif,.tiff" className="sr-only" />
+            </label>
+            <div className="mt-5 flex items-center gap-3 rounded-xl bg-white/4 p-3"><div className="grid size-9 place-items-center rounded-lg bg-[#b9e75c]/10 text-[#b9e75c]"><LuFileImage size={17} /></div><div className="min-w-0 flex-1"><p className="truncate text-xs font-medium text-white">bosque_amazonas_042.tif</p><p className="mt-1 text-[11px] text-white/35">12.8 MB · Sentinel-2</p></div><span className="text-xs text-[#b9e75c]">Listo</span></div>
+            <button className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#b9e75c] text-sm font-bold text-[#10261d] transition hover:bg-[#d0f47d] focus:outline-none focus:ring-4 focus:ring-[#b9e75c]/20"><LuPlay size={16} />Procesar imagen</button>
           </section>
 
-          {/* VISUALIZACIÓN */}
-          <section className="col-span-9 bg-[#0b1728] rounded-2xl p-4 border border-[#1e293b]">
-
-            <h2 className="font-semibold text-lg mb-4">
-              2. VISUALIZACIÓN
-            </h2>
-
-            <div className="grid grid-cols-2 gap-4">
-
-              <div className="bg-black rounded-xl overflow-hidden border border-[#1e293b]">
-                <img
-                  src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e"
-                  className="w-full h-125 object-cover"
-                />
-              </div>
-
-              <div className="bg-black rounded-xl overflow-hidden border border-[#1e293b]">
-                <img
-                  src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e"
-                  className="w-full h-125 object-cover opacity-70"
-                />
-              </div>
-
+          <section className="min-w-0 rounded-2xl border border-white/10 bg-[#0b1728] p-5">
+            <div className="mb-5 flex items-start justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#b9e75c]">Paso 02</p><h2 className="mt-2 text-xl font-semibold text-white">Comparar escenas</h2></div><button className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-white/55 transition hover:border-white/25 hover:text-white"><LuScanLine size={15} />Ajustar vista</button></div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black"><img src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1000&h=720&fit=crop" alt="Imagen satelital de referencia" className="h-64 w-full object-cover opacity-80 md:h-88" /><span className="absolute left-3 top-3 rounded-md bg-[#07131c]/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/70">Original</span></div>
+              <div className="relative overflow-hidden rounded-xl border border-[#b9e75c]/30 bg-black"><img src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1000&h=720&fit=crop" alt="Mapa de cambios detectados" className="h-64 w-full object-cover opacity-55 grayscale md:h-88" /><div className="absolute inset-0 bg-[linear-gradient(135deg,transparent_30%,rgba(185,231,92,0.18)_70%,rgba(239,68,68,0.22))]" /><span className="absolute left-3 top-3 rounded-md bg-[#b9e75c] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#10261d]">Clasificación ML</span></div>
             </div>
-
+            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-white/45"><span className="flex items-center gap-2"><i className="size-2 rounded-full bg-[#b9e75c]" />Bosque saludable</span><span className="flex items-center gap-2"><i className="size-2 rounded-full bg-yellow-400" />Degradación</span><span className="flex items-center gap-2"><i className="size-2 rounded-full bg-red-400" />Alto riesgo</span><span className="ml-auto flex items-center gap-1 text-white/30"><LuInfo size={13} />Resolución 10 m</span></div>
           </section>
-
         </div>
 
-        {/* RESULTADOS */}
-        <section className="grid grid-cols-5 gap-4">
-
-          <div className="bg-[#0b1728] p-4 rounded-2xl border border-[#1e293b]">
-            <p className="text-sm text-gray-400">
-              Área total
-            </p>
-
-            <h3 className="text-2xl font-bold mt-2">
-              12,456 ha
-            </h3>
-          </div>
-
-          <div className="bg-[#0b1728] p-4 rounded-2xl border border-[#1e293b]">
-            <p className="text-sm text-green-400">
-              Bosque saludable
-            </p>
-
-            <h3 className="text-2xl font-bold mt-2">
-              7,215 ha
-            </h3>
-          </div>
-
-          <div className="bg-[#0b1728] p-4 rounded-2xl border border-[#1e293b]">
-            <p className="text-sm text-yellow-400">
-              Degradación
-            </p>
-
-            <h3 className="text-2xl font-bold mt-2">
-              3,120 ha
-            </h3>
-          </div>
-
-          <div className="bg-[#0b1728] p-4 rounded-2xl border border-[#1e293b]">
-            <p className="text-sm text-red-400">
-              Alto riesgo
-            </p>
-
-            <h3 className="text-2xl font-bold mt-2">
-              2,121 ha
-            </h3>
-          </div>
-
-          <div className="bg-[#0b1728] p-4 rounded-2xl border border-[#1e293b]">
-            <p className="text-sm text-gray-400">
-              Confianza
-            </p>
-
-            <h3 className="text-2xl font-bold mt-2">
-              87.3%
-            </h3>
+        <section>
+          <div className="mb-4 flex items-end justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#b9e75c]">Paso 03</p><h2 className="mt-2 text-xl font-semibold text-white">Resumen de detección</h2></div><button className="hidden items-center gap-1 text-xs font-medium text-[#b9e75c] hover:text-[#d0f47d] sm:flex">Ver informe completo <LuArrowUpRight size={15} /></button></div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            {[
+              { label: "Área analizada", value: "12,456 ha", note: "Extensión total", tone: "text-white" },
+              { label: "Bosque saludable", value: "7,215 ha", note: "57.9% del área", tone: "text-[#b9e75c]" },
+              { label: "Degradación", value: "3,120 ha", note: "25.1% del área", tone: "text-yellow-300" },
+              { label: "Alto riesgo", value: "2,121 ha", note: "16.9% del área", tone: "text-red-300" },
+              { label: "Confianza del modelo", value: "87.3%", note: "Resultado confiable", tone: "text-sky-300" },
+            ].map((metric) => <div key={metric.label} className="rounded-2xl border border-white/10 bg-[#0b1728] p-4"><p className="text-xs text-white/45">{metric.label}</p><p className={`mt-3 text-2xl font-semibold tracking-tight ${metric.tone}`}>{metric.value}</p><p className="mt-2 text-[11px] text-white/30">{metric.note}</p></div>)}
           </div>
         </section>
       </div>
