@@ -1,31 +1,209 @@
-import { Link } from 'react-router'
-import { LuArrowUpRight, LuCalendarDays, LuEye, LuInfo, LuLayers3, LuMapPin } from 'react-icons/lu'
-import { MainLayout } from '../../components/layout/MainLayout'
+import { Link } from "react-router";
+import {
+  LuArrowUpRight,
+  LuCalendarDays,
+  LuEye,
+  LuInfo,
+  LuLayers3,
+  LuMapPin,
+} from "react-icons/lu";
+import { MainLayout } from "../../components/layout/MainLayout";
 
 const metrics = [
-  ['Deforestación', '17.0%', '2,121 ha', 'text-red-300', 'bg-red-400'],
-  ['Degradación', '25.1%', '3,120 ha', 'text-orange-300', 'bg-orange-300'],
-  ['Posible incendio', '4.8%', '598 ha', 'text-rose-300', 'bg-rose-400'],
-  ['Sin cambio', '53.1%', '6,617 ha', 'text-[#b9e75c]', 'bg-[#b9e75c]'],
-]
+  ["Deforestación", "17.0%", "2,121 ha", "text-red-300", "bg-red-400"],
+  ["Degradación", "25.1%", "3,120 ha", "text-orange-300", "bg-orange-300"],
+  ["Posible incendio", "4.8%", "598 ha", "text-rose-300", "bg-rose-400"],
+  ["Sin cambio", "53.1%", "6,617 ha", "text-[#b9e75c]", "bg-[#b9e75c]"],
+];
 
-const legend = [['Deforestación', 'bg-red-300'], ['Degradación', 'bg-orange-300'], ['Posible incendio', 'bg-rose-300'], ['Sin cambio', 'bg-[#b9e75c]']]
+const legend = [
+  ["Deforestación", "bg-red-300"],
+  ["Degradación", "bg-orange-300"],
+  ["Posible incendio", "bg-rose-300"],
+  ["Sin cambio", "bg-[#b9e75c]"],
+];
 
 export const Results = () => (
   <MainLayout>
     <div className="mx-auto max-w-400 space-y-7">
       <header className="border-b border-white/10 pb-6">
-        <Link to="/dashboard" className="mb-4 flex w-fit items-center gap-2 text-xs text-white/40 hover:text-white"><LuArrowUpRight className="rotate-[-90deg]" size={14} />Dashboard</Link>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b9e75c]">Análisis Guamo / resultados</p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white sm:text-4xl">Resultados del análisis</h1>
-        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/45"><span className="flex items-center gap-1.5"><LuMapPin size={14} />Guamo, Tolima</span><span className="flex items-center gap-1.5"><LuCalendarDays size={14} />2020 – 2026</span><span>12,456 píxeles analizados</span></div>
+        <Link
+          to="/dashboard"
+          className="mb-4 flex w-fit items-center gap-2 text-xs text-white/40 hover:text-white"
+        >
+          <LuArrowUpRight className="rotate-[-90deg]" size={14} /> Dashboard
+        </Link>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b9e75c]">
+          Análisis Guamo / resultados
+        </p>
+        <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white sm:text-4xl">
+          Resultados del análisis
+        </h1>
+        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/45">
+          <span className="flex items-center gap-1.5">
+            <LuMapPin size={14} />
+            Guamo, Tolima
+          </span>
+          <span className="flex items-center gap-1.5">
+            <LuCalendarDays size={14} />
+            2020 - 2026
+          </span>
+          <span>12,456 píxeles analizados</span>
+        </div>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{metrics.map(([label, value, area, color, bar]) => <div key={label} className="rounded-2xl border border-white/10 bg-[#0b1728] p-4"><div className="flex justify-between"><p className="text-xs text-white/45">{label}</p><span className={`size-2 rounded-full ${bar}`} /></div><p className={`mt-3 text-2xl font-semibold ${color}`}>{value}</p><p className="mt-1 text-xs text-white/35">{area}</p><div className="mt-4 h-1 overflow-hidden rounded-full bg-white/10"><div className={`h-full ${bar}`} style={{ width: value }} /></div></div>)}</section>
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {metrics.map(([label, value, area, color, bar]) => (
+          <div
+            key={label}
+            className="rounded-2xl border border-white/10 bg-[#0b1728] p-4"
+          >
+            <div className="flex justify-between">
+              <p className="text-xs text-white/45">{label}</p>
+              <span className={`size-2 rounded-full ${bar}`} />
+            </div>
+            <p className={`mt-3 text-2xl font-semibold ${color}`}>{value}</p>
+            <p className="mt-1 text-xs text-white/35">{area}</p>
+            <div className="mt-4 h-1 overflow-hidden rounded-full bg-white/10">
+              <div className={`h-full ${bar}`} style={{ width: value }} />
+            </div>
+          </div>
+        ))}
+      </section>
 
-      <section className="rounded-2xl border border-white/10 bg-[#0b1728] p-5"><div className="mb-5 flex items-start justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#b9e75c]">Mapa de cambios</p><h2 className="mt-2 text-xl font-semibold text-white">Vista recomendada</h2><p className="mt-1 text-xs text-white/35">Imagen base y zonas detectadas por el modelo.</p></div><div className="flex gap-2"><button className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-white/55 hover:text-white"><LuLayers3 size={14} />Capas</button><button className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-white/55 hover:text-white"><LuEye size={14} />Leyenda</button></div></div><div className="relative min-h-[26rem] overflow-hidden rounded-xl border border-white/10 bg-[#17382d]"><img src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1600&h=900&fit=crop" alt="Mapa satelital de Guamo" className="absolute inset-0 h-full w-full object-cover opacity-55 grayscale" /><div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(185,231,92,0.1),rgba(239,68,68,0.2),rgba(249,115,22,0.12),rgba(185,231,92,0.18))]" /><div className="absolute left-[28%] top-[27%] size-24 rounded-full border-2 border-red-300/80 bg-red-400/20" /><div className="absolute right-[24%] top-[44%] size-32 rounded-full border-2 border-orange-300/80 bg-orange-300/20" /><div className="absolute bottom-[20%] left-[53%] size-20 rounded-full border-2 border-[#b9e75c]/80 bg-[#b9e75c]/20" /><div className="absolute bottom-4 left-4 flex flex-wrap gap-3 rounded-lg border border-white/10 bg-[#07131c]/85 p-3 text-[11px] text-white/70 backdrop-blur">{legend.map(([label, color]) => <span key={label} className="flex items-center gap-1.5"><i className={`size-2 rounded-full ${color}`} />{label}</span>)}</div><div className="absolute right-4 top-4 overflow-hidden rounded-lg border border-white/10 bg-[#07131c]/85 text-white/70"><button className="block border-b border-white/10 px-3 py-2">+</button><button className="block px-3 py-2">−</button></div></div></section>
+      <section className="rounded-2xl border border-white/10 bg-[#0b1728] p-5">
+        <div className="mb-5 flex items-start justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#b9e75c]">
+              Mapa de cambios
+            </p>
+            <h2 className="mt-2 text-xl font-semibold text-white">
+              Vista recomendada
+            </h2>
+            <p className="mt-1 text-xs text-white/35">
+              Imagen base y zonas detectadas por el modelo.
+            </p>
+          </div>
 
-      <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]"><section className="rounded-2xl border border-white/10 bg-[#0b1728] p-5"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#b9e75c]">Comparación temporal</p><h2 className="mt-2 text-xl font-semibold text-white">Evolución por periodo</h2><div className="mt-6 flex items-center gap-2 overflow-x-auto pb-4">{['2020', '2021', '2022', '2023', '2024', '2025', '2026'].map((year) => <span key={year} className={`grid size-9 shrink-0 place-items-center rounded-full text-[10px] font-semibold ${year === '2022' ? 'bg-[#b9e75c] text-[#10261d]' : 'border border-white/20 text-white/45'}`}>{year}</span>)}</div><div className="rounded-xl border border-white/10 bg-white/[0.025] p-4"><p className="text-xs text-white/35">Periodo seleccionado</p><p className="mt-1 text-sm font-semibold text-white">2022 → 2023</p>{metrics.slice(0, 3).map(([label, value, , color, bar]) => <div key={label} className="mt-4 flex items-center gap-3 text-xs"><span className="w-28 text-white/45">{label}</span><div className="h-2 flex-1 rounded-full bg-white/10"><div className={`h-full rounded-full ${bar}`} style={{ width: value }} /></div><span className={`w-12 text-right ${color}`}>{value}</span></div>)}</div></section><section className="rounded-2xl border border-white/10 bg-[#0b1728] p-5"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#b9e75c]">Resumen</p><h2 className="mt-2 text-xl font-semibold text-white">Lectura del análisis</h2><div className="mt-6 space-y-4 text-sm leading-6 text-white/55"><p>Se analizaron <strong className="text-white">1,050 píxeles</strong> durante 2020–2026.</p><p>El mayor cambio ocurrió entre <strong className="text-white">2021 y 2022</strong>.</p><p>Se identificaron zonas de deforestación, degradación y posibles incendios.</p></div><div className="mt-6 border-t border-white/10 pt-5 text-xs text-white/35"><LuInfo className="mr-2 inline" size={14} />Clasificación asistida por ML.</div></section></div>
+          <div className="flex gap-2">
+            <button className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-white/55 hover:text-white">
+              <LuLayers3 size={14} />
+              Capas
+            </button>
+            <button className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-white/55 hover:text-white">
+              <LuEye size={14} />
+              Leyenda
+            </button>
+          </div>
+        </div>
+
+        <div className="relative min-h-[26rem] overflow-hidden rounded-xl border border-white/10 bg-[#17382d]">
+          <img
+            src="https://d127nz7k4leq8b.cloudfront.net/uploads/editor/1650645915_para-_que-sirven-imagen-satelital.png"
+            alt="Mapa satelital de Guamo"
+            className="absolute inset-0 h-full w-full object-cover opacity-55 grayscale"
+          />
+
+          <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(185,231,92,0.1),rgba(239,68,68,0.2),rgba(249,115,22,0.12),rgba(185,231,92,0.18))]" />
+
+          <div className="absolute left-[28%] top-[27%] size-24 rounded-full border-2 border-red-300/80 bg-red-400/20" />
+
+          <div className="absolute right-[24%] top-[44%] size-32 rounded-full border-2 border-orange-300/80 bg-orange-300/20" />
+
+          <div className="absolute bottom-[20%] left-[53%] size-20 rounded-full border-2 border-[#b9e75c]/80 bg-[#b9e75c]/20" />
+
+          <div className="absolute bottom-4 left-4 flex flex-wrap gap-3 rounded-lg border border-white/10 bg-[#07131c]/85 p-3 text-[11px] text-white/70 backdrop-blur">
+            {legend.map(([label, color]) => (
+              <span key={label} className="flex items-center gap-1.5">
+                <i className={`size-2 rounded-full ${color}`} />
+                {label}
+              </span>
+            ))}
+          </div>
+
+          <div className="absolute right-4 top-4 overflow-hidden rounded-lg border border-white/10 bg-[#07131c]/85 text-white/70">
+            <button className="block border-b border-white/10 px-3 py-2">
+              +
+            </button>
+            <button className="block px-3 py-2">−</button>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+        <section className="rounded-2xl border border-white/10 bg-[#0b1728] p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#b9e75c]">
+            Comparación temporal
+          </p>
+          <h2 className="mt-2 text-xl font-semibold text-white">
+            Evolución por periodo
+          </h2>
+          <div className="mt-6 flex items-center gap-2 overflow-x-auto pb-4">
+            {["2020", "2021", "2022", "2023", "2024", "2025", "2026"].map(
+              (year) => (
+                <span
+                  key={year}
+                  className={`grid size-9 shrink-0 place-items-center rounded-full text-[10px] font-semibold 
+                    ${
+                      year === "2022"
+                        ? "bg-[#b9e75c] text-[#10261d]"
+                        : "border border-white/20 text-white/45"
+                    }
+                  `}
+                >
+                  {year}
+                </span>
+              ),
+            )}
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-white/[0.025] p-4">
+            <p className="text-xs text-white/35">Periodo seleccionado</p>
+            <p className="mt-1 text-sm font-semibold text-white">2022 → 2023</p>
+            {metrics.slice(0, 3).map(([label, value, , color, bar]) => (
+              <div key={label} className="mt-4 flex items-center gap-3 text-xs">
+                <span className="w-28 text-white/45">{label}</span>
+                <div className="h-2 flex-1 rounded-full bg-white/10">
+                  <div
+                    className={`h-full rounded-full ${bar}`}
+                    style={{ width: value }}
+                  />
+                </div>
+                <span className={`w-12 text-right ${color}`}>{value}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-white/10 bg-[#0b1728] p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#b9e75c]">
+            Resumen
+          </p>
+          <h2 className="mt-2 text-xl font-semibold text-white">
+            Lectura del análisis
+          </h2>
+          <div className="mt-6 space-y-4 text-sm leading-6 text-white/55">
+            <p>
+              Se analizaron
+              <strong className="text-white">1,050 píxeles</strong>
+              durante 2020–2026.
+            </p>
+            <p>
+              El mayor cambio ocurrió entre
+              <strong className="text-white">2021 y 2022</strong>.
+            </p>
+            <p>
+              Se identificaron zonas de deforestación, degradación y posibles
+              incendios.
+            </p>
+          </div>
+
+          <div className="mt-6 border-t border-white/10 pt-5 text-xs text-white/35">
+            <LuInfo className="mr-2 inline" size={14} />
+            Clasificación asistida por ML.
+          </div>
+        </section>
+      </div>
     </div>
   </MainLayout>
-)
+);

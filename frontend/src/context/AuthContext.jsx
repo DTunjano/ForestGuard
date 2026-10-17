@@ -4,16 +4,24 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState({
-    id: 1,
+    user_id: 1,
+    first_name: "Juan",
+    last_name: "García López",
     name: "Juan García López",
     email: "juan.garcia@forestguard.com",
-    role: "Analista Senior",
+    username: "juan.garcia",
+    password: "",
+    role: "Admin",
     avatar: null, // URL de la foto de perfil
     department: "Análisis Satelital",
+    join_date: "2024-01-15",
     joinDate: "2024-01-15",
+    is_active: true,
   });
 
   const [isAuthenticated, setIsAuthenticated] = useState(true);
+
+  const isAdmin = user?.role === "Admin";
 
   const logout = () => {
     setIsAuthenticated(false);
@@ -31,6 +39,7 @@ export const AuthProvider = ({ children }) => {
       value={{
         user,
         isAuthenticated,
+        isAdmin,
         logout,
         updateProfile,
       }}
