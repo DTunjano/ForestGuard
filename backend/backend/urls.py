@@ -1,7 +1,8 @@
 from django.contrib import admin
 from django.db import DatabaseError, connection
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.urls import include, path
+from django.views.generic import RedirectView
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from rest_framework.routers import DefaultRouter
 
@@ -17,10 +18,16 @@ def health(_request):
     return JsonResponse({"status": "ok"})
 
 
+def favicon(_request):
+    return HttpResponse(status=204)
+
+
 admin_router = DefaultRouter()
 admin_router.register("users", UserAdminViewSet, basename="admin-user")
 
 urlpatterns = [
+    path("", RedirectView.as_view(pattern_name="swagger-ui", permanent=False)),
+    path("favicon.ico", favicon),
     path("health/", health),
     path("admin/", admin.site.urls),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),

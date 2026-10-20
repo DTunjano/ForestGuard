@@ -61,7 +61,7 @@ def process_analysis(analysis_id):
         for path in result_root.rglob("*"):
             if path.is_file() and path.suffix.lower() in {".tif", ".json", ".pdf"}:
                 artifacts.append(ResultArtifact(
-                    analysis=analysis, relative_path=str(path.relative_to(result_root)),
+                    analysis=analysis, relative_path=path.relative_to(result_root).as_posix(),
                     kind={".tif": "raster", ".json": "metadata", ".pdf": "report"}[path.suffix.lower()],
                     size_bytes=path.stat().st_size,
                 ))

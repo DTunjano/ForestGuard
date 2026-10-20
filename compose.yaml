@@ -5,6 +5,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-forestguard}
       POSTGRES_USER: ${POSTGRES_USER:-forestguard}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -13,40 +15,5 @@ services:
       timeout: 3s
       retries: 10
     restart: unless-stopped
-  api:
-    build: ./backend
-    env_file: .env
-    environment:
-      POSTGRES_HOST: db
-      MEDIA_ROOT: /app/media
-      PIPELINE_ROOT: /app/pipeline
-    ports:
-      - "127.0.0.1:8000:8000"
-    volumes:
-      - media_data:/app/media
-    depends_on:
-      db:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/', timeout=3)"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-  worker:
-    build: ./backend
-    command: ["python", "manage.py", "run_analysis_worker"]
-    env_file: .env
-    environment:
-      POSTGRES_HOST: db
-      MEDIA_ROOT: /app/media
-      PIPELINE_ROOT: /app/pipeline
-    volumes:
-      - media_data:/app/media
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: unless-stopped
 volumes:
   postgres_data:
-  media_data:
