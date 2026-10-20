@@ -13,7 +13,7 @@ API Django para registrar escenas Sentinel-2 y ejecutar el pipeline histórico v
 ```powershell
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 # Editar .env: definir POSTGRES_PASSWORD y DJANGO_SECRET_KEY privados.
-docker compose up -d db
+docker compose up -d --wait db
 py -3.13 -m venv backend/.venv
 & backend/.venv/Scripts/Activate.ps1
 py -m pip install -r backend/requirements-dev.txt -r backend/requirements-report.txt
@@ -39,6 +39,10 @@ py manage.py run_analysis_worker
 Active `.venv` en **cada consola** antes de ejecutar `py manage.py`; así `py` usa las dependencias del proyecto. Compruebe el lanzador con `py --version` y el entorno activo con `py -c "import sys; print(sys.executable)"`: debe mostrar `backend/.venv/Scripts/python.exe`. Si la activación de PowerShell está restringida en otro equipo, puede ejecutar directamente `& ./.venv/Scripts/python.exe manage.py runserver`. Django carga automáticamente el `.env` de la raíz del repositorio sin sobrescribir variables ya definidas en el sistema. PostgreSQL solo escucha en `127.0.0.1` en el puerto `POSTGRES_PORT` (5432 por defecto); si está ocupado, use otro puerto, por ejemplo 5433, en `.env`. Las cargas y resultados quedan en `backend/media/`, ignorado por Git.
 
 API: `http://localhost:8000/api/v1/`. Swagger: `http://localhost:8000/api/docs/`. Salud: `http://localhost:8000/health/` (`200` si PostgreSQL responde, `503` si no). El worker toma trabajos pendientes desde PostgreSQL; debe permanecer abierto en otra consola. Las migraciones son un paso explícito, no se ejecutan automáticamente en cada arranque.
+
+### Arranques posteriores
+
+Antes de iniciar Django o el worker, abra Docker Desktop y, desde la raíz del repositorio, ejecute `docker compose up -d --wait db`. El comando espera hasta que PostgreSQL esté sano; `docker compose ps` debe mostrar `db` como `healthy`. Después, en sendas consolas dentro de `backend/`, active `.venv` y ejecute `py manage.py runserver` y `py manage.py run_analysis_worker`, respectivamente. Si ambos muestran `connection timeout expired`, compruebe primero `docker compose ps` y vuelva a iniciar `db`; no necesita recrear la base ni ejecutar migraciones de nuevo.
 
 ## Flujo de análisis
 
