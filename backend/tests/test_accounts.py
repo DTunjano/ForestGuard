@@ -1,8 +1,8 @@
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.test import APIClient
+from rest_framework.throttling import ScopedRateThrottle
 
 
 @pytest.mark.django_db
