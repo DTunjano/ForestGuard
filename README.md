@@ -14,27 +14,29 @@ API Django para registrar escenas Sentinel-2 y ejecutar el pipeline histórico v
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 # Editar .env: definir POSTGRES_PASSWORD y DJANGO_SECRET_KEY privados.
 docker compose up -d db
-python -m venv backend/.venv
-& backend/.venv/Scripts/python.exe -m pip install -r backend/requirements-dev.txt -r backend/requirements-report.txt
+py -3.13 -m venv backend/.venv
+& backend/.venv/Scripts/Activate.ps1
+py -m pip install -r backend/requirements-dev.txt -r backend/requirements-report.txt
 Set-Location backend
-& ./.venv/Scripts/python.exe manage.py migrate
-& ./.venv/Scripts/python.exe manage.py sync_pipeline_model
-& ./.venv/Scripts/python.exe manage.py runserver 127.0.0.1:8000
+py manage.py migrate
+py manage.py sync_pipeline_model
+py manage.py runserver 127.0.0.1:8000
 ```
 
 Para crear una cuenta administradora por primera vez, ejecute antes de `runserver`:
 
 ```powershell
-& ./.venv/Scripts/python.exe manage.py createsuperuser
+py manage.py createsuperuser
 ```
 
 En otra consola, desde `backend/`, inicia el procesador de análisis:
 
 ```powershell
-& ./.venv/Scripts/python.exe manage.py run_analysis_worker
+& ./.venv/Scripts/Activate.ps1
+py manage.py run_analysis_worker
 ```
 
-`py manage.py runserver` también funciona si el lanzador `py` está configurado y el entorno virtual está activado. En este equipo `py` no detecta Python; el ejecutable de `.venv` evita ese problema. Django carga automáticamente el `.env` de la raíz del repositorio sin sobrescribir variables ya definidas en el sistema. PostgreSQL solo escucha en `127.0.0.1` en el puerto `POSTGRES_PORT` (5432 por defecto); si está ocupado, use otro puerto, por ejemplo 5433, en `.env`. Las cargas y resultados quedan en `backend/media/`, ignorado por Git.
+Active `.venv` en **cada consola** antes de ejecutar `py manage.py`; así `py` usa las dependencias del proyecto. Compruebe el lanzador con `py --version` y el entorno activo con `py -c "import sys; print(sys.executable)"`: debe mostrar `backend/.venv/Scripts/python.exe`. Si la activación de PowerShell está restringida en otro equipo, puede ejecutar directamente `& ./.venv/Scripts/python.exe manage.py runserver`. Django carga automáticamente el `.env` de la raíz del repositorio sin sobrescribir variables ya definidas en el sistema. PostgreSQL solo escucha en `127.0.0.1` en el puerto `POSTGRES_PORT` (5432 por defecto); si está ocupado, use otro puerto, por ejemplo 5433, en `.env`. Las cargas y resultados quedan en `backend/media/`, ignorado por Git.
 
 API: `http://localhost:8000/api/v1/`. Swagger: `http://localhost:8000/api/docs/`. Salud: `http://localhost:8000/health/` (`200` si PostgreSQL responde, `503` si no). El worker toma trabajos pendientes desde PostgreSQL; debe permanecer abierto en otra consola. Las migraciones son un paso explícito, no se ejecutan automáticamente en cada arranque.
 
@@ -60,16 +62,17 @@ La primera versión de la API recibe un **GeoTIFF de una sola grilla** con descr
 
 ```powershell
 Set-Location backend
-& ./.venv/Scripts/python.exe manage.py check
-& ./.venv/Scripts/python.exe manage.py makemigrations --check --dry-run
-& ./.venv/Scripts/python.exe -m pytest -q --cov=accounts --cov=catalog --cov=analyses
-& ./.venv/Scripts/python.exe -m ruff check accounts catalog analyses backend tests
-& ./.venv/Scripts/python.exe manage.py spectacular --validate --fail-on-warn
+& ./.venv/Scripts/Activate.ps1
+py manage.py check
+py manage.py makemigrations --check --dry-run
+py -m pytest -q --cov=accounts --cov=catalog --cov=analyses
+py -m ruff check accounts catalog analyses backend tests
+py manage.py spectacular --validate --fail-on-warn
 ```
 
 Pytest usa una base temporal de PostgreSQL creada por Django; no modifica las tablas de desarrollo. Las pruebas del pipeline deben usar escenas sintéticas o recortes pequeños y una salida aislada.
 
-`tests/test_real_raster.py` permite una comprobación adicional con GeoTIFF Sentinel-2 reales. Indique la ruta local de la primera escena con `FORESTGUARD_REAL_TEST_RASTER` y su fecha `AAAA-MM-DD` con `FORESTGUARD_REAL_TEST_DATE`; agregue `FORESTGUARD_REAL_TEST_RASTER_2` y `FORESTGUARD_REAL_TEST_DATE_2` para comprobar un intervalo. Si ambas escenas incluyen SCL, indique `FORESTGUARD_REAL_TEST_SCL_FACTOR` (`1` o `10000`) y `FORESTGUARD_REAL_TEST_USE_MODEL=1` para ejecutar v9. Ejecute `& ./.venv/Scripts/python.exe -m pytest -q tests/test_real_raster.py`. La prueba se omite cuando faltan las variables de la primera escena, usa una base temporal y guarda los resultados en un directorio temporal. Comprueba carga, normalización, ejecución y artefactos, pero una clasificación ejecutada no demuestra la calidad del modelo ML ni valida su transferencia geográfica.
+`tests/test_real_raster.py` permite una comprobación adicional con GeoTIFF Sentinel-2 reales. Indique la ruta local de la primera escena con `FORESTGUARD_REAL_TEST_RASTER` y su fecha `AAAA-MM-DD` con `FORESTGUARD_REAL_TEST_DATE`; agregue `FORESTGUARD_REAL_TEST_RASTER_2` y `FORESTGUARD_REAL_TEST_DATE_2` para comprobar un intervalo. Si ambas escenas incluyen SCL, indique `FORESTGUARD_REAL_TEST_SCL_FACTOR` (`1` o `10000`) y `FORESTGUARD_REAL_TEST_USE_MODEL=1` para ejecutar v9. Ejecute `py -m pytest -q tests/test_real_raster.py` con `.venv` activo. La prueba se omite cuando faltan las variables de la primera escena, usa una base temporal y guarda los resultados en un directorio temporal. Comprueba carga, normalización, ejecución y artefactos, pero una clasificación ejecutada no demuestra la calidad del modelo ML ni valida su transferencia geográfica.
 
 ## Variables de entorno
 
@@ -79,4 +82,4 @@ Pytest usa una base temporal de PostgreSQL creada por Django; no modifica las ta
 
 Ver [arquitectura](docs/arquitectura.md), [contrato de la API](docs/api.md), [guía de integración posterior con React](docs/integracion-react.md) y [contrato del pipeline](backend/pipeline/README.md). La base PostgreSQL guarda usuarios, áreas, metadatos de imágenes, trabajos y referencias a resultados. Los archivos raster se guardan en un volumen persistente fuera de PostgreSQL. El modelo v9 se distribuye dentro del backend como paquete confiable y se registra con `sync_pipeline_model`; no hay carga de modelos arbitrarios desde la API.
 
-Si un trabajador se interrumpe y deja un análisis en `running`, revisar primero desde `backend/` con `& ./.venv/Scripts/python.exe manage.py fail_stale_analyses --older-than-hours 24 --dry-run`. Repetir sin `--dry-run` solo después de comprobar que el trabajador no sigue procesando ese análisis.
+Si un trabajador se interrumpe y deja un análisis en `running`, revisar primero desde `backend/`, con `.venv` activo, usando `py manage.py fail_stale_analyses --older-than-hours 24 --dry-run`. Repetir sin `--dry-run` solo después de comprobar que el trabajador no sigue procesando ese análisis.
