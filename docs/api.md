@@ -49,6 +49,8 @@ POST /analyses/
 
 Un resultado completo incluye `resumen_serie.json`, mapas GeoTIFF y `reporte.pdf`. Cada artefacto se descarga con `GET /analyses/{id}/artifacts/{artifact_id}/download/`. La API verifica propiedad del análisis y sirve el archivo como adjunto. `DELETE /analyses/{id}/` se permite después de completar o fallar y borra resultados y copias normalizadas.
 
+Para un artefacto `kind=raster`, `GET /analyses/{id}/artifacts/{artifact_id}/metadata/` devuelve dimensiones, CRS, límites en WGS84 (`bounds_wgs84` como oeste, sur, este, norte), descripción de banda y leyenda. `GET /analyses/{id}/artifacts/{artifact_id}/preview/?max_size=768` devuelve un PNG transparente de máximo 1024 píxeles por lado. La vista es una miniatura para la interfaz; el GeoTIFF descargable conserva la resolución y los valores originales. Ambas rutas exigen el JWT del propietario. Las clases de cambio son exploratorias y la leyenda no las presenta como riesgo futuro.
+
 ## Errores y límites
 
 La API usa errores DRF estándar: `400` para validación, `401` para autenticación ausente o inválida, `403` para acciones de administrador, `404` para recursos ajenos o inexistentes y `429` para exceso de solicitudes. Los fallos del pipeline se almacenan en el análisis con `status=failed`. El cliente no debe traducir una omisión de clasificación en ausencia de deforestación: el resumen indica `estado_clasificacion=omitida` y el motivo.

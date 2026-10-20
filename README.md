@@ -31,9 +31,11 @@ API: `http://localhost:8000/api/v1/`. Swagger: `http://localhost:8000/api/docs/`
 2. Crear área en `POST /api/v1/study-areas/`.
 3. Cargar cada GeoTIFF multibanda en `POST /api/v1/images/` con `multipart/form-data`: `study_area`, `name`, `acquisition_date` (`AAAA-MM-DD`), `reflectance_scale` (`fraction` o `divide_10000`), `scl_factor` (`1` o `10000` si hay SCL), `file`.
 4. Crear análisis con `POST /api/v1/analyses/`: `name`, `study_area`, `image_ids` y `model_id` opcional. Con una imagen se obtienen índices; con varias fechas hay diferencias e indicios de degradación. El modelo v9 requiere al menos dos escenas con SCL y solo se ejecuta en intervalos que cumplen su contrato.
-5. Consultar estado y resumen en `GET /api/v1/analyses/{id}/`. Descargar un GeoTIFF, JSON o reporte PDF mediante `GET /api/v1/analyses/{id}/artifacts/{artifact_id}/download/`.
+5. Consultar estado y resumen en `GET /api/v1/analyses/{id}/`. Descargar un GeoTIFF, JSON o reporte PDF mediante `GET /api/v1/analyses/{id}/artifacts/{artifact_id}/download/`. Los mapas raster tienen metadatos y miniatura PNG privada en `/metadata/` y `/preview/` sobre la misma ruta del artefacto.
 
 Todos los recursos del usuario se filtran por propietario. Los resultados no se publican como archivos estáticos. El cierre de sesión se realiza con `POST /api/v1/auth/logout/` y el refresh token. El cliente debe descartar su access token; el refresh token queda invalidado.
+
+El usuario puede cambiar su contraseña con `POST /api/v1/auth/password/change/`; se invalidan los tokens anteriores. Un administrador puede listar, crear y editar cuentas en `/api/v1/admin/users/`, incluida su activación y rol. Las cuentas se desactivan sin borrar sus análisis.
 
 Un análisis terminado puede eliminarse con `DELETE /api/v1/analyses/{id}/`; esto elimina su registro y sus resultados. Los análisis en cola o en ejecución no se eliminan para evitar carreras con el worker.
 
