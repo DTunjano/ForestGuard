@@ -23,7 +23,7 @@ docker compose run --rm api python manage.py createsuperuser
 docker compose up -d api worker
 ```
 
-API: `http://localhost:8000/api/v1/`. Swagger: `http://localhost:8000/api/docs/`. Salud: `http://localhost:8000/health/`. El puerto 8000 se publica solo en la interfaz local por defecto. El servicio `worker` toma trabajos pendientes desde PostgreSQL. Las migraciones son un paso explícito, no se ejecutan automáticamente en cada arranque.
+API: `http://localhost:8000/api/v1/`. Swagger: `http://localhost:8000/api/docs/`. Salud: `http://localhost:8000/health/` (`200` si PostgreSQL responde, `503` si no). El puerto 8000 se publica solo en la interfaz local por defecto. El servicio `worker` toma trabajos pendientes desde PostgreSQL. Las migraciones son un paso explícito, no se ejecutan automáticamente en cada arranque.
 
 ## Flujo de análisis
 
