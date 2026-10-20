@@ -30,7 +30,9 @@ class StudyAreaSerializer(serializers.ModelSerializer):
 
 
 class SatelliteImageSerializer(serializers.ModelSerializer):
-    file = serializers.FileField(write_only=True)
+    file = serializers.FileField(
+        write_only=True, help_text="GeoTIFF multibanda .tif o .tiff georreferenciado (B2, B3, B4, B5, B8, B11, B12; SCL opcional).",
+    )
 
     class Meta:
         model = SatelliteImage

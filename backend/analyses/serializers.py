@@ -14,9 +14,13 @@ class ResultArtifactSerializer(serializers.ModelSerializer):
 
 
 class AnalysisSerializer(serializers.ModelSerializer):
-    image_ids = serializers.ListField(child=serializers.IntegerField(min_value=1), write_only=True)
+    image_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1), write_only=True,
+        help_text="Entre 1 y 32 identificadores de imágenes del área, sin fechas repetidas. Se procesan en orden cronológico.",
+    )
     model_id = serializers.PrimaryKeyRelatedField(
         source="model", queryset=PipelineModel.objects.filter(active=True), required=False, allow_null=True,
+        help_text="Opcional: modelo activo. Requiere al menos dos escenas con SCL y un intervalo compatible.",
     )
     images = serializers.SerializerMethodField()
     artifacts = ResultArtifactSerializer(many=True, read_only=True)

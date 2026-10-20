@@ -1,4 +1,4 @@
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiExample, extend_schema, extend_schema_view
 from rest_framework import filters, generics, permissions, serializers, status, throttling, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -17,16 +17,36 @@ from .serializers import (
 )
 
 
+@extend_schema_view(post=extend_schema(
+    tags=["Autenticación"], summary="Iniciar sesión",
+    description="Envíe usuario y contraseña. Copie `access` en **Authorize** para llamar a las rutas protegidas; conserve `refresh` para renovar la sesión.",
+    auth=[],
+    examples=[OpenApiExample("Credenciales", value={"username": "analista", "password": "su_contraseña"}, request_only=True)],
+))
 class LoginView(TokenObtainPairView):
     throttle_scope = "auth"
     throttle_classes = [throttling.ScopedRateThrottle]
 
 
+@extend_schema_view(post=extend_schema(
+    tags=["Autenticación"], summary="Renovar token de acceso",
+    description="Intercambia un refresh token válido por un nuevo access token. El refresh token anterior queda invalidado al rotar.",
+    auth=[],
+))
 class RefreshView(TokenRefreshView):
     throttle_scope = "auth"
     throttle_classes = [throttling.ScopedRateThrottle]
 
 
+@extend_schema_view(post=extend_schema(
+    tags=["Autenticación"], summary="Registrar cuenta",
+    description="Crea una cuenta de analista. Después inicie sesión para obtener los tokens JWT.",
+    auth=[],
+    examples=[OpenApiExample("Nuevo usuario", value={
+        "username": "analista", "email": "analista@example.com", "first_name": "Ana",
+        "last_name": "Pérez", "password": "ContraseñaSegura123!",
+    }, request_only=True)],
+))
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegistrationSerializer
@@ -35,6 +55,11 @@ class RegisterView(generics.CreateAPIView):
     throttle_classes = [throttling.ScopedRateThrottle]
 
 
+@extend_schema_view(
+    get=extend_schema(tags=["Mi cuenta"], summary="Consultar mi perfil"),
+    put=extend_schema(tags=["Mi cuenta"], summary="Actualizar mi perfil"),
+    patch=extend_schema(tags=["Mi cuenta"], summary="Actualizar parcialmente mi perfil"),
+)
 class MeView(generics.RetrieveUpdateAPIView):
     serializer_class = UserSerializer
 
@@ -43,7 +68,11 @@ class MeView(generics.RetrieveUpdateAPIView):
 
 
 class PasswordChangeView(APIView):
-    @extend_schema(request=PasswordChangeSerializer, responses={204: None})
+    @extend_schema(
+        tags=["Autenticación"], summary="Cambiar contraseña",
+        description="Requiere la contraseña actual. Invalida los refresh tokens existentes; vuelva a iniciar sesión.",
+        request=PasswordChangeSerializer, responses={204: None},
+    )
     def post(self, request):
         serializer = PasswordChangeSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
@@ -56,7 +85,11 @@ class PasswordChangeView(APIView):
 
 
 class LogoutView(APIView):
-    @extend_schema(request=LogoutSerializer, responses={204: None})
+    @extend_schema(
+        tags=["Autenticación"], summary="Cerrar sesión",
+        description="Invalida el refresh token enviado. El cliente debe descartar también su access token.",
+        request=LogoutSerializer, responses={204: None},
+    )
     def post(self, request):
         refresh = request.data.get("refresh")
         if not refresh:
@@ -76,6 +109,12 @@ class IsProjectAdmin(permissions.BasePermission):
         return request.user.is_authenticated and request.user.is_project_admin
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["Administración de usuarios"], summary="Listar usuarios"),
+    create=extend_schema(tags=["Administración de usuarios"], summary="Crear usuario"),
+    retrieve=extend_schema(tags=["Administración de usuarios"], summary="Consultar usuario"),
+    partial_update=extend_schema(tags=["Administración de usuarios"], summary="Cambiar rol, datos o estado"),
+)
 class UserAdminViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by("id")
     serializer_class = AdminUserSerializer

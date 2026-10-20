@@ -79,8 +79,28 @@ SIMPLE_JWT = {
 }
 SPECTACULAR_SETTINGS = {
     "TITLE": "ForestGuard API",
-    "DESCRIPTION": "Análisis histórico exploratorio de escenas Sentinel-2. No estima riesgo futuro.",
+    "DESCRIPTION": (
+        "API para cargar escenas Sentinel-2, ejecutar análisis históricos y consultar sus resultados. "
+        "Los análisis se procesan en segundo plano mediante el worker local. "
+        "No estima riesgo futuro.\n\n"
+        "**Inicio rápido:** registre una cuenta en Autenticación, obtenga un token en "
+        "`POST /api/v1/auth/token/` y use **Authorize** con el access token. "
+        "Luego cree un área, cargue un GeoTIFF y solicite un análisis. "
+        "Los recursos y resultados son privados para su propietario."
+    ),
     "VERSION": "1.0.0", "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+    "TAGS": [
+        {"name": "Autenticación", "description": "Registro, JWT, sesión y contraseña."},
+        {"name": "Mi cuenta", "description": "Perfil del usuario autenticado."},
+        {"name": "Administración de usuarios", "description": "Cuentas y roles; requiere administrador del proyecto."},
+        {"name": "Áreas de estudio", "description": "Áreas privadas que agrupan imágenes y análisis."},
+        {"name": "Imágenes satelitales", "description": "Carga y consulta de GeoTIFF Sentinel-2."},
+        {"name": "Modelos", "description": "Modelos de clasificación activos disponibles."},
+        {"name": "Análisis", "description": "Creación, estado y eliminación de análisis históricos."},
+        {"name": "Resultados", "description": "Descarga y visualización privada de artefactos."},
+    ],
+    "SWAGGER_UI_SETTINGS": {"docExpansion": "none", "filter": True, "displayRequestDuration": True},
 }
 LANGUAGE_CODE = "es-co"
 TIME_ZONE = "America/Bogota"

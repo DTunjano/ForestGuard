@@ -40,6 +40,14 @@ Active `.venv` en **cada consola** antes de ejecutar `py manage.py`; así `py` u
 
 API: `http://localhost:8000/api/v1/`. La raíz `http://localhost:8000/` redirige a Swagger en `/api/docs/`. Salud: `http://localhost:8000/health/` (`200` si PostgreSQL responde, `503` si no). El worker muestra «Esperando trabajos» al arrancar y permanece abierto en otra consola; solo procesa cuando existe un análisis en cola. Se detiene con Ctrl+C. Las migraciones son un paso explícito, no se ejecutan automáticamente en cada arranque.
 
+### Documentación interactiva de la API
+
+- Swagger UI: `http://localhost:8000/api/docs/`; ReDoc: `http://localhost:8000/api/redoc/`; esquema OpenAPI: `http://localhost:8000/api/schema/` (agregue `?format=json` para JSON).
+- Las operaciones están agrupadas en **Autenticación**, **Mi cuenta**, **Administración de usuarios**, **Áreas de estudio**, **Imágenes satelitales**, **Modelos**, **Análisis** y **Resultados**. Swagger permite filtrar por nombre o ruta.
+- Para probar una operación protegida, ejecute `POST /api/v1/auth/token/` con `username` y `password`. Pulse **Authorize** e introduzca el valor de `access` (sin el prefijo `Bearer`); Swagger enviará el encabezado `Authorization: Bearer <access>`. Al caducar, use `POST /api/v1/auth/token/refresh/` con `refresh` e introduzca el nuevo access token.
+- En la carga de imágenes seleccione `multipart/form-data`, complete los campos y elija un archivo `.tif` o `.tiff` en `file`. Después de `POST /api/v1/analyses/`, consulte `GET /api/v1/analyses/{id}/` hasta que `status` sea `completed` o `failed`. El worker debe estar activo. Los identificadores de archivo aparecen en `artifacts`; las rutas de **Resultados** permiten descargarlos o ver metadatos y PNG si son raster.
+- Las rutas de administración requieren rol `admin` o superusuario. `401` indica token ausente o inválido; `403`, permisos insuficientes; `400`, datos rechazados; `404`, recurso inexistente o ajeno. Las operaciones de listado devuelven páginas de 20 elementos por defecto.
+
 ### Arranques posteriores
 
 Antes de iniciar Django o el worker, abra Docker Desktop y, desde la raíz del repositorio, ejecute `docker compose up -d --wait db`. El comando espera hasta que PostgreSQL esté sano; `docker compose ps` debe mostrar `db` como `healthy`. Después, en sendas consolas dentro de `backend/`, active `.venv` y ejecute `py manage.py runserver` y `py manage.py run_analysis_worker`, respectivamente. Si ambos muestran `connection timeout expired`, compruebe primero `docker compose ps` y vuelva a iniciar `db`; no necesita recrear la base ni ejecutar migraciones de nuevo.
