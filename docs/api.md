@@ -32,6 +32,8 @@ POST /study-areas/
 
 La respuesta `201` devuelve identificador y metadatos inspeccionados. Errores de formato, bandas, SCL y tamaño devuelven `400`. `GET /images/` lista las escenas del usuario; `DELETE /images/{id}/` elimina una imagen que no esté usada en un análisis.
 
+Se aceptan descripciones de banda canónicas (`B2`) y con cero inicial (`B02`), opcionalmente seguidas de texto descriptivo. Se rechazan bandas requeridas duplicadas, GeoTIFF sin CRS y archivos que declaran escala u offset por banda. La API valida la estructura al cargar; el worker comprueba el contenido radiométrico al normalizar.
+
 ## Análisis
 
 ```json

@@ -55,6 +55,8 @@ docker compose run --rm api python manage.py spectacular --validate --fail-on-wa
 
 Pytest usa una base temporal de PostgreSQL creada por Django; no modifica las tablas de desarrollo. Las pruebas del pipeline deben usar escenas sintéticas o recortes pequeños y una salida aislada.
 
+`tests/test_real_raster.py` permite una comprobación adicional con un GeoTIFF Sentinel-2 real de siete bandas. Monte la carpeta de la escena como `/real:ro` en `docker compose run`, indique su ruta dentro del contenedor con `FORESTGUARD_REAL_TEST_RASTER` y la fecha `AAAA-MM-DD` con `FORESTGUARD_REAL_TEST_DATE`, y ejecute `pytest -q tests/test_real_raster.py`. La prueba se omite cuando faltan esas variables, usa una base temporal y guarda los resultados en un directorio temporal. Comprueba carga, normalización, ejecución y artefactos de una escena; no demuestra la calidad del modelo ML para pares de fechas.
+
 ## Variables de entorno
 
 `POSTGRES_DB`, `POSTGRES_USER` y `POSTGRES_PASSWORD` configuran PostgreSQL; `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS` y `DJANGO_SECURE_COOKIES` configuran el servidor; `MAX_UPLOAD_BYTES` fija el tamaño máximo por archivo. `POSTGRES_HOST`, `MEDIA_ROOT` y `PIPELINE_ROOT` tienen valores definidos por Compose. En despliegues públicos se debe terminar TLS delante de la API y configurar dominios y cookies seguras.

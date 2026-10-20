@@ -1,3 +1,5 @@
+import re
+from contextlib import ExitStack
 from pathlib import Path
 
 import rasterio
@@ -8,6 +10,16 @@ from rest_framework import serializers
 from .models import PipelineModel, SatelliteImage, StudyArea
 
 REQUIRED_BANDS = {"B2", "B3", "B4", "B5", "B8", "B11", "B12"}
+
+
+def canonical_band(description):
+    text = str(description or "").strip().upper()
+    match = re.match(r"^(B0?[2-5]|B0?8|B11|B12)(?=$|\W)", text)
+    if match:
+        return "B" + str(int(match.group(1)[1:]))
+    if re.match(r"^SCL(?=$|\W)", text):
+        return "SCL"
+    return ""
 
 
 class StudyAreaSerializer(serializers.ModelSerializer):
@@ -39,24 +51,26 @@ class SatelliteImageSerializer(serializers.ModelSerializer):
         if value.size > settings.MAX_UPLOAD_BYTES:
             raise serializers.ValidationError("El archivo supera el tamaño permitido.")
         try:
-            if hasattr(value, "temporary_file_path"):
-                raster = rasterio.open(value.temporary_file_path())
-                memory_file = None
-            else:
-                memory_file = MemoryFile(value.read())
-                raster = memory_file.open()
-            with raster as src:
-                descriptions = [str(item).upper() if item else "" for item in src.descriptions]
+            with ExitStack() as stack:
+                if hasattr(value, "temporary_file_path"):
+                    src = stack.enter_context(rasterio.open(value.temporary_file_path()))
+                else:
+                    memory_file = stack.enter_context(MemoryFile(value.read()))
+                    src = stack.enter_context(memory_file.open())
+                if src.driver != "GTiff" or src.crs is None or src.width <= 0 or src.height <= 0:
+                    raise serializers.ValidationError("Se requiere un GeoTIFF georreferenciado válido.")
+                if any(scale != 1 for scale in src.scales) or any(offset != 0 for offset in src.offsets):
+                    raise serializers.ValidationError("El raster declara escala u offset por banda.")
+                descriptions = [canonical_band(item) for item in src.descriptions]
                 if not REQUIRED_BANDS.issubset(descriptions):
                     raise serializers.ValidationError("Faltan bandas Sentinel-2 requeridas por el pipeline.")
-                if src.crs is None:
-                    raise serializers.ValidationError("El GeoTIFF debe estar georreferenciado.")
+                named = [item for item in descriptions if item]
+                if len(named) != len(set(named)):
+                    raise serializers.ValidationError("El GeoTIFF contiene bandas Sentinel-2 duplicadas.")
                 self._raster_metadata = {
                     "band_descriptions": descriptions, "crs": str(src.crs),
                     "width": src.width, "height": src.height,
                 }
-            if memory_file is not None:
-                memory_file.close()
         except rasterio.errors.RasterioError as exc:
             raise serializers.ValidationError("El archivo no es un GeoTIFF legible.") from exc
         value.seek(0)

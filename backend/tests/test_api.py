@@ -14,10 +14,11 @@ from analyses.services import claim_next_analysis, process_analysis
 from catalog.models import PipelineModel, StudyArea
 
 
-def make_geotiff(scl=True):
-    descriptions = ["B2", "B3", "B4", "B5", "B8", "B11", "B12"]
-    if scl:
-        descriptions.append("SCL")
+def make_geotiff(scl=True, descriptions=None, offset=0):
+    if descriptions is None:
+        descriptions = ["B2", "B3", "B4", "B5", "B8", "B11", "B12"]
+        if scl:
+            descriptions.append("SCL")
     data = np.full((len(descriptions), 8, 8), 0.4, dtype="float32")
     if scl:
         data[-1] = 4
@@ -25,6 +26,8 @@ def make_geotiff(scl=True):
         with mem.open(driver="GTiff", width=8, height=8, count=len(descriptions),
                       dtype="float32", crs="EPSG:32618", transform=from_origin(500000, 500000, 10, 10)) as dst:
             dst.write(data)
+            if offset:
+                dst.offsets = [offset] * len(descriptions)
             for index, description in enumerate(descriptions, 1):
                 dst.set_band_description(index, description)
         return mem.read()
@@ -96,6 +99,32 @@ def test_invalid_raster_rejected(settings, tmp_path):
         "reflectance_scale": "fraction", "file": SimpleUploadedFile("fake.tif", b"not a raster"),
     }, format="multipart")
     assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_band_aliases_and_invalid_metadata(settings, tmp_path):
+    settings.MEDIA_ROOT = tmp_path
+    user = get_user_model().objects.create_user(
+        username="bands-owner", email="bands@example.com", password="StrongPass123!",
+    )
+    area = StudyArea.objects.create(owner=user, name="Bandas")
+    client = APIClient()
+    client.force_authenticate(user=user)
+
+    def upload(data):
+        return client.post("/api/v1/images/", {
+            "study_area": area.pk, "name": "Escena", "acquisition_date": "2024-05-17",
+            "reflectance_scale": "fraction", "file": SimpleUploadedFile("scene.tif", data),
+        }, format="multipart")
+
+    names = ["B02", "B03", "B04", "B05", "B08", "B11", "B12"]
+    accepted = upload(make_geotiff(scl=False, descriptions=names))
+    assert accepted.status_code == 201, accepted.data
+    assert accepted.data["band_descriptions"] == ["B2", "B3", "B4", "B5", "B8", "B11", "B12"]
+    duplicated = upload(make_geotiff(scl=False, descriptions=names + ["B02"]))
+    assert duplicated.status_code == 400
+    scaled = upload(make_geotiff(scl=False, descriptions=names, offset=100))
+    assert scaled.status_code == 400
 
 
 @pytest.mark.django_db(transaction=True)
