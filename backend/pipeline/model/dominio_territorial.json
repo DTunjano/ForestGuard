@@ -1,0 +1,60 @@
+{
+  "sha256_dataset_supervisado": "1325457dc54463c2184eeff8d57d41886ecab5ab59fe42af5e8576645a5f9345",
+  "interpretacion": "Envolventes de observaciones supervisadas; coincidencia no valida transferencia",
+  "zonas": [
+    {
+      "grupo_zona": "deforestacion_ilegal__chiribiquete_scl_msk",
+      "crs": "EPSG:32618",
+      "envolvente_nativa": [
+        701440.0,
+        237810.0,
+        702800.0,
+        238550.0
+      ],
+      "envolvente_wgs84": [
+        -73.18874523196655,
+        2.150435688079821,
+        -73.17651293456954,
+        2.1571418799209368
+      ],
+      "observaciones": 25537,
+      "positivos": 722
+    },
+    {
+      "grupo_zona": "zona2_deforestacion_scl_msk",
+      "crs": "EPSG:32618",
+      "envolvente_nativa": [
+        661580.0,
+        234780.0,
+        662900.0,
+        235550.0
+      ],
+      "envolvente_wgs84": [
+        -73.54708657416599,
+        2.1234204036504214,
+        -73.53521327491414,
+        2.130395749427061
+      ],
+      "observaciones": 19214,
+      "positivos": 126
+    },
+    {
+      "grupo_zona": "zona3_deforestacion_scl_msk",
+      "crs": "EPSG:32618",
+      "envolvente_nativa": [
+        667690.0,
+        244770.0,
+        669160.0,
+        245460.0
+      ],
+      "envolvente_wgs84": [
+        -73.4920690766178,
+        2.2137150332717104,
+        -73.47884703488153,
+        2.2199689873941515
+      ],
+      "observaciones": 14431,
+      "positivos": 566
+    }
+  ]
+}

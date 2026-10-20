@@ -1,0 +1,79 @@
+{
+  "version": "ideam_temporal_piloto_v1",
+  "objetivo": "cambio_de_bosque_entre_dos_fechas_sentinel_2",
+  "alcance": "clasificacion_historica_exploratoria_no_riesgo_futuro",
+  "sha256_dataset_supervisado": "1325457dc54463c2184eeff8d57d41886ecab5ab59fe42af5e8576645a5f9345",
+  "bandas_raster_en_orden": [
+    "B8",
+    "B4",
+    "B3",
+    "B2",
+    "B5",
+    "B11",
+    "B12"
+  ],
+  "bandas_predictoras": [
+    "B2",
+    "B3",
+    "B4",
+    "B5",
+    "B8",
+    "B11",
+    "B12"
+  ],
+  "indices": [
+    "NDVI",
+    "NDMI",
+    "NBR",
+    "NDRE"
+  ],
+  "columnas_predictoras": [
+    "B2_t1",
+    "B2_t2",
+    "B3_t1",
+    "B3_t2",
+    "B4_t1",
+    "B4_t2",
+    "B5_t1",
+    "B5_t2",
+    "B8_t1",
+    "B8_t2",
+    "B11_t1",
+    "B11_t2",
+    "B12_t1",
+    "B12_t2",
+    "NDVI_t1",
+    "NDVI_t2",
+    "NDMI_t1",
+    "NDMI_t2",
+    "NBR_t1",
+    "NBR_t2",
+    "NDRE_t1",
+    "NDRE_t2",
+    "dNDVI",
+    "dNDMI",
+    "dNBR",
+    "dNDRE"
+  ],
+  "numero_columnas": 26,
+  "entrada": "dos_GeoTIFF_float32_7_bandas_tras_mascara_SCL",
+  "reflectancia": "fraccion_0_a_1_sin_factor_adicional",
+  "resolucion_referencia_m": 10,
+  "intervalo_entrenamiento_dias": [
+    35,
+    330
+  ],
+  "nodata": "NaN",
+  "alineacion": "fecha_final_bilineal_y_validez_nearest_a_grilla_inicial",
+  "formulas": {
+    "NDVI": "(B8-B4)/(B8+B4)",
+    "NDMI": "(B8-B11)/(B8+B11)",
+    "NBR": "(B8-B12)/(B8+B12)",
+    "NDRE": "(B8-B5)/(B8+B5)",
+    "diferencias": "indice_t2-indice_t1"
+  },
+  "umbral_clasificacion_exploratoria": 0.5,
+  "codigo_clase_sin_cambio": 0,
+  "codigo_clase_cambio": 1,
+  "codigo_sin_datos": 255
+}
