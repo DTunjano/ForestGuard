@@ -48,3 +48,5 @@ Un resultado completo incluye `resumen_serie.json`, mapas GeoTIFF y `reporte.pdf
 ## Errores y límites
 
 La API usa errores DRF estándar: `400` para validación, `401` para autenticación ausente o inválida, `403` para acciones de administrador, `404` para recursos ajenos o inexistentes y `429` para exceso de solicitudes. Los fallos del pipeline se almacenan en el análisis con `status=failed`. El cliente no debe traducir una omisión de clasificación en ausencia de deforestación: el resumen indica `estado_clasificacion=omitida` y el motivo.
+
+Las listas de áreas, imágenes, modelos y análisis aceptan `?search=texto` y `?ordering=campo` o `?ordering=-campo`. Solo se buscan recursos visibles para el usuario; los campos permitidos de ordenamiento se publican en OpenAPI.

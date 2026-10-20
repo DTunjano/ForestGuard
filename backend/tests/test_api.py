@@ -209,3 +209,17 @@ def test_stale_job_recovery_requires_explicit_execution():
     call_command("fail_stale_analyses", older_than_hours=24)
     analysis.refresh_from_db()
     assert analysis.status == Analysis.Status.FAILED
+
+
+@pytest.mark.django_db
+def test_search_and_ordering_keep_user_scope():
+    owner = get_user_model().objects.create_user(username="search-owner", email="owner@search.test", password="StrongPass123!")
+    other = get_user_model().objects.create_user(username="search-other", email="other@search.test", password="StrongPass123!")
+    StudyArea.objects.create(owner=owner, name="Zeta Meta")
+    StudyArea.objects.create(owner=owner, name="Alfa Meta")
+    StudyArea.objects.create(owner=other, name="Oculta Meta")
+    client = APIClient()
+    client.force_authenticate(user=owner)
+    response = client.get("/api/v1/study-areas/?search=Meta&ordering=name")
+    assert response.status_code == 200
+    assert [item["name"] for item in response.data["results"]] == ["Alfa Meta", "Zeta Meta"]

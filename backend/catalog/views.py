@@ -1,5 +1,5 @@
 from django.db.models.deletion import ProtectedError
-from rest_framework import parsers, serializers, viewsets
+from rest_framework import filters, parsers, serializers, viewsets
 
 from .models import PipelineModel, SatelliteImage, StudyArea
 from .serializers import PipelineModelSerializer, SatelliteImageSerializer, StudyAreaSerializer
@@ -8,6 +8,9 @@ from .serializers import PipelineModelSerializer, SatelliteImageSerializer, Stud
 class StudyAreaViewSet(viewsets.ModelViewSet):
     serializer_class = StudyAreaSerializer
     queryset = StudyArea.objects.all()
+    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
+    search_fields = ("name", "department", "municipality")
+    ordering_fields = ("name", "created_at")
 
     def get_queryset(self):
         return StudyArea.objects.filter(owner=self.request.user)
@@ -25,6 +28,9 @@ class StudyAreaViewSet(viewsets.ModelViewSet):
 class SatelliteImageViewSet(viewsets.ModelViewSet):
     serializer_class = SatelliteImageSerializer
     queryset = SatelliteImage.objects.all()
+    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
+    search_fields = ("name", "study_area__name")
+    ordering_fields = ("name", "acquisition_date", "uploaded_at")
     parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
     http_method_names = ("get", "post", "delete", "head", "options")
 
@@ -42,3 +48,6 @@ class SatelliteImageViewSet(viewsets.ModelViewSet):
 class PipelineModelViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = PipelineModel.objects.filter(active=True)
     serializer_class = PipelineModelSerializer
+    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
+    search_fields = ("name", "version")
+    ordering_fields = ("name", "version")

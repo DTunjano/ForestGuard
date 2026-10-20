@@ -3,7 +3,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.http import FileResponse, Http404
-from rest_framework import decorators, mixins, serializers, viewsets
+from rest_framework import decorators, filters, mixins, serializers, viewsets
 
 from .models import Analysis, ResultArtifact
 from .serializers import AnalysisSerializer
@@ -13,6 +13,9 @@ class AnalysisViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, mixins.
                       mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     serializer_class = AnalysisSerializer
     queryset = Analysis.objects.all()
+    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
+    search_fields = ("name", "study_area__name")
+    ordering_fields = ("name", "created_at", "status")
 
     def get_queryset(self):
         return (Analysis.objects.filter(owner=self.request.user)
