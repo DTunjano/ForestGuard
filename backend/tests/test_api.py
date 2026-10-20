@@ -3,6 +3,8 @@ import numpy as np
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.management import call_command
+from django.utils import timezone
 from rasterio.io import MemoryFile
 from rasterio.transform import from_origin
 from rest_framework.test import APIClient
@@ -159,3 +161,51 @@ def test_worker_runs_two_scene_model(settings, tmp_path):
     assert analysis.status == Analysis.Status.COMPLETED
     assert len(analysis.summary["intervalos"]) == 1
     assert analysis.summary["intervalos"][0]["estado_clasificacion"] == "ejecutada"
+
+
+@pytest.mark.django_db(transaction=True)
+def test_worker_marks_unexpected_report_error_failed(settings, tmp_path, monkeypatch):
+    settings.MEDIA_ROOT = tmp_path
+    user = get_user_model().objects.create_user(username="failure-owner", password="StrongPass123!")
+    area = StudyArea.objects.create(owner=user, name="Error")
+    client = APIClient()
+    client.force_authenticate(user=user)
+    image = client.post("/api/v1/images/", {
+        "study_area": area.pk, "name": "Escena", "acquisition_date": "2024-05-17",
+        "reflectance_scale": "fraction", "scl_factor": 1,
+        "file": SimpleUploadedFile("scene.tif", make_geotiff(), content_type="image/tiff"),
+    }, format="multipart")
+    queued = client.post("/api/v1/analyses/", {
+        "study_area": area.pk, "name": "Falla", "image_ids": [image.data["id"]],
+    }, format="json")
+    assert queued.status_code == 201
+    analysis_id = claim_next_analysis()
+
+    def fail_report(*_args):
+        raise RuntimeError("Falla simulada de reporte")
+
+    monkeypatch.setattr("analyses.services.write_report", fail_report)
+    with pytest.raises(RuntimeError, match="Falla simulada"):
+        process_analysis(analysis_id)
+    analysis = Analysis.objects.get(pk=analysis_id)
+    assert analysis.status == Analysis.Status.FAILED
+    assert analysis.finished_at is not None
+    assert "Falla simulada" in analysis.error_message
+
+
+@pytest.mark.django_db
+def test_stale_job_recovery_requires_explicit_execution():
+    from datetime import timedelta
+
+    user = get_user_model().objects.create_user(username="stale-owner", password="StrongPass123!")
+    area = StudyArea.objects.create(owner=user, name="Área")
+    analysis = Analysis.objects.create(
+        owner=user, study_area=area, name="Abandonado", status=Analysis.Status.RUNNING,
+        started_at=timezone.now() - timedelta(hours=25),
+    )
+    call_command("fail_stale_analyses", older_than_hours=24, dry_run=True)
+    analysis.refresh_from_db()
+    assert analysis.status == Analysis.Status.RUNNING
+    call_command("fail_stale_analyses", older_than_hours=24)
+    analysis.refresh_from_db()
+    assert analysis.status == Analysis.Status.FAILED

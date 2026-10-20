@@ -71,7 +71,7 @@ def process_analysis(analysis_id):
             analysis.status = Analysis.Status.COMPLETED
             analysis.finished_at = timezone.now()
             analysis.save(update_fields=("summary", "status", "finished_at"))
-    except (subprocess.SubprocessError, OSError, ValueError, KeyError, json.JSONDecodeError) as exc:
+    except Exception as exc:
         detail = (exc.stderr[-1500:] if isinstance(exc, subprocess.CalledProcessError) and exc.stderr else str(exc))
         analysis.status = Analysis.Status.FAILED
         analysis.error_message = detail[:2000]
