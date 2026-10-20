@@ -1,0 +1,32 @@
+{
+  "version": "forestguard_historico_v7",
+  "python_creacion": "3.13.7",
+  "dependencias": {
+    "numpy": "2.5.3",
+    "rasterio": "1.5.1",
+    "pandas": "3.0.5",
+    "scikit-learn": "1.9.0",
+    "joblib": "1.6.0"
+  },
+  "archivos_sha256": {
+    "src\\forestguard_pipeline.py": "0a2f77909d99d2a1e4e66f9749f364c7102ccdcd2fee6e42ee3a8926f7bd7544",
+    "src\\normalizar_entrada_forestguard.py": "10ab3e3035aed46e160553a3483de8aa4077acf95bc9343562438fe11be3bbfe",
+    "src\\normalizar_safe_l2a_ventanas.py": "65f8204044abad34067127ea3bd3b399e9fbc92b14e81cea6d22ea84d600e40b",
+    "src\\normalizar_producto_safe_l2a.py": "49d3cffefcd9c859eb7e1677d8652e1ed4329afc822e66d229e9ab32eefad71c",
+    "src\\normalizar_stac_cog_ventanas.py": "59227cf1e6f6607453dfafc7844b6c6fa6903282c488ac46eea6cd02b7915974",
+    "src\\inferir_par_ideam_ventanas.py": "51cc45e7ab10372923563d1a21795126babdcde9f22e564a17202215cfd4d8e2",
+    "src\\inferir_par_ideam.py": "91a1fa273444b1d06d88035c24c5978d8fa7a5869d50434d8f67615938ee465c",
+    "src\\resumir_salida_cambio_historico.py": "fc585f82e597780c4293ee640511b1bec4e6a179c08cf52b683dcec4ce473576",
+    "src\\calcular_indices_cambios_scl.py": "2abf31f0b759a01fee0f43c3d0c10440127fb8b29ade211801dc2a67714ba98e",
+    "src\\esquema_bandas_forestguard.py": "c0ce86f8dcc8b45adc62db32819466fd1161f30a465ce85c8407a837fb3df873",
+    "src\\contrato_inferencia_ideam.py": "97dbe0e21f34977191708c5b4cd5aef9d892e1656c3873ff8134fdbccf406535",
+    "src\\construir_dataset_ml_ideam.py": "d620a5d7d13641af3705faa5fcd13487fa9c33aeae3143e13d6158de3fc426ac",
+    "src\\dominio_territorial_ideam.py": "635aaebfeddc426383646bf33c4a5f2a6479488d26b5a80b7c3e98c032ad560f",
+    "model\\modelo_exploratorio.joblib": "df0f951bc5c1e1014420a23e6d11b7c9fd271a534ce4c7b2db9fabf2df5bdafc",
+    "model\\contrato_inferencia.json": "ae1405d3f15586784b5653a297927b43788e7a2aa65e05286417a5fe25f8bd00",
+    "model\\dominio_territorial.json": "a2daf32aeed7785a3b3145b8b6a2f1f7e15888598c1ceebb30b2c99bc8f6e8ce",
+    "model\\perfil_desempeno.json": "e7ad47e46c47aa69630f913847bdbd15f27edbffaa14417108f39d7a952b12f5",
+    "src/forestguard_pipeline.py": "ec4b8dedb6fe0f5ecc7f6d65a7eeefb5bdd0920d27040f7c3512db3815b18c9e"
+  },
+  "alcance": "índices, indicios de degradación y cambio histórico exploratorio; sin riesgo futuro"
+}

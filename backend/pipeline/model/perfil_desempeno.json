@@ -1,0 +1,76 @@
+{
+  "modelo": "v9_cambio_historico_exploratorio",
+  "sha256_dataset_supervisado": "1325457dc54463c2184eeff8d57d41886ecab5ab59fe42af5e8576645a5f9345",
+  "confianza_global_validada": null,
+  "puntaje_calibrado_como_probabilidad": false,
+  "interpretacion_puntaje": "predict_proba de Random Forest: puntaje relativo de cambio histórico, no porcentaje de certeza individual",
+  "umbral_operativo_exploratorio": 0.5,
+  "validacion_dejando_una_zona_fuera": [
+    {
+      "zona": "zona2",
+      "version": 9,
+      "filas_evaluacion": 19214,
+      "positivos_evaluacion": 126,
+      "TP": 85,
+      "FN": 41,
+      "FP": 140,
+      "TN": 18948,
+      "precision": 0.37777777777777777,
+      "sensibilidad": 0.6746031746031746,
+      "average_precision": 0.4513923970996895
+    },
+    {
+      "zona": "chiribiquete",
+      "version": 9,
+      "filas_evaluacion": 25537,
+      "positivos_evaluacion": 722,
+      "TP": 432,
+      "FN": 290,
+      "FP": 227,
+      "TN": 24588,
+      "precision": 0.6555386949924128,
+      "sensibilidad": 0.5983379501385041,
+      "average_precision": 0.6094240674708267
+    },
+    {
+      "zona": "zona3",
+      "version": 9,
+      "filas_evaluacion": 14431,
+      "positivos_evaluacion": 566,
+      "TP": 443,
+      "FN": 123,
+      "FP": 109,
+      "TN": 13756,
+      "precision": 0.802536231884058,
+      "sensibilidad": 0.7826855123674912,
+      "average_precision": 0.8351954788178475
+    }
+  ],
+  "sectores_externos_ya_examinados": [
+    {
+      "sector": "sector05",
+      "version": 9,
+      "TP": 2,
+      "FN": 117,
+      "FP": 2,
+      "TN": 6711,
+      "sensibilidad_subconjunto": 0.01680672268907563,
+      "precision_subconjunto": 0.5,
+      "average_precision_subconjunto": 0.819561577454277,
+      "predicciones_1_sin_etiqueta": 9
+    },
+    {
+      "sector": "sector09",
+      "version": 9,
+      "TP": 77,
+      "FN": 0,
+      "FP": 75,
+      "TN": 3467,
+      "sensibilidad_subconjunto": 1.0,
+      "precision_subconjunto": 0.506578947368421,
+      "average_precision_subconjunto": 0.9510036343115567,
+      "predicciones_1_sin_etiqueta": 92
+    }
+  ],
+  "limite": "Tres zonas supervisadas; eventos y píxeles correlacionados; Meta 05 y 09 no son un holdout futuro intacto; no hay desempeño nacional estimado"
+}
