@@ -4,7 +4,11 @@ Base: `/api/v1/`. La documentación generada por el código está en `/api/docs/
 
 ## Autenticación
 
-`POST /auth/register/` recibe `username`, `email`, `password`, `first_name` y `last_name`. Los nuevos usuarios tienen rol `analyst`. `POST /auth/token/` recibe `username` y `password`, y devuelve `access` y `refresh`. `POST /auth/token/refresh/` recibe `refresh`; rota el token. `POST /auth/logout/` recibe el `refresh` actual y lo revoca. `GET/PATCH /auth/me/` consulta o edita nombre, apellido y correo propios. La administración de usuarios está limitada a `GET/PATCH /admin/users/` para el rol `admin`.
+`POST /auth/register/` recibe `username`, `email`, `password` y, opcionalmente, `first_name` y `last_name`. El correo se guarda en minúsculas y no puede repetirse con otra combinación de mayúsculas. Los nuevos usuarios tienen rol `analyst`. `POST /auth/token/` recibe `username` y `password`, y devuelve `access` y `refresh`. `POST /auth/token/refresh/` recibe `refresh`; rota el token. Los tres endpoints públicos de autenticación comparten un límite de 10 solicitudes por minuto por cliente.
+
+`POST /auth/logout/` recibe el `refresh` actual y lo revoca. `GET/PATCH /auth/me/` consulta o edita nombre, apellido y correo propios. `POST /auth/password/change/` recibe `old_password` y `new_password`; devuelve `204` y revoca los tokens anteriores, incluido el access token. El cliente debe borrar sus tokens y volver a iniciar sesión. No hay restablecimiento de contraseña por correo: requiere configurar antes un servicio de envío fiable.
+
+`GET/POST/PATCH /admin/users/` permite a un administrador listar, crear y editar usuarios. La creación requiere `username`, `email` y `password`; admite `role` (`analyst` o `admin`) e `is_active`. La edición admite rol y estado, pero un administrador no puede desactivar su propia cuenta ni quitarse su propio rol. Las cuentas se desactivan sin borrar los análisis históricos. No se expone eliminación de usuarios. Las listas de usuarios admiten `search` y `ordering`.
 
 ## Imágenes y áreas
 

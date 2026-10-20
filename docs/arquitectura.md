@@ -29,7 +29,7 @@ La API recibe y valida metadatos y archivos. PostgreSQL guarda la relación entr
 
 ## Decisiones de seguridad
 
-JWT de 15 minutos, refresh de 7 días con rotación y lista de revocación. El registro público siempre crea analistas. Los objetos se filtran por propietario y las descargas comprueban pertenencia y ruta interna. Las cargas se limitan por tamaño y se inspeccionan con Rasterio. CORS permite únicamente orígenes declarados. Los secretos se leen de `.env` y este archivo está ignorado por Git. El modelo `joblib` se incluye como archivo confiable; la API no acepta modelos enviados por usuarios.
+JWT de 15 minutos, refresh de 7 días con rotación y lista de revocación. Los tokens incorporan una huella de la contraseña: al cambiarla se invalidan también los access tokens anteriores. El registro público siempre crea analistas; el inicio de sesión, la renovación y el registro tienen límite de solicitudes. Los objetos se filtran por propietario y las descargas comprueban pertenencia y ruta interna. Las cargas se limitan por tamaño y se inspeccionan con Rasterio. CORS permite únicamente orígenes declarados. Los secretos se leen de `.env` y este archivo está ignorado por Git. El modelo `joblib` se incluye como archivo confiable; la API no acepta modelos enviados por usuarios.
 
 ## Limitaciones actuales
 
