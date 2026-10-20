@@ -16,7 +16,7 @@ backend/
   tests/         contratos y flujos de integración
 ```
 
-La API recibe y valida metadatos y archivos. PostgreSQL guarda la relación entre usuarios, áreas, escenas, análisis y artefactos. Un proceso trabajador separado toma trabajos en cola con bloqueo de fila, normaliza cada escena y llama al pipeline. Los GeoTIFF originales, copias normalizadas y resultados viven en el volumen `media_data`. API y worker comparten ese volumen. Las rutas de archivos nunca se reciben desde el cliente para ejecutar el pipeline. El módulo `raster_preview` lee un raster de resultado a resolución limitada y genera una vista PNG temporal para el mapa; la API entrega además CRS, límites WGS84 y leyenda, sin publicar el volumen de archivos.
+La API recibe y valida metadatos y archivos. PostgreSQL, el único servicio en Docker Compose, guarda la relación entre usuarios, áreas, escenas, análisis y artefactos. Django y un proceso trabajador separado se ejecutan desde el entorno virtual local; el trabajador toma trabajos en cola con bloqueo de fila, normaliza cada escena y llama al pipeline. Los GeoTIFF originales, copias normalizadas y resultados viven en `backend/media/`, compartido por ambos procesos locales e ignorado por Git. Las rutas de archivos nunca se reciben desde el cliente para ejecutar el pipeline. El módulo `raster_preview` lee un raster de resultado a resolución limitada y genera una vista PNG temporal para el mapa; la API entrega además CRS, límites WGS84 y leyenda, sin publicar la carpeta de archivos.
 
 ## Diferencias justificadas frente al diagrama inicial
 

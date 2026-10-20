@@ -5,8 +5,10 @@ from datetime import timedelta
 from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR.parent / ".env", override=False)
 
 
 def env_bool(name: str, default: bool = False) -> bool:
@@ -50,7 +52,7 @@ ASGI_APPLICATION = "backend.asgi.application"
 DATABASES = {"default": {
     "ENGINE": "django.db.backends.postgresql", "NAME": os.getenv("POSTGRES_DB", "forestguard"),
     "USER": os.getenv("POSTGRES_USER", "forestguard"), "PASSWORD": os.getenv("POSTGRES_PASSWORD", ""),
-    "HOST": os.getenv("POSTGRES_HOST", "db"), "PORT": os.getenv("POSTGRES_PORT", "5432"),
+    "HOST": os.getenv("POSTGRES_HOST", "127.0.0.1"), "PORT": os.getenv("POSTGRES_PORT", "5432"),
     "CONN_MAX_AGE": 60,
 }}
 AUTH_USER_MODEL = "accounts.User"

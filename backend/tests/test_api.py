@@ -156,6 +156,7 @@ def test_worker_runs_packaged_pipeline_for_one_scene(settings, tmp_path):
     report = analysis.artifacts.get(relative_path="reporte.pdf")
     response = client.get(f"/api/v1/analyses/{analysis_id}/artifacts/{report.pk}/download/")
     assert response.status_code == 200
+    response.close()
     ndvi = analysis.artifacts.get(relative_path="fechas/2024-05-17/NDVI.tif")
     assert client.get(f"/api/v1/analyses/{analysis_id}/artifacts/{ndvi.pk}/metadata/").status_code == 200
     preview = client.get(f"/api/v1/analyses/{analysis_id}/artifacts/{ndvi.pk}/preview/")
