@@ -3,6 +3,13 @@ from django.db import DatabaseError, connection
 from rest_framework.test import APIClient
 
 
+def test_root_redirects_to_api_docs():
+    response = APIClient().get("/")
+    assert response.status_code == 302
+    assert response["Location"] == "/api/docs/"
+    assert APIClient().get("/favicon.ico").status_code == 204
+
+
 @pytest.mark.django_db
 def test_health_checks_postgresql(monkeypatch):
     client = APIClient()

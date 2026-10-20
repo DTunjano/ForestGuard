@@ -16,17 +16,28 @@ class Command(BaseCommand):
         parser.add_argument("--once", action="store_true")
 
     def handle(self, *args, **options):
+        if not options["once"]:
+            self.stdout.write("Worker de análisis activo. Esperando trabajos (Ctrl+C para detener).")
         while True:
             close_old_connections()
             analysis_id = claim_next_analysis()
             if analysis_id is None:
                 if options["once"]:
+                    self.stdout.write("No hay análisis pendientes.")
                     return
-                time.sleep(2)
+                try:
+                    time.sleep(2)
+                except KeyboardInterrupt:
+                    self.stdout.write("\nWorker detenido.")
+                    return
                 continue
+            self.stdout.write(f"Procesando análisis {analysis_id}...")
             try:
                 process_analysis(analysis_id)
             except Exception:
                 logger.exception("Analysis %s failed", analysis_id)
+                self.stderr.write(f"El análisis {analysis_id} falló; revise el registro.")
+            else:
+                self.stdout.write(f"Análisis {analysis_id} completado.")
             if options["once"]:
                 return

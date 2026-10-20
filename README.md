@@ -38,7 +38,7 @@ py manage.py run_analysis_worker
 
 Active `.venv` en **cada consola** antes de ejecutar `py manage.py`; así `py` usa las dependencias del proyecto. Compruebe el lanzador con `py --version` y el entorno activo con `py -c "import sys; print(sys.executable)"`: debe mostrar `backend/.venv/Scripts/python.exe`. Si la activación de PowerShell está restringida en otro equipo, puede ejecutar directamente `& ./.venv/Scripts/python.exe manage.py runserver`. Django carga automáticamente el `.env` de la raíz del repositorio sin sobrescribir variables ya definidas en el sistema. PostgreSQL solo escucha en `127.0.0.1` en el puerto `POSTGRES_PORT` (5432 por defecto); si está ocupado, use otro puerto, por ejemplo 5433, en `.env`. Las cargas y resultados quedan en `backend/media/`, ignorado por Git.
 
-API: `http://localhost:8000/api/v1/`. Swagger: `http://localhost:8000/api/docs/`. Salud: `http://localhost:8000/health/` (`200` si PostgreSQL responde, `503` si no). El worker toma trabajos pendientes desde PostgreSQL; debe permanecer abierto en otra consola. Las migraciones son un paso explícito, no se ejecutan automáticamente en cada arranque.
+API: `http://localhost:8000/api/v1/`. La raíz `http://localhost:8000/` redirige a Swagger en `/api/docs/`. Salud: `http://localhost:8000/health/` (`200` si PostgreSQL responde, `503` si no). El worker muestra «Esperando trabajos» al arrancar y permanece abierto en otra consola; solo procesa cuando existe un análisis en cola. Se detiene con Ctrl+C. Las migraciones son un paso explícito, no se ejecutan automáticamente en cada arranque.
 
 ### Arranques posteriores
 
