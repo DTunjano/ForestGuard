@@ -11,6 +11,7 @@ from drf_spectacular.utils import (
     extend_schema_view,
 )
 from rest_framework import decorators, filters, mixins, serializers, viewsets
+from rest_framework.negotiation import DefaultContentNegotiation
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -27,7 +28,16 @@ def artifact_file(artifact):
     return target
 
 
+class PreviewContentNegotiation(DefaultContentNegotiation):
+    """The success response is a Django PNG response; DRF renders only errors."""
+
+    def select_renderer(self, request, renderers, format_suffix=None):
+        return renderers[0], renderers[0].media_type
+
+
 class ArtifactPreviewView(APIView):
+    content_negotiation_class = PreviewContentNegotiation
+
     @extend_schema(
         tags=["Resultados"], summary="Ver PNG de un artefacto raster",
         description=("Solo se necesita el ID del artefacto, disponible en `artifacts` del análisis. "
