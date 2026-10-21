@@ -32,6 +32,8 @@ class ResultArtifactSerializer(serializers.ModelSerializer):
             return "Resumen y métricas en JSON"
         if path.name == "visualizacion_individual.png":
             return "Lámina de resultados individuales en PNG"
+        if path.name == "visualizacion_individual_contraste.png":
+            return "Lámina individual en contraste rojo–azul (valores, no cambios)"
         if path.name == "visualizacion_comparativa.png":
             return "Lámina de cambios entre fechas en PNG"
         stem = path.stem.replace("_", " ")

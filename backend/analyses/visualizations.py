@@ -69,6 +69,22 @@ def _index_map(path, low, high, start, end):
     return _panel(Image.fromarray(array))
 
 
+def _index_contrast_map(path, low, high):
+    band = _sample(path)[0]
+    values = band.filled(np.nan)
+    valid = ~np.ma.getmaskarray(band) & np.isfinite(values)
+    fraction = np.clip((np.nan_to_num(values, nan=low) - low) / (high - low), 0, 1)
+    red = np.array((188, 46, 46))
+    neutral = np.array((245, 244, 238))
+    blue = np.array((40, 110, 180))
+    array = np.where(fraction[..., None] < .5,
+                     red + (neutral - red) * (fraction[..., None] * 2),
+                     neutral + (blue - neutral) * ((fraction[..., None] - .5) * 2))
+    array = array.astype("uint8")
+    array[~valid] = (221, 225, 226)
+    return _panel(Image.fromarray(array))
+
+
 def _delta_map(path):
     band = _sample(path)[0]
     values = band.filled(np.nan)
@@ -98,6 +114,33 @@ def _class_map(path, proxy=False):
 def _blank(message):
     image = Image.new("RGB", PANEL, "#eff2ef")
     ImageDraw.Draw(image).text((15, 70), message, font=SMALL, fill=MUTED)
+    return image
+
+
+def _range_chart(items, minimum, maximum, change=False):
+    """Show p10-p90 and the mean for each index in a compact panel."""
+    image = Image.new("RGB", PANEL, "#f7faf8")
+    draw = ImageDraw.Draw(image)
+    left, right = 95, 302
+
+    def coordinate(value):
+        return left + round((min(max(value, minimum), maximum) - minimum) /
+                            (maximum - minimum) * (right - left))
+
+    if change:
+        zero = coordinate(0)
+        draw.line((zero, 12, zero, 151), fill="#aebec5", width=1)
+    for row, (label, stats) in enumerate(items):
+        y = 26 + row * 37
+        draw.text((10, y - 9), label, font=SMALL, fill=INK)
+        draw.line((left, y, right, y), fill="#d3dedd", width=2)
+        low, high, mean = (stats.get(key) for key in ("p10", "p90", "media"))
+        if None in (low, high, mean):
+            continue
+        color = "#3b8653" if not change else ("#bd4242" if mean < 0 else "#3279b0")
+        draw.line((coordinate(low), y, coordinate(high), y), fill=color, width=5)
+        x = coordinate(mean)
+        draw.ellipse((x - 5, y - 5, x + 5, y + 5), fill=INK)
     return image
 
 
@@ -142,7 +185,7 @@ def _stat_text(stats):
             f"p10 {_metric(stats.get('p10'))}   p90 {_metric(stats.get('p90'))}")
 
 
-def _scene_block(canvas, draw, y, scene, path, output):
+def _scene_block(canvas, draw, y, scene, path, output, palette="vegetacion"):
     date = scene["fecha"]
     draw.text((25, y), f"Fecha {date}", font=LABEL, fill=INK)
     coverage = scene.get("area_observada_ha_aprox")
@@ -156,27 +199,36 @@ def _scene_block(canvas, draw, y, scene, path, output):
                                ("NBR", 0, second_row), ("NDRE", 1, second_row)):
         low, high = INDEX_SCALES[index]
         raster = output / "fechas" / date / f"{index}.tif"
-        image = _index_map(raster, low, high, (227, 190, 76), (32, 117, 59))
+        image = (_index_contrast_map(raster, low, high) if palette == "contraste"
+                 else _index_map(raster, low, high, (227, 190, 76), (32, 117, 59)))
+        colors = "rojo bajo · azul alto" if palette == "contraste" else "ocre a verde"
         _tile(canvas, draw, column, row, index, image,
-              _stat_text(scene["indices"][index]), f"Escala: {low:+.1f} a {high:+.1f} · ocre a verde")
-    _tile(canvas, draw, 2, second_row, "Lectura de los índices", _blank("Valor por píxel en cada mapa"),
-          "Medias y percentiles de píxeles válidos", "Las manchas requieren revisión")
+              _stat_text(scene["indices"][index]), f"Escala: {low:+.1f} a {high:+.1f} · {colors}")
+    _tile(canvas, draw, 2, second_row, "Distribución de índices",
+          _range_chart([(key, scene["indices"][key]) for key in INDEX_SCALES], -1, 1),
+          "Barra: p10–p90 · punto: media", "Eje fijo: −1 a +1")
 
 
 def _individual_summary(summary, output, normalized_paths):
     scenes = list(zip(summary["escenas"], normalized_paths))
     if not scenes:
         return
-    board, draw = _board("ForestGuard | Resultados individuales",
-                         "Índices con escalas fijas. Ocre: valor bajo; verde: valor alto. No confirman deforestación.",
-                         len(scenes))
-    for number, (scene, path) in enumerate(scenes):
-        _scene_block(board, draw, 100 + number * BLOCK, scene, path, output)
-        single, single_draw = _board("ForestGuard | Resultado individual",
-                                     "Índices espectrales y métricas de una fecha.", 1)
-        _scene_block(single, single_draw, 100, scene, path, output)
-        single.save(output / "fechas" / scene["fecha"] / "resumen_fecha.png", optimize=True)
-    board.save(output / "visualizacion_individual.png", optimize=True)
+    for palette in ("vegetacion", "contraste"):
+        contrast = palette == "contraste"
+        suffix = "_contraste" if contrast else ""
+        note = ("Rojo: valor bajo; azul: valor alto. Son valores de una fecha, no cambios temporales."
+                if contrast else
+                "Índices con escalas fijas. Ocre: valor bajo; verde: valor alto. No confirman deforestación.")
+        board, draw = _board("ForestGuard | Resultados individuales" +
+                             (" · contraste" if contrast else ""), note, len(scenes))
+        for number, (scene, path) in enumerate(scenes):
+            _scene_block(board, draw, 100 + number * BLOCK, scene, path, output, palette)
+            single, single_draw = _board("ForestGuard | Resultado individual" +
+                                         (" · contraste" if contrast else ""), note, 1)
+            _scene_block(single, single_draw, 100, scene, path, output, palette)
+            single.save(output / "fechas" / scene["fecha"] / f"resumen_fecha{suffix}.png",
+                        optimize=True)
+        board.save(output / f"visualizacion_individual{suffix}.png", optimize=True)
 
 
 def _interval_block(canvas, draw, y, interval, output):
@@ -202,10 +254,16 @@ def _interval_block(canvas, draw, y, interval, output):
           "Rojo: indicio · ocre: fuera de proxy")
     classification = folder / "clasificacion_piloto" / "clasificacion_cambio_exploratoria.tif"
     surface = (interval.get("superficie") or {}).get("area_clase_1_ha_aprox")
-    _tile(canvas, draw, 2, second_row, "Modelo v9 · clase 1",
-          _class_map(classification) if classification.is_file() else _blank("Sin clasificación v9"),
-          f"Clase 1: {surface:.2f} ha" if surface is not None else "v9 no ejecutado",
-          "Clasificación exploratoria")
+    if classification.is_file():
+        _tile(canvas, draw, 2, second_row, "Modelo v9 · clase 1",
+              _class_map(classification),
+              f"Clase 1: {surface:.2f} ha" if surface is not None else "Clase 1: sin datos",
+              "Clasificación exploratoria")
+    else:
+        changes = ((key, interval["diferencias"][f"d{key}"]) for key in INDEX_SCALES)
+        _tile(canvas, draw, 2, second_row, "Distribución de cambios",
+              _range_chart(changes, -.2, .2, change=True),
+              "Barra: p10–p90 · punto: media", "v9 no ejecutado en este intervalo")
 
 
 def _comparative_summary(summary, output):

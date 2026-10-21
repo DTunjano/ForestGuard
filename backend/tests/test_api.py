@@ -245,7 +245,11 @@ def test_worker_runs_packaged_pipeline_for_one_scene(settings, tmp_path):
     assert analysis.artifacts.filter(relative_path="resumen_serie.json").exists()
     assert analysis.artifacts.filter(relative_path="reporte.pdf", kind="report").exists()
     assert analysis.artifacts.filter(relative_path="visualizacion_individual.png", kind="visualization").exists()
+    assert analysis.artifacts.filter(relative_path="visualizacion_individual_contraste.png",
+                                     kind="visualization").exists()
     assert analysis.artifacts.filter(relative_path="fechas/2024-05-17/resumen_fecha.png",
+                                     kind="visualization").exists()
+    assert analysis.artifacts.filter(relative_path="fechas/2024-05-17/resumen_fecha_contraste.png",
                                      kind="visualization").exists()
     assert analysis.artifacts.filter(relative_path="fechas/2024-05-17/NDVI.png", kind="visualization").exists()
     with Image.open(tmp_path / "results" / str(analysis_id) / "visualizacion_individual.png") as board_image:
@@ -284,6 +288,7 @@ def test_worker_runs_packaged_pipeline_for_one_scene(settings, tmp_path):
         names = bundle.namelist()
         assert "resumen_serie.json" in names and "reporte.pdf" in names
         assert "visualizacion_individual.png" in names
+        assert "visualizacion_individual_contraste.png" in names
         assert "png/fechas/2024-05-17/resumen_fecha.png" in names
         assert "LEEME_RESULTADOS.txt" in names
         assert "png/fechas/2024-05-17/NDVI.png" in names

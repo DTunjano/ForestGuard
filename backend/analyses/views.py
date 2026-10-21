@@ -45,7 +45,7 @@ def _result_groups(analysis):
             continue
         if path in ("resumen_serie.json", "reporte.pdf"):
             groups["reports"].append(item)
-        elif path == "visualizacion_individual.png" or path.startswith("fechas/"):
+        elif path in ("visualizacion_individual.png", "visualizacion_individual_contraste.png") or path.startswith("fechas/"):
             groups["individual"].append(item)
         elif path == "visualizacion_comparativa.png" or path.startswith("intervalos/"):
             groups["comparisons"].append(item)
@@ -191,6 +191,8 @@ class AnalysisExportView(APIView):
                 output.writestr("LEEME_RESULTADOS.txt", (
                     "ForestGuard - resultados del análisis\n"
                     "Abra visualizacion_individual.png para ver índices, mapas y métricas por fecha.\n"
+                    "Abra visualizacion_individual_contraste.png para los mismos índices en rojo-neutro-azul.\n"
+                    "En esa lámina, rojo indica valor bajo del índice, no pérdida entre fechas.\n"
                     "Abra visualizacion_comparativa.png para ver cambios y métricas entre fechas.\n"
                     "Las carpetas png/ y tiff/ contienen los mapas individuales.\n"
                     "resumen_serie.json guarda todas las métricas; reporte.pdf es el informe.\n"
@@ -210,6 +212,7 @@ class AnalysisExportView(APIView):
                                 output.writestr(f"png/{png_path}", render_preview(path, max_size=1024))
                     elif item.kind == "visualization" and export_format in ("png", "both"):
                         board = item.relative_path in ("visualizacion_individual.png",
+                                                       "visualizacion_individual_contraste.png",
                                                        "visualizacion_comparativa.png")
                         output.write(path, item.relative_path if board else f"png/{item.relative_path}")
                     elif item.kind in ("report", "metadata"):
