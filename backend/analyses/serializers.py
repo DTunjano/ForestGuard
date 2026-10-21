@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.urls import reverse
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -8,9 +9,19 @@ from .models import Analysis, AnalysisImage, ResultArtifact
 
 
 class ResultArtifactSerializer(serializers.ModelSerializer):
+    preview_url = serializers.SerializerMethodField(help_text="Ruta privada de la vista PNG; solo para raster.")
+
     class Meta:
         model = ResultArtifact
-        fields = ("id", "kind", "relative_path", "size_bytes", "created_at")
+        fields = ("id", "kind", "relative_path", "size_bytes", "preview_url", "created_at")
+
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_preview_url(self, obj):
+        if obj.kind != "raster":
+            return None
+        request = self.context.get("request")
+        path = reverse("artifact-preview", kwargs={"artifact_id": obj.pk})
+        return request.build_absolute_uri(path) if request else path
 
 
 class AnalysisSerializer(serializers.ModelSerializer):

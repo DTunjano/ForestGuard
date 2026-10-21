@@ -3,19 +3,43 @@ from pathlib import Path
 
 from django.conf import settings
 from django.http import FileResponse, Http404, HttpResponse
+from django.shortcuts import get_object_or_404
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiExample,
-    OpenApiParameter,
     extend_schema,
     extend_schema_view,
 )
 from rest_framework import decorators, filters, mixins, serializers, viewsets
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .models import Analysis, ResultArtifact
 from .raster_preview import raster_metadata, render_preview
 from .serializers import AnalysisSerializer
+
+
+def artifact_file(artifact):
+    root = (Path(settings.MEDIA_ROOT) / "results" / str(artifact.analysis_id)).resolve()
+    target = (root / artifact.relative_path).resolve()
+    if not target.is_relative_to(root) or not target.is_file():
+        raise Http404
+    return target
+
+
+class ArtifactPreviewView(APIView):
+    @extend_schema(
+        tags=["Resultados"], summary="Ver PNG de un artefacto raster",
+        description=("Solo se necesita el ID del artefacto, disponible en `artifacts` del análisis. "
+                     "El servidor elige automáticamente el tamaño de la miniatura. "
+                     "El PNG es privado y requiere autenticación."),
+        responses={(200, "image/png"): OpenApiTypes.BINARY},
+    )
+    def get(self, request, artifact_id):
+        artifact = get_object_or_404(
+            ResultArtifact, pk=artifact_id, analysis__owner=request.user, kind="raster",
+        )
+        return HttpResponse(render_preview(artifact_file(artifact)), content_type="image/png")
 
 
 @extend_schema_view(
@@ -88,12 +112,7 @@ class AnalysisViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, mixins.
             raise Http404
         return Response(raster_metadata(target))
 
-    @extend_schema(
-        tags=["Resultados"], summary="Ver miniatura PNG de raster",
-        description="Genera una vista previa privada. Los píxeles sin datos son transparentes; solo acepta artefactos raster.",
-        parameters=[OpenApiParameter("max_size", int, description="Lado máximo en píxeles (64 a 1024).")],
-        responses={(200, "image/png"): OpenApiTypes.BINARY},
-    )
+    @extend_schema(exclude=True)
     @decorators.action(detail=True, methods=["get"], url_path="artifacts/(?P<artifact_id>[0-9]+)/preview")
     def preview(self, request, pk=None, artifact_id=None):
         artifact, target = self._artifact_file(artifact_id)
@@ -111,8 +130,4 @@ class AnalysisViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, mixins.
         artifact = ResultArtifact.objects.filter(analysis=analysis, pk=artifact_id).first()
         if artifact is None:
             raise Http404
-        root = (Path(settings.MEDIA_ROOT) / "results" / str(analysis.pk)).resolve()
-        target = (root / artifact.relative_path).resolve()
-        if not target.is_relative_to(root) or not target.is_file():
-            raise Http404
-        return artifact, target
+        return artifact, artifact_file(artifact)

@@ -38,9 +38,12 @@ def test_preview_metadata_and_owner_scope(settings, tmp_path):
     )
     base = f"/api/v1/analyses/{analysis.pk}/artifacts/{artifact.pk}"
     client = APIClient()
+    simple_preview = f"/api/v1/artifacts/{artifact.pk}/preview/"
+    assert client.get(simple_preview).status_code == 401
     client.force_authenticate(user=other)
     assert client.get(f"{base}/metadata/").status_code == 404
     assert client.get(f"{base}/preview/").status_code == 404
+    assert client.get(simple_preview).status_code == 404
     client.force_authenticate(user=owner)
     metadata = client.get(f"{base}/metadata/")
     assert metadata.status_code == 200
@@ -49,6 +52,8 @@ def test_preview_metadata_and_owner_scope(settings, tmp_path):
     assert metadata.data["style"]["type"] == "classes"
     preview = client.get(f"{base}/preview/")
     assert preview.status_code == 200 and preview["Content-Type"] == "image/png"
+    assert client.get(simple_preview).content == preview.content
+    assert client.get(f"/api/v1/analyses/{analysis.pk}/").data["artifacts"][0]["preview_url"].endswith(simple_preview)
     pixels = Image.open(BytesIO(preview.content)).convert("RGBA")
     assert pixels.size == (2, 2)
     assert pixels.getpixel((0, 0)) == (56, 161, 105, 255)
@@ -83,5 +88,6 @@ def test_preview_rejects_non_raster_and_escape_path(settings, tmp_path):
     for artifact in (report, escape):
         base = f"/api/v1/analyses/{analysis.pk}/artifacts/{artifact.pk}"
         assert client.get(f"{base}/preview/").status_code == 404
+        assert client.get(f"/api/v1/artifacts/{artifact.pk}/preview/").status_code == 404
         assert client.get(f"{base}/metadata/").status_code == 404
     assert client.get(f"/api/v1/analyses/{analysis.pk}/artifacts/{escape.pk}/download/").status_code == 404
