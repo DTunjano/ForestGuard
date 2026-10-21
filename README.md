@@ -56,7 +56,7 @@ Antes de iniciar Django o el worker, abra Docker Desktop y, desde la raíz del r
 
 1. Registrar usuario en `POST /api/v1/auth/register/`; obtener JWT con `POST /api/v1/auth/token/` y renovar con `POST /api/v1/auth/token/refresh/`.
 2. Crear área en `POST /api/v1/study-areas/`.
-3. Cargar cada GeoTIFF multibanda en `POST /api/v1/images/` con `multipart/form-data`: `study_area`, `name`, `acquisition_date` (`AAAA-MM-DD`), `reflectance_scale` (`fraction` o `divide_10000`), `scl_factor` (`1` o `10000` si hay SCL), `file`.
+3. Cargar cada GeoTIFF multibanda en `POST /api/v1/images/` con `multipart/form-data`: `study_area` y `file`; `name` es opcional. El servidor extrae la fecha de adquisición de los metadatos o del nombre del archivo (por ejemplo, `2025_01_19`), detecta la escala de reflectancia y el factor SCL, y devuelve esos valores como campos de solo lectura. `uploaded_at` registra por separado la fecha de carga. Si no puede inferir algún dato de forma segura, la API explica el motivo y rechaza el archivo.
 4. Crear análisis con `POST /api/v1/analyses/`: `name`, `study_area`, `image_ids` y `model_id` opcional. Con una imagen se obtienen índices; con varias fechas hay diferencias e indicios de degradación. El modelo v9 requiere al menos dos escenas con SCL y solo se ejecuta en intervalos que cumplen su contrato.
 5. Consultar estado y resumen en `GET /api/v1/analyses/{id}/`. Descargar un GeoTIFF, JSON o reporte PDF mediante `GET /api/v1/analyses/{id}/artifacts/{artifact_id}/download/`. Los mapas raster tienen metadatos y miniatura PNG privada en `/metadata/` y `/preview/` sobre la misma ruta del artefacto.
 

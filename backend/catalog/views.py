@@ -45,11 +45,12 @@ class StudyAreaViewSet(viewsets.ModelViewSet):
     create=extend_schema(
         tags=["Imágenes satelitales"], summary="Cargar GeoTIFF Sentinel-2",
         description=(
-            "Envíe `multipart/form-data` con el archivo `.tif` o `.tiff`, `study_area`, `name`, "
-            "`acquisition_date` (AAAA-MM-DD) y `reflectance_scale` (`fraction` o `divide_10000`). "
-            "Indique `scl_factor` 1 o 10000 solo si existe SCL. El GeoTIFF debe estar georreferenciado "
+            "Envíe `multipart/form-data` con `study_area` y el archivo `.tif` o `.tiff`; `name` es opcional. "
+            "La fecha de adquisición se obtiene de metadatos del archivo o de su nombre, nunca de la fecha de carga. "
+            "El servidor detecta `reflectance_scale` y `scl_factor` y los devuelve como campos de solo lectura. "
+            "El GeoTIFF debe estar georreferenciado "
             "y describir las bandas B2, B3, B4, B5, B8, B11 y B12; SCL es opcional. "
-            "La carga también exige al menos un píxel válido tras aplicar la escala y la máscara SCL declaradas."
+            "La carga exige una fecha inequívoca, escala detectable y al menos un píxel válido."
         ),
         request={"multipart/form-data": SatelliteImageSerializer},
     ),

@@ -24,13 +24,12 @@ POST /study-areas/
 | Campo | Ejemplo | Condición |
 | --- | --- | --- |
 | `study_area` | `1` | Debe pertenecer al usuario. |
-| `name` | `Escena mayo 2024` | Nombre visible. |
-| `acquisition_date` | `2024-05-17` | Fecha de adquisición, no de carga. |
-| `reflectance_scale` | `fraction` | Alternativa: `divide_10000`. |
-| `scl_factor` | `1` | Exigido si el raster tiene SCL; alternativa: `10000`. |
+| `name` | `Escena mayo 2024` | Opcional; se usa el nombre del archivo si se omite. |
 | `file` | `escena.tif` | GeoTIFF con descripciones de las siete bandas. |
 
-La respuesta `201` devuelve identificador y metadatos inspeccionados. Errores de formato, bandas, SCL, tamaño y ausencia de píxeles válidos devuelven `400`. La validación recorre ventanas de hasta 512 × 512, aplica la escala declarada y exige reflectancia finita entre 0 y 1 en las siete bandas; si hay SCL, solo acepta clases 4/5 con el factor declarado. `GET /images/` lista las escenas del usuario; `DELETE /images/{id}/` elimina una imagen que no esté usada en un análisis.
+La respuesta `201` devuelve identificador, `acquisition_date`, `reflectance_scale`, `scl_factor` y otros metadatos detectados. Estos tres campos son de solo lectura. La fecha de adquisición procede de etiquetas de adquisición del GeoTIFF o del nombre (`AAAA_MM_DD`, `AAAA-MM-DD` o `AAAAMMDDThhmmss`); la fecha actual de carga se registra aparte en `uploaded_at`. Si no hay una fecha inequívoca, el archivo debe aportar esos metadatos o renombrarse con su fecha verdadera. Nunca se asigna la fecha actual como adquisición. La escala radiométrica (`fraction` o `divide_10000`) y el factor SCL (`1` o `10000`) se infieren del contenido; si la inferencia es ambigua, se rechaza con `400`.
+
+Errores de formato, bandas, SCL, tamaño y ausencia de píxeles válidos devuelven `400`. La validación recorre ventanas de hasta 512 × 512, aplica la escala detectada y exige reflectancia finita entre 0 y 1 en las siete bandas; si hay SCL, solo acepta clases 4/5 con el factor detectado. `GET /images/` lista las escenas del usuario; `DELETE /images/{id}/` elimina una imagen que no esté usada en un análisis.
 
 Se aceptan descripciones de banda canónicas (`B2`) y con cero inicial (`B02`), opcionalmente seguidas de texto descriptivo. Se rechazan bandas requeridas duplicadas, GeoTIFF sin CRS y archivos que declaran escala u offset por banda. El worker vuelve a comprobar el contenido radiométrico al normalizar. La aceptación de una escena individual no garantiza que dos escenas compartan píxeles válidos para compararlas.
 

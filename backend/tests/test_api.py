@@ -62,14 +62,14 @@ def test_upload_and_analysis_contract(settings, tmp_path):
     response = client.post("/api/v1/images/", {
         "study_area": area.pk, "name": "Escena inicial", "acquisition_date": "2024-05-17",
         "reflectance_scale": "fraction", "scl_factor": 1,
-        "file": SimpleUploadedFile("scene.tif", make_geotiff(), content_type="image/tiff"),
+        "file": SimpleUploadedFile("scene_2024_05_17.tif", make_geotiff(), content_type="image/tiff"),
     }, format="multipart")
     assert response.status_code == 201, response.data
     first_id = response.data["id"]
     response = client.post("/api/v1/images/", {
         "study_area": area.pk, "name": "Escena final", "acquisition_date": "2024-09-24",
         "reflectance_scale": "fraction", "scl_factor": 1,
-        "file": SimpleUploadedFile("scene2.tif", make_geotiff(), content_type="image/tiff"),
+        "file": SimpleUploadedFile("scene_2024_09_24.tif", make_geotiff(), content_type="image/tiff"),
     }, format="multipart")
     assert response.status_code == 201, response.data
     second_id = response.data["id"]
@@ -116,14 +116,54 @@ def test_upload_rejects_scenes_without_usable_pixels(settings, tmp_path):
     ):
         payload = {
             "study_area": area.pk, "name": "Sin datos", "acquisition_date": "2024-01-01",
-            "reflectance_scale": "fraction", "file": SimpleUploadedFile("empty.tif", data),
+            "reflectance_scale": "fraction", "file": SimpleUploadedFile("empty_2024_01_01.tif", data),
         }
         if scl_factor is not None:
             payload["scl_factor"] = scl_factor
         response = client.post("/api/v1/images/", payload, format="multipart")
         assert response.status_code == 400, response.data
-        assert "píxeles válidos" in str(response.data["file"])
+        assert "píxeles válidos" in str(response.data["file"]) or "inferir la escala" in str(response.data["file"])
     assert not (tmp_path / "uploads").exists()
+
+
+@pytest.mark.django_db
+def test_upload_infers_date_radiometry_and_scl(settings, tmp_path):
+    settings.MEDIA_ROOT = tmp_path
+    user = get_user_model().objects.create_user(username="automatic-owner", password="StrongPass123!")
+    area = StudyArea.objects.create(owner=user, name="Área")
+    client = APIClient()
+    client.force_authenticate(user=user)
+
+    fractional = client.post("/api/v1/images/", {
+        "study_area": area.pk,
+        "file": SimpleUploadedFile(
+            "img__20261021060558__S2__2025_01_19__3734.tif",
+            make_geotiff(scl_value=.0004), content_type="image/tiff"),
+        "acquisition_date": "2026-10-21", "reflectance_scale": "divide_10000", "scl_factor": 1,
+    }, format="multipart")
+    assert fractional.status_code == 201, fractional.data
+    assert fractional.data["acquisition_date"] == "2025-01-19"
+    assert fractional.data["reflectance_scale"] == "fraction"
+    assert fractional.data["scl_factor"] == 10000
+    assert fractional.data["name"] == "img__20261021060558__S2__2025_01_19__3734"
+
+    scaled = client.post("/api/v1/images/", {
+        "study_area": area.pk,
+        "file": SimpleUploadedFile("S2A_MSIL2A_20251008T050000.tif",
+                                   make_geotiff(spectral_value=4000, scl_value=4),
+                                   content_type="image/tiff"),
+    }, format="multipart")
+    assert scaled.status_code == 201, scaled.data
+    assert scaled.data["acquisition_date"] == "2025-10-08"
+    assert scaled.data["reflectance_scale"] == "divide_10000"
+    assert scaled.data["scl_factor"] == 1
+
+    unknown_date = client.post("/api/v1/images/", {
+        "study_area": area.pk,
+        "file": SimpleUploadedFile("scene.tif", make_geotiff(), content_type="image/tiff"),
+    }, format="multipart")
+    assert unknown_date.status_code == 400
+    assert "fecha de adquisición" in str(unknown_date.data["file"])
 
 
 @pytest.mark.django_db
@@ -139,7 +179,7 @@ def test_band_aliases_and_invalid_metadata(settings, tmp_path):
     def upload(data):
         return client.post("/api/v1/images/", {
             "study_area": area.pk, "name": "Escena", "acquisition_date": "2024-05-17",
-            "reflectance_scale": "fraction", "file": SimpleUploadedFile("scene.tif", data),
+            "reflectance_scale": "fraction", "file": SimpleUploadedFile("scene_2024_05_17.tif", data),
         }, format="multipart")
 
     names = ["B02", "B03", "B04", "B05", "B08", "B11", "B12"]
@@ -162,7 +202,7 @@ def test_worker_runs_packaged_pipeline_for_one_scene(settings, tmp_path):
     uploaded = client.post("/api/v1/images/", {
         "study_area": area.pk, "name": "Escena", "acquisition_date": "2024-05-17",
         "reflectance_scale": "fraction", "scl_factor": 1,
-        "file": SimpleUploadedFile("scene.tif", make_geotiff(), content_type="image/tiff"),
+        "file": SimpleUploadedFile("scene_2024_05_17.tif", make_geotiff(), content_type="image/tiff"),
     }, format="multipart")
     assert uploaded.status_code == 201, uploaded.data
     queued = client.post("/api/v1/analyses/", {
@@ -206,7 +246,7 @@ def test_worker_runs_two_scene_model(settings, tmp_path):
         response = client.post("/api/v1/images/", {
             "study_area": area.pk, "name": date_value, "acquisition_date": date_value,
             "reflectance_scale": "fraction", "scl_factor": 1,
-            "file": SimpleUploadedFile("scene.tif", make_geotiff(), content_type="image/tiff"),
+            "file": SimpleUploadedFile(f"scene_{date_value.replace('-', '_')}.tif", make_geotiff(), content_type="image/tiff"),
         }, format="multipart")
         assert response.status_code == 201, response.data
         ids.append(response.data["id"])
@@ -232,7 +272,7 @@ def test_worker_marks_unexpected_report_error_failed(settings, tmp_path, monkeyp
     image = client.post("/api/v1/images/", {
         "study_area": area.pk, "name": "Escena", "acquisition_date": "2024-05-17",
         "reflectance_scale": "fraction", "scl_factor": 1,
-        "file": SimpleUploadedFile("scene.tif", make_geotiff(), content_type="image/tiff"),
+        "file": SimpleUploadedFile("scene_2024_05_17.tif", make_geotiff(), content_type="image/tiff"),
     }, format="multipart")
     queued = client.post("/api/v1/analyses/", {
         "study_area": area.pk, "name": "Falla", "image_ids": [image.data["id"]],
