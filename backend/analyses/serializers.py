@@ -1,3 +1,5 @@
+from pathlib import PurePosixPath
+
 from django.db import transaction
 from django.urls import reverse
 from drf_spectacular.utils import extend_schema_field
@@ -9,14 +11,49 @@ from .models import Analysis, AnalysisImage, ResultArtifact
 
 
 class ResultArtifactSerializer(serializers.ModelSerializer):
+    label = serializers.SerializerMethodField(help_text="Nombre legible del resultado y su fecha o intervalo.")
+    png_artifact_id = serializers.SerializerMethodField(help_text="ID de la versión PNG del raster, cuando existe.")
+    png_download_url = serializers.SerializerMethodField(help_text="Descarga directa del PNG del raster, cuando existe.")
     preview_url = serializers.SerializerMethodField(help_text="Ruta privada de la vista PNG; solo para raster.")
     download_url = serializers.SerializerMethodField(help_text="Ruta privada de descarga del archivo.")
     metadata_url = serializers.SerializerMethodField(help_text="Ruta privada de metadatos; solo para raster.")
 
     class Meta:
         model = ResultArtifact
-        fields = ("id", "kind", "relative_path", "size_bytes", "preview_url", "download_url",
-                  "metadata_url", "created_at")
+        fields = ("id", "kind", "label", "relative_path", "size_bytes", "preview_url", "download_url",
+                  "png_artifact_id", "png_download_url", "metadata_url", "created_at")
+
+    @extend_schema_field(serializers.CharField())
+    def get_label(self, obj):
+        path = PurePosixPath(obj.relative_path)
+        if path.name == "reporte.pdf":
+            return "Informe completo en PDF"
+        if path.name == "resumen_serie.json":
+            return "Resumen y métricas en JSON"
+        if path.name == "visualizacion_individual.png":
+            return "Lámina de resultados individuales en PNG"
+        if path.name == "visualizacion_comparativa.png":
+            return "Lámina de cambios entre fechas en PNG"
+        stem = path.stem.replace("_", " ")
+        if len(path.parts) >= 3 and path.parts[0] == "intervalos":
+            first, last = path.parts[1].split("_", 1)
+            return f"{stem} · {first} a {last} ({path.suffix[1:].upper()})"
+        if len(path.parts) >= 3 and path.parts[0] == "fechas":
+            return f"{stem} · {path.parts[1]} ({path.suffix[1:].upper()})"
+        return path.name
+
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
+    def get_png_artifact_id(self, obj):
+        if obj.kind != "raster":
+            return None
+        png_path = str(PurePosixPath(obj.relative_path).with_suffix(".png"))
+        artifacts = obj.analysis.artifacts.all()
+        return next((item.pk for item in artifacts if item.relative_path == png_path), None)
+
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_png_download_url(self, obj):
+        png_id = self.get_png_artifact_id(obj)
+        return self._absolute_url("artifact-download", png_id) if png_id else None
 
     @extend_schema_field(serializers.URLField(allow_null=True))
     def get_preview_url(self, obj):

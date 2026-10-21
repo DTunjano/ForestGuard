@@ -246,6 +246,13 @@ def test_worker_runs_packaged_pipeline_for_one_scene(settings, tmp_path):
     assert response.status_code == 200
     response.close()
     ndvi = analysis.artifacts.get(relative_path="fechas/2024-05-17/NDVI.tif")
+    ndvi_png = analysis.artifacts.get(relative_path="fechas/2024-05-17/NDVI.png")
+    detail = client.get(f"/api/v1/analyses/{analysis_id}/")
+    assert detail.status_code == 200
+    raster_entry = next(item for item in detail.data["artifacts"] if item["id"] == ndvi.pk)
+    assert raster_entry["label"] == "NDVI · 2024-05-17 (TIF)"
+    assert raster_entry["png_artifact_id"] == ndvi_png.pk
+    assert raster_entry["png_download_url"].endswith(f"/api/v1/artifacts/{ndvi_png.pk}/download/")
     assert client.get(f"/api/v1/analyses/{analysis_id}/artifacts/{ndvi.pk}/metadata/").status_code == 200
     preview = client.get(f"/api/v1/analyses/{analysis_id}/artifacts/{ndvi.pk}/preview/")
     assert preview.status_code == 200 and preview.content.startswith(b"\x89PNG")
