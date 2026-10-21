@@ -1,7 +1,5 @@
 """Create downloadable PNG maps and compact visual summaries of an analysis."""
 
-from math import ceil
-
 import numpy as np
 import rasterio
 from PIL import Image, ImageDraw, ImageFont, ImageOps
@@ -103,93 +101,129 @@ def _blank(message):
     return image
 
 
-def _canvas(cards, title, note, card_height):
-    columns = min(4, max(1, len(cards)))
-    rows = ceil(len(cards) / columns)
-    card_width, gap, left, top = 350, 15, 28, 115
-    canvas = Image.new("RGB", (max(1100, left * 2 + columns * card_width + (columns - 1) * gap),
-                               top + rows * card_height + 38), BACKGROUND)
-    draw = ImageDraw.Draw(canvas)
-    draw.text((left, 22), title, font=TITLE, fill=INK)
-    draw.text((left, 65), note, font=SMALL, fill=MUTED)
-    for index, card in enumerate(cards):
-        x = left + (index % columns) * (card_width + gap)
-        y = top + (index // columns) * card_height
-        card(canvas, draw, x, y)
-    return canvas
-
-
 def _metric(value):
     return "sin datos" if value is None else f"{value:.3f}"
 
 
+def _area(value):
+    return "sin datos" if value is None else f"{value:.2f} ha"
+
+
+WIDTH = 1080
+BLOCK = 575
+TILE_X = (20, 370, 720)
+INDEX_SCALES = {
+    "NDVI": (.2, .9), "NDMI": (-.2, .6), "NBR": (-.2, .8), "NDRE": (0, .7),
+}
+
+
+def _board(title, note, count):
+    canvas = Image.new("RGB", (WIDTH, 110 + count * BLOCK), BACKGROUND)
+    draw = ImageDraw.Draw(canvas)
+    draw.text((25, 18), title, font=TITLE, fill=INK)
+    draw.text((25, 57), note, font=SMALL, fill=MUTED)
+    return canvas, draw
+
+
+def _tile(canvas, draw, column, y, title, map_image, primary="", secondary=""):
+    x = TILE_X[column]
+    draw.rounded_rectangle((x, y, x + 340, y + 240), radius=10,
+                           fill="white", outline="#dbe3e2")
+    draw.text((x + 10, y + 8), title, font=LABEL, fill=INK)
+    canvas.paste(map_image, (x + 10, y + 36))
+    if primary:
+        draw.text((x + 10, y + 208), primary, font=SMALL, fill=MUTED)
+    if secondary:
+        draw.text((x + 10, y + 224), secondary, font=SMALL, fill=MUTED)
+
+
+def _stat_text(stats):
+    return (f"Media {_metric(stats.get('media'))}   "
+            f"p10 {_metric(stats.get('p10'))}   p90 {_metric(stats.get('p90'))}")
+
+
+def _scene_block(canvas, draw, y, scene, path, output):
+    date = scene["fecha"]
+    draw.text((25, y), f"Fecha {date}", font=LABEL, fill=INK)
+    coverage = scene.get("area_observada_ha_aprox")
+    valid = scene.get("pixeles_validos")
+    draw.text((25, y + 27), f"Área observada: {_area(coverage)}  |  Píxeles válidos: {valid}",
+              font=SMALL, fill=MUTED)
+    first_row, second_row = y + 55, y + 305
+    _tile(canvas, draw, 0, first_row, "Color natural · B4/B3/B2", _rgb_scene(path),
+          "Referencia visual de la escena")
+    for index, column, row in (("NDVI", 1, first_row), ("NDMI", 2, first_row),
+                               ("NBR", 0, second_row), ("NDRE", 1, second_row)):
+        low, high = INDEX_SCALES[index]
+        raster = output / "fechas" / date / f"{index}.tif"
+        image = _index_map(raster, low, high, (227, 190, 76), (32, 117, 59))
+        _tile(canvas, draw, column, row, index, image,
+              _stat_text(scene["indices"][index]), f"Escala: {low:+.1f} a {high:+.1f} · ocre a verde")
+    _tile(canvas, draw, 2, second_row, "Lectura de los índices", _blank("Valor por píxel en cada mapa"),
+          "Medias y percentiles de píxeles válidos", "Las manchas requieren revisión")
+
+
 def _individual_summary(summary, output, normalized_paths):
-    cards = []
-    for scene, path in zip(summary["escenas"], normalized_paths):
-        date = scene["fecha"]
-        ndvi = output / "fechas" / date / "NDVI.tif"
+    scenes = list(zip(summary["escenas"], normalized_paths))
+    if not scenes:
+        return
+    board, draw = _board("ForestGuard | Resultados individuales",
+                         "Índices con escalas fijas. Ocre: valor bajo; verde: valor alto. No confirman deforestación.",
+                         len(scenes))
+    for number, (scene, path) in enumerate(scenes):
+        _scene_block(board, draw, 100 + number * BLOCK, scene, path, output)
+        single, single_draw = _board("ForestGuard | Resultado individual",
+                                     "Índices espectrales y métricas de una fecha.", 1)
+        _scene_block(single, single_draw, 100, scene, path, output)
+        single.save(output / "fechas" / scene["fecha"] / "resumen_fecha.png", optimize=True)
+    board.save(output / "visualizacion_individual.png", optimize=True)
 
-        def card(canvas, draw, x, y, scene=scene, path=path, ndvi=ndvi):
-            draw.text((x, y), scene["fecha"], font=LABEL, fill=INK)
-            draw.text((x, y + 31), "Color natural B4/B3/B2", font=SMALL, fill=MUTED)
-            canvas.paste(_rgb_scene(path), (x, y + 55))
-            draw.text((x, y + 231), "NDVI", font=SMALL, fill=MUTED)
-            canvas.paste(_index_map(ndvi, .3, .9, (227, 190, 76), (32, 117, 59)),
-                         (x, y + 252))
-            indices = scene["indices"]
-            draw.text((x, y + 427),
-                      "NDVI " + _metric(indices["NDVI"]["media"]) +
-                      "   NDMI " + _metric(indices["NDMI"]["media"]),
-                      font=SMALL, fill=MUTED)
-            draw.text((x, y + 449),
-                      "NBR " + _metric(indices["NBR"]["media"]) +
-                      "   NDRE " + _metric(indices["NDRE"]["media"]),
-                      font=SMALL, fill=MUTED)
 
-        cards.append(card)
-    if cards:
-        image = _canvas(cards, "ForestGuard | Análisis individual por fecha",
-                        "Color natural y NDVI (escala fija 0,30 a 0,90). Los índices no confirman deforestación.",
-                        495)
-        image.save(output / "visualizacion_individual.png", optimize=True)
+def _interval_block(canvas, draw, y, interval, output):
+    first, last = interval["fecha_inicial"], interval["fecha_final"]
+    folder = output / "intervalos" / f"{first}_{last}"
+    draw.text((25, y), f"Comparación {first} a {last}", font=LABEL, fill=INK)
+    days = interval.get("dias")
+    common = interval.get("area_comun_ha_aprox")
+    draw.text((25, y + 27), f"Intervalo: {days} días  |  Área común: {_area(common)}",
+              font=SMALL, fill=MUTED)
+    first_row, second_row = y + 55, y + 305
+    for index, column, row in (("dNDVI", 0, first_row), ("dNDMI", 1, first_row),
+                               ("dNBR", 2, first_row), ("dNDRE", 0, second_row)):
+        _tile(canvas, draw, column, row, f"Cambio {index[1:]}",
+              _delta_map(folder / f"{index}.tif"), _stat_text(interval["diferencias"][index]),
+              "Rojo: descenso · azul: aumento")
+    proxy = folder / "indicios_degradacion_observada.tif"
+    indication = interval.get("degradacion_observada") or {}
+    area = indication.get("area_con_indicios_ha_aprox")
+    _tile(canvas, draw, 1, second_row, "Indicio espectral",
+          _class_map(proxy, proxy=True) if proxy.is_file() else _blank("Sin máscara SCL"),
+          f"Área con indicios: {area:.2f} ha" if area is not None else "Sin área evaluable",
+          "Rojo: indicio · ocre: fuera de proxy")
+    classification = folder / "clasificacion_piloto" / "clasificacion_cambio_exploratoria.tif"
+    surface = (interval.get("superficie") or {}).get("area_clase_1_ha_aprox")
+    _tile(canvas, draw, 2, second_row, "Modelo v9 · clase 1",
+          _class_map(classification) if classification.is_file() else _blank("Sin clasificación v9"),
+          f"Clase 1: {surface:.2f} ha" if surface is not None else "v9 no ejecutado",
+          "Clasificación exploratoria")
 
 
 def _comparative_summary(summary, output):
-    cards = []
-    for interval in summary["intervalos"]:
+    intervals = summary["intervalos"]
+    if not intervals:
+        return
+    board, draw = _board("ForestGuard | Cambios entre fechas",
+                         "Cambio = fecha final menos inicial. Escala fija ±0,2; señales exploratorias.",
+                         len(intervals))
+    for number, interval in enumerate(intervals):
+        _interval_block(board, draw, 100 + number * BLOCK, interval, output)
+        single, single_draw = _board("ForestGuard | Comparación de fechas",
+                                     "Mapas de cambio y métricas del intervalo.", 1)
+        _interval_block(single, single_draw, 100, interval, output)
         first, last = interval["fecha_inicial"], interval["fecha_final"]
-        folder = output / "intervalos" / f"{first}_{last}"
-
-        def card(canvas, draw, x, y, interval=interval, folder=folder):
-            draw.text((x, y), interval["fecha_inicial"], font=LABEL, fill=INK)
-            draw.text((x, y + 25), "a " + interval["fecha_final"], font=LABEL, fill=INK)
-            draw.text((x, y + 58),
-                      "Cambio NDVI medio " + _metric(interval["diferencias"]["dNDVI"]["media"]),
-                      font=SMALL, fill=MUTED)
-            canvas.paste(_delta_map(folder / "dNDVI.tif"), (x, y + 82))
-            draw.text((x, y + 259), "Indicio espectral", font=SMALL, fill=MUTED)
-            proxy = folder / "indicios_degradacion_observada.tif"
-            canvas.paste(_class_map(proxy, proxy=True) if proxy.is_file()
-                         else _blank("Sin máscara SCL"), (x, y + 282))
-            area = interval["degradacion_observada"]["area_con_indicios_ha_aprox"]
-            if area is not None:
-                draw.text((x, y + 456), f"Área con indicios: {area:.2f} ha", font=SMALL, fill=MUTED)
-            draw.text((x, y + 481), "Modelo v9: clase 1", font=SMALL, fill=MUTED)
-            classification = folder / "clasificacion_piloto" / "clasificacion_cambio_exploratoria.tif"
-            canvas.paste(_class_map(classification) if classification.is_file()
-                         else _blank("Sin clasificación v9"), (x, y + 504))
-            if interval.get("estado_clasificacion") == "ejecutada":
-                area = interval["superficie"]["area_clase_1_ha_aprox"]
-                draw.text((x, y + 680), f"Clase 1: {area:.2f} ha", font=SMALL, fill=MUTED)
-            else:
-                draw.text((x, y + 680), "v9 no ejecutado", font=SMALL, fill=MUTED)
-
-        cards.append(card)
-    if cards:
-        image = _canvas(cards, "ForestGuard | Comparación entre fechas",
-                        "Rojo: descenso de NDVI o clase 1. Señales exploratorias; verificar nubes y cobertura.",
-                        720)
-        image.save(output / "visualizacion_comparativa.png", optimize=True)
+        single.save(output / "intervalos" / f"{first}_{last}" / "resumen_cambio.png",
+                    optimize=True)
+    board.save(output / "visualizacion_comparativa.png", optimize=True)
 
 
 def write_visualizations(summary, output, normalized_paths):

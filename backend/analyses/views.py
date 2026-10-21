@@ -188,6 +188,14 @@ class AnalysisExportView(APIView):
         archive = SpooledTemporaryFile(max_size=16 * 1024 * 1024)
         try:
             with ZipFile(archive, "w", ZIP_DEFLATED) as output:
+                output.writestr("LEEME_RESULTADOS.txt", (
+                    "ForestGuard - resultados del análisis\n"
+                    "Abra visualizacion_individual.png para ver índices, mapas y métricas por fecha.\n"
+                    "Abra visualizacion_comparativa.png para ver cambios y métricas entre fechas.\n"
+                    "Las carpetas png/ y tiff/ contienen los mapas individuales.\n"
+                    "resumen_serie.json guarda todas las métricas; reporte.pdf es el informe.\n"
+                    "Los mapas y clases son exploratorios; requieren revisión humana.\n"
+                ))
                 for item in chosen:
                     path = artifact_file(item)
                     if item.kind == "raster":
@@ -201,7 +209,9 @@ class AnalysisExportView(APIView):
                             else:
                                 output.writestr(f"png/{png_path}", render_preview(path, max_size=1024))
                     elif item.kind == "visualization" and export_format in ("png", "both"):
-                        output.write(path, f"png/{item.relative_path}")
+                        board = item.relative_path in ("visualizacion_individual.png",
+                                                       "visualizacion_comparativa.png")
+                        output.write(path, item.relative_path if board else f"png/{item.relative_path}")
                     elif item.kind in ("report", "metadata"):
                         output.write(path, item.relative_path)
             archive.seek(0)

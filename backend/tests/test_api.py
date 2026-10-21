@@ -8,6 +8,7 @@ from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.utils import timezone
+from PIL import Image
 from rasterio.io import MemoryFile
 from rasterio.transform import from_origin
 from rest_framework.test import APIClient
@@ -244,7 +245,11 @@ def test_worker_runs_packaged_pipeline_for_one_scene(settings, tmp_path):
     assert analysis.artifacts.filter(relative_path="resumen_serie.json").exists()
     assert analysis.artifacts.filter(relative_path="reporte.pdf", kind="report").exists()
     assert analysis.artifacts.filter(relative_path="visualizacion_individual.png", kind="visualization").exists()
+    assert analysis.artifacts.filter(relative_path="fechas/2024-05-17/resumen_fecha.png",
+                                     kind="visualization").exists()
     assert analysis.artifacts.filter(relative_path="fechas/2024-05-17/NDVI.png", kind="visualization").exists()
+    with Image.open(tmp_path / "results" / str(analysis_id) / "visualizacion_individual.png") as board_image:
+        assert board_image.width == 1080 and board_image.height > 600
     assert (tmp_path / "results" / str(analysis_id) / "reporte.pdf").read_bytes().startswith(b"%PDF")
     report = analysis.artifacts.get(relative_path="reporte.pdf")
     response = client.get(f"/api/v1/analyses/{analysis_id}/artifacts/{report.pk}/download/")
@@ -278,7 +283,9 @@ def test_worker_runs_packaged_pipeline_for_one_scene(settings, tmp_path):
     with ZipFile(BytesIO(b"".join(export.streaming_content))) as bundle:
         names = bundle.namelist()
         assert "resumen_serie.json" in names and "reporte.pdf" in names
-        assert "png/visualizacion_individual.png" in names
+        assert "visualizacion_individual.png" in names
+        assert "png/fechas/2024-05-17/resumen_fecha.png" in names
+        assert "LEEME_RESULTADOS.txt" in names
         assert "png/fechas/2024-05-17/NDVI.png" in names
         assert "tiff/fechas/2024-05-17/NDVI.tif" in names
     export.close()
@@ -325,6 +332,8 @@ def test_worker_runs_two_scene_model(settings, tmp_path):
     assert len(analysis.summary["intervalos"]) == 1
     assert analysis.summary["intervalos"][0]["estado_clasificacion"] == "ejecutada"
     assert analysis.artifacts.filter(relative_path="visualizacion_comparativa.png", kind="visualization").exists()
+    assert analysis.artifacts.filter(relative_path="intervalos/2024-05-17_2024-09-24/resumen_cambio.png",
+                                     kind="visualization").exists()
     results = client.get(f"/api/v1/analyses/{analysis_id}/results/?section=comparison")
     assert results.status_code == 200
     assert results.data["individual"] == []
@@ -334,7 +343,8 @@ def test_worker_runs_two_scene_model(settings, tmp_path):
     assert export.status_code == 200
     with ZipFile(BytesIO(b"".join(export.streaming_content))) as bundle:
         names = bundle.namelist()
-        assert "png/visualizacion_comparativa.png" in names
+        assert "visualizacion_comparativa.png" in names
+        assert "png/intervalos/2024-05-17_2024-09-24/resumen_cambio.png" in names
         assert any(name.startswith("png/intervalos/") for name in names)
         assert not any(name.startswith("tiff/") for name in names)
     export.close()
