@@ -66,6 +66,27 @@ El usuario puede cambiar su contraseña con `POST /api/v1/auth/password/change/`
 
 Un análisis terminado puede eliminarse con `DELETE /api/v1/analyses/{id}/`; esto elimina su registro y sus resultados. Los análisis en cola o en ejecución no se eliminan para evitar carreras con el worker.
 
+## Copias de seguridad, retención y recuperación
+
+Antes de crear una copia, detenga Django y el worker; mantenga PostgreSQL activo. Desde `backend/`, con `.venv` activo:
+
+```powershell
+py manage.py backup_forestguard --destination ../backups
+py manage.py verify_forestguard_backup --backup-dir ../backups/forestguard-AAAAMMDDTHHMMSSZ
+```
+
+Cada copia contiene `database.dump`, una copia de `media/` y `manifest.json` con SHA-256. El directorio `backups/` está ignorado por Git; guarde además una copia en otra unidad protegida. Compruebe periódicamente la restauración en una instalación aislada. La [guía de operación de datos](docs/operacion_datos.md) explica la restauración y los límites de consistencia.
+
+Por defecto no se borran cargas ni resultados automáticamente. Para revisar análisis `completed` o `failed` terminados hace más de 90 días y, opcionalmente, cargas antiguas que quedarían sin uso:
+
+```powershell
+py manage.py prune_analysis_data --older-than-days 90 --include-unused-uploads
+```
+
+Para aplicar la limpieza, detenga API y worker y use `--execute` y `--backup-dir` con una copia íntegra de menos de 24 horas. El comando elimina registros y archivos de esos análisis; nunca toca trabajos `queued` o `running`. No programe la limpieza hasta acordar una política de conservación de datos con los usuarios.
+
+El worker actualiza un latido cada 30 segundos. En el siguiente ciclo de espera marca como `failed` un trabajo `running` sin latido durante 15 minutos; no lo reintenta ni elimina sus archivos. Después de actualizar el backend, detenga el worker, ejecute `py manage.py migrate` y reinícielo para activar esta recuperación.
+
 ## Entrada aceptada
 
 La primera versión de la API recibe un **GeoTIFF de una sola grilla** con descripciones inequívocas `B2, B3, B4, B5, B8, B11, B12` y opcionalmente `SCL`. La escala de reflectancia y el factor SCL deben declararse. El worker normaliza el archivo sin alterar el original. Sin SCL se permiten índices descriptivos, pero no la clasificación ML. SAFE L2A y COG por banda existen en el paquete v7, pero todavía no tienen endpoint de carga; sus metadatos y estructura necesitan una interfaz propia.

@@ -2,14 +2,17 @@ import re
 from contextlib import ExitStack
 from pathlib import Path
 
+import numpy as np
 import rasterio
 from django.conf import settings
 from rasterio.io import MemoryFile
+from rasterio.windows import Window
 from rest_framework import serializers
 
 from .models import PipelineModel, SatelliteImage, StudyArea
 
 REQUIRED_BANDS = {"B2", "B3", "B4", "B5", "B8", "B11", "B12"}
+SPECTRAL_BANDS = ("B2", "B3", "B4", "B5", "B8", "B11", "B12")
 
 
 def canonical_band(description):
@@ -20,6 +23,35 @@ def canonical_band(description):
     if re.match(r"^SCL(?=$|\W)", text):
         return "SCL"
     return ""
+
+
+def contains_valid_pixel(src, descriptions, reflectance_scale, scl_factor):
+    """Apply the normalizer's pixel mask in bounded windows before saving an upload."""
+    band_numbers = {name: index for index, name in enumerate(descriptions, 1) if name}
+    for row in range(0, src.height, 512):
+        for col in range(0, src.width, 512):
+            window = Window(col, row, min(512, src.width - col), min(512, src.height - row))
+            if _window_has_valid_pixel(src, band_numbers, window, reflectance_scale, scl_factor):
+                return True
+    return False
+
+
+def _window_has_valid_pixel(src, band_numbers, window, reflectance_scale, scl_factor):
+    raw = src.read([band_numbers[name] for name in SPECTRAL_BANDS], window=window,
+                   masked=True, out_dtype="float32")
+    cube = raw.filled(np.nan)
+    if reflectance_scale == "divide_10000":
+        cube /= 10000.0
+    valid = np.all(~np.ma.getmaskarray(raw), axis=0)
+    valid &= np.all(np.isfinite(cube) & (cube >= 0) & (cube <= 1), axis=0)
+    if "SCL" in band_numbers:
+        scl_raw = src.read(band_numbers["SCL"], window=window, masked=True, out_dtype="float32")
+        scl_values = scl_raw.filled(np.nan) * scl_factor
+        rounded = np.rint(np.nan_to_num(scl_values, nan=0)).astype(np.int16)
+        valid_scl = (~np.ma.getmaskarray(scl_raw)) & np.isfinite(scl_values)
+        valid_scl &= np.abs(scl_values - rounded) <= 0.05
+        valid &= valid_scl & np.isin(rounded, (4, 5))
+    return bool(np.any(valid))
 
 
 class StudyAreaSerializer(serializers.ModelSerializer):
@@ -84,6 +116,22 @@ class SatelliteImageSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"scl_factor": "Declare 1 o 10000 para SCL."})
         if "SCL" not in descriptions and attrs.get("scl_factor") is not None:
             raise serializers.ValidationError({"scl_factor": "La imagen no contiene SCL."})
+        value = attrs["file"]
+        try:
+            with ExitStack() as stack:
+                if hasattr(value, "temporary_file_path"):
+                    src = stack.enter_context(rasterio.open(value.temporary_file_path()))
+                else:
+                    memory_file = stack.enter_context(MemoryFile(value.read()))
+                    src = stack.enter_context(memory_file.open())
+                if not contains_valid_pixel(src, descriptions, attrs["reflectance_scale"], attrs.get("scl_factor")):
+                    raise serializers.ValidationError({
+                        "file": "No hay píxeles válidos tras aplicar la escala de reflectancia y la máscara SCL declaradas."
+                    })
+        except rasterio.errors.RasterioError as exc:
+            raise serializers.ValidationError({"file": "El GeoTIFF no se pudo leer completamente."}) from exc
+        finally:
+            value.seek(0)
         return attrs
 
     def create(self, validated_data):

@@ -30,9 +30,9 @@ POST /study-areas/
 | `scl_factor` | `1` | Exigido si el raster tiene SCL; alternativa: `10000`. |
 | `file` | `escena.tif` | GeoTIFF con descripciones de las siete bandas. |
 
-La respuesta `201` devuelve identificador y metadatos inspeccionados. Errores de formato, bandas, SCL y tamaño devuelven `400`. `GET /images/` lista las escenas del usuario; `DELETE /images/{id}/` elimina una imagen que no esté usada en un análisis.
+La respuesta `201` devuelve identificador y metadatos inspeccionados. Errores de formato, bandas, SCL, tamaño y ausencia de píxeles válidos devuelven `400`. La validación recorre ventanas de hasta 512 × 512, aplica la escala declarada y exige reflectancia finita entre 0 y 1 en las siete bandas; si hay SCL, solo acepta clases 4/5 con el factor declarado. `GET /images/` lista las escenas del usuario; `DELETE /images/{id}/` elimina una imagen que no esté usada en un análisis.
 
-Se aceptan descripciones de banda canónicas (`B2`) y con cero inicial (`B02`), opcionalmente seguidas de texto descriptivo. Se rechazan bandas requeridas duplicadas, GeoTIFF sin CRS y archivos que declaran escala u offset por banda. La API valida la estructura al cargar; el worker comprueba el contenido radiométrico al normalizar.
+Se aceptan descripciones de banda canónicas (`B2`) y con cero inicial (`B02`), opcionalmente seguidas de texto descriptivo. Se rechazan bandas requeridas duplicadas, GeoTIFF sin CRS y archivos que declaran escala u offset por banda. El worker vuelve a comprobar el contenido radiométrico al normalizar. La aceptación de una escena individual no garantiza que dos escenas compartan píxeles válidos para compararlas.
 
 ## Análisis
 

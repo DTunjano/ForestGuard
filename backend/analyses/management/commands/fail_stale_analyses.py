@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from analyses.models import Analysis
@@ -21,7 +22,8 @@ class Command(BaseCommand):
         cutoff = timezone.now() - timedelta(hours=hours)
         with transaction.atomic():
             stale = list(Analysis.objects.select_for_update().filter(
-                status=Analysis.Status.RUNNING, started_at__lt=cutoff,
+                Q(heartbeat_at__lt=cutoff) | Q(heartbeat_at__isnull=True, started_at__lt=cutoff),
+                status=Analysis.Status.RUNNING,
             ))
             if not options["dry_run"]:
                 now = timezone.now()

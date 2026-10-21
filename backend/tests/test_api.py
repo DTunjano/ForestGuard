@@ -10,18 +10,18 @@ from rasterio.transform import from_origin
 from rest_framework.test import APIClient
 
 from analyses.models import Analysis
-from analyses.services import claim_next_analysis, process_analysis
+from analyses.services import claim_next_analysis, process_analysis, recover_stale_analyses
 from catalog.models import PipelineModel, StudyArea
 
 
-def make_geotiff(scl=True, descriptions=None, offset=0):
+def make_geotiff(scl=True, descriptions=None, offset=0, spectral_value=0.4, scl_value=4):
     if descriptions is None:
         descriptions = ["B2", "B3", "B4", "B5", "B8", "B11", "B12"]
         if scl:
             descriptions.append("SCL")
-    data = np.full((len(descriptions), 8, 8), 0.4, dtype="float32")
+    data = np.full((len(descriptions), 8, 8), spectral_value, dtype="float32")
     if scl:
-        data[-1] = 4
+        data[-1] = scl_value
     with MemoryFile() as mem:
         with mem.open(driver="GTiff", width=8, height=8, count=len(descriptions),
                       dtype="float32", crs="EPSG:32618", transform=from_origin(500000, 500000, 10, 10)) as dst:
@@ -99,6 +99,31 @@ def test_invalid_raster_rejected(settings, tmp_path):
         "reflectance_scale": "fraction", "file": SimpleUploadedFile("fake.tif", b"not a raster"),
     }, format="multipart")
     assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_upload_rejects_scenes_without_usable_pixels(settings, tmp_path):
+    settings.MEDIA_ROOT = tmp_path
+    user = get_user_model().objects.create_user(username="empty-owner", password="StrongPass123!")
+    area = StudyArea.objects.create(owner=user, name="Área")
+    client = APIClient()
+    client.force_authenticate(user=user)
+
+    for data, scl_factor in (
+        (make_geotiff(spectral_value=np.nan), 1),
+        (make_geotiff(scl_value=7), 1),
+        (make_geotiff(scl=False, spectral_value=np.nan), None),
+    ):
+        payload = {
+            "study_area": area.pk, "name": "Sin datos", "acquisition_date": "2024-01-01",
+            "reflectance_scale": "fraction", "file": SimpleUploadedFile("empty.tif", data),
+        }
+        if scl_factor is not None:
+            payload["scl_factor"] = scl_factor
+        response = client.post("/api/v1/images/", payload, format="multipart")
+        assert response.status_code == 400, response.data
+        assert "píxeles válidos" in str(response.data["file"])
+    assert not (tmp_path / "uploads").exists()
 
 
 @pytest.mark.django_db
@@ -243,6 +268,25 @@ def test_stale_job_recovery_requires_explicit_execution():
     call_command("fail_stale_analyses", older_than_hours=24)
     analysis.refresh_from_db()
     assert analysis.status == Analysis.Status.FAILED
+
+
+@pytest.mark.django_db
+def test_worker_recovers_stale_heartbeat_without_interrupting_live_job():
+    from datetime import timedelta
+
+    user = get_user_model().objects.create_user(username="recovery-owner", password="StrongPass123!")
+    area = StudyArea.objects.create(owner=user, name="Recuperación")
+    old = timezone.now() - timedelta(hours=2)
+    stale = Analysis.objects.create(owner=user, study_area=area, name="Abandonado",
+                                    status=Analysis.Status.RUNNING, started_at=old, heartbeat_at=old)
+    active = Analysis.objects.create(owner=user, study_area=area, name="Activo",
+                                     status=Analysis.Status.RUNNING, started_at=old,
+                                     heartbeat_at=timezone.now())
+    assert recover_stale_analyses(15) == 1
+    stale.refresh_from_db()
+    active.refresh_from_db()
+    assert stale.status == Analysis.Status.FAILED and stale.finished_at is not None
+    assert active.status == Analysis.Status.RUNNING
 
 
 @pytest.mark.django_db

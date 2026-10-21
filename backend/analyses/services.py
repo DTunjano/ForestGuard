@@ -1,16 +1,55 @@
 """DB-backed single-job worker and the boundary to the portable pipeline."""
 
 import json
+import logging
 import subprocess
 import sys
+import threading
+from datetime import timedelta
 from pathlib import Path
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from .models import Analysis, ResultArtifact
 from .reports import write_report
+
+logger = logging.getLogger(__name__)
+
+
+def recover_stale_analyses(max_age_minutes=15):
+    """Fail jobs whose worker stopped renewing its database heartbeat."""
+    cutoff = timezone.now() - timedelta(minutes=max_age_minutes)
+    with transaction.atomic():
+        stale = list(Analysis.objects.select_for_update(skip_locked=True).filter(
+            Q(heartbeat_at__lt=cutoff) | Q(heartbeat_at__isnull=True, started_at__lt=cutoff),
+            status=Analysis.Status.RUNNING,
+        ))
+        now = timezone.now()
+        for analysis in stale:
+            analysis.status = Analysis.Status.FAILED
+            analysis.error_message = "El trabajador dejó de responder; el análisis se marcó como fallido automáticamente."
+            analysis.finished_at = now
+        Analysis.objects.bulk_update(stale, ("status", "error_message", "finished_at"))
+    return len(stale)
+
+
+def _renew_heartbeat(analysis_id, stop_event):
+    from django.db import close_old_connections
+
+    while not stop_event.wait(settings.ANALYSIS_HEARTBEAT_SECONDS):
+        try:
+            close_old_connections()
+            if not Analysis.objects.filter(pk=analysis_id, status=Analysis.Status.RUNNING).update(
+                heartbeat_at=timezone.now()
+            ):
+                return
+        except Exception:
+            logger.exception("Could not renew heartbeat for analysis %s", analysis_id)
+        finally:
+            close_old_connections()
 
 
 def claim_next_analysis():
@@ -21,18 +60,24 @@ def claim_next_analysis():
             return None
         analysis.status = Analysis.Status.RUNNING
         analysis.started_at = timezone.now()
-        analysis.save(update_fields=("status", "started_at"))
+        analysis.heartbeat_at = analysis.started_at
+        analysis.save(update_fields=("status", "started_at", "heartbeat_at"))
         return analysis.pk
 
 
 def process_analysis(analysis_id):
     analysis = Analysis.objects.prefetch_related("scene_links__image").get(pk=analysis_id)
+    if analysis.status != Analysis.Status.RUNNING:
+        raise ValueError("El análisis no está en ejecución")
+    stop_event = threading.Event()
+    heartbeat = threading.Thread(target=_renew_heartbeat, args=(analysis_id, stop_event), daemon=True)
+    heartbeat.start()
     root = Path(settings.PIPELINE_ROOT)
     result_root = Path(settings.MEDIA_ROOT) / "results" / str(analysis.pk)
     normalized = Path(settings.MEDIA_ROOT) / "normalized" / str(analysis.pk)
-    normalized.mkdir(parents=True, exist_ok=True)
     scenes = []
     try:
+        normalized.mkdir(parents=True, exist_ok=True)
         for link in analysis.scene_links.all():
             image = link.image
             destination = normalized / f"scene_{link.order:02d}.tif"
@@ -66,6 +111,9 @@ def process_analysis(analysis_id):
                     size_bytes=path.stat().st_size,
                 ))
         with transaction.atomic():
+            locked = Analysis.objects.select_for_update().get(pk=analysis_id)
+            if locked.status != Analysis.Status.RUNNING:
+                raise RuntimeError("El análisis perdió su estado de ejecución")
             ResultArtifact.objects.bulk_create(artifacts)
             analysis.summary = summary
             analysis.status = Analysis.Status.COMPLETED
@@ -73,8 +121,10 @@ def process_analysis(analysis_id):
             analysis.save(update_fields=("summary", "status", "finished_at"))
     except Exception as exc:
         detail = (exc.stderr[-1500:] if isinstance(exc, subprocess.CalledProcessError) and exc.stderr else str(exc))
-        analysis.status = Analysis.Status.FAILED
-        analysis.error_message = detail[:2000]
-        analysis.finished_at = timezone.now()
-        analysis.save(update_fields=("status", "error_message", "finished_at"))
+        Analysis.objects.filter(pk=analysis_id, status=Analysis.Status.RUNNING).update(
+            status=Analysis.Status.FAILED, error_message=detail[:2000], finished_at=timezone.now(),
+        )
         raise
+    finally:
+        stop_event.set()
+        heartbeat.join(timeout=5)

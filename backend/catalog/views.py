@@ -49,7 +49,7 @@ class StudyAreaViewSet(viewsets.ModelViewSet):
             "`acquisition_date` (AAAA-MM-DD) y `reflectance_scale` (`fraction` o `divide_10000`). "
             "Indique `scl_factor` 1 o 10000 solo si existe SCL. El GeoTIFF debe estar georreferenciado "
             "y describir las bandas B2, B3, B4, B5, B8, B11 y B12; SCL es opcional. "
-            "La carga valida estructura y metadatos, no garantiza píxeles útiles para el análisis."
+            "La carga también exige al menos un píxel válido tras aplicar la escala y la máscara SCL declaradas."
         ),
         request={"multipart/form-data": SatelliteImageSerializer},
     ),
