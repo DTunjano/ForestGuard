@@ -43,6 +43,8 @@ def main() -> None:
     parser.add_argument("--salida", type=Path, required=True)
     parser.add_argument("--ventana", type=int, default=512,
                         help="Lado de ventana cuadrada en píxeles (64 a 1024)")
+    parser.add_argument("--permitir-intervalo-fuera-de-entrenamiento", action="store_true",
+                        help="Ejecutar experimentalmente fuera del intervalo temporal entrenado")
     args = parser.parse_args()
     if not 64 <= args.ventana <= 1024:
         parser.error("--ventana debe estar entre 64 y 1024")
@@ -64,7 +66,8 @@ def main() -> None:
         raise ValueError("El modelo, el contrato y los predictores difieren")
     days = (last_date - first_date).days
     low, high = contract["intervalo_entrenamiento_dias"]
-    if not low <= days <= high:
+    outside_training_interval = not low <= days <= high
+    if outside_training_interval and not args.permitir_intervalo_fuera_de_entrenamiento:
         raise ValueError(f"Intervalo de {days} días fuera del contrato {low}-{high}")
     profile = validar_entrada(args.imagen_inicial, HISTORICAL_BANDS, max_pixeles=None)
     validar_entrada(args.imagen_final, HISTORICAL_BANDS, max_pixeles=None)
@@ -132,6 +135,10 @@ def main() -> None:
         "pixeles_clase_0": count_valid - count_positive,
         "pixeles_clase_1": count_positive,
         "umbral": threshold,
+        "intervalo_dias": days,
+        "intervalo_entrenamiento_dias": [low, high],
+        "fuera_intervalo_entrenamiento": outside_training_interval,
+        "ejecucion_experimental": outside_training_interval,
         "ventana_pixeles": args.ventana,
         "puntaje": "salida RandomForest no calibrada; no equivale a probabilidad de riesgo futuro",
         "limitacion": "Modelo piloto validado solo en tres zonas y con eventos repetidos entre pares",

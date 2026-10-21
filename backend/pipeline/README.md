@@ -12,4 +12,6 @@ python src/forestguard_pipeline.py --escena '2024-05-07=escena_20240507.tif' --e
 
 Con una sola `--escena`, omite `--modelo`: devuelve índices y estadísticas. Con dos o más escenas con máscara SCL, entrega diferencias e indicios espectrales de degradación observada por intervalo; esta regla no confirma degradación forestal y requiere revisión. El modelo clasifica solo los intervalos compatibles. Desde tres fechas calcula también tendencia NDVI. Las salidas son GeoTIFF y `resumen_serie.json`. Las rutas de escenas se proporcionan en tiempo de ejecución; los archivos fuente y el modelo no requieren el directorio original.
 
+Para una investigación puntual se puede añadir `--permitir-intervalos-fuera-de-entrenamiento` junto con `--modelo`. Esto ejecuta v9 también en pares separados más de 330 días (o menos de 35), marcando cada resultado afectado con `fuera_intervalo_entrenamiento` y `ejecucion_experimental` en los JSON. Son predicciones fuera del intervalo temporal con que se entrenó el piloto: no están validadas para esas separaciones y no confirman deforestación. El backend no activa esta excepción al procesar análisis normales.
+
 Usa el manifiesto SHA256 para verificar los archivos transferidos. No cargues archivos `joblib` provenientes de terceros no confiables.

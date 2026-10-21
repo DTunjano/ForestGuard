@@ -278,7 +278,7 @@ def describe_trend(scenes, output, side):
                 "interpretacion": "Tendencia espectral descriptiva; no es riesgo futuro"}
 
 
-def run_model(first, second, folder, model, side):
+def run_model(first, second, folder, model, side, allow_outside_training=False):
     d1, p1 = first
     d2, p2 = second
     target = folder / "clasificacion_piloto"
@@ -287,6 +287,8 @@ def run_model(first, second, folder, model, side):
                "--imagen-final", str(p2), "--fecha-inicial", str(d1),
                "--fecha-final", str(d2), "--salida", str(target),
                "--ventana", str(side)]
+    if allow_outside_training:
+        command.append("--permitir-intervalo-fuera-de-entrenamiento")
     subprocess.run(command, check=True)
     subprocess.run([sys.executable,
                     str(Path(__file__).with_name("resumir_salida_cambio_historico.py")),
@@ -302,6 +304,8 @@ def main():
     parser.add_argument("--modelo", type=Path,
                         help="Modelo v9 para cambio histórico; omitir para solo índices")
     parser.add_argument("--ventana", type=int, default=512)
+    parser.add_argument("--permitir-intervalos-fuera-de-entrenamiento", action="store_true",
+                        help="Clasificación v9 experimental fuera del intervalo temporal entrenado")
     args = parser.parse_args()
     if not 64 <= args.ventana <= 1024:
         parser.error("--ventana debe estar entre 64 y 1024")
@@ -326,6 +330,8 @@ def main():
         if quality and quality["sha256_dataset_supervisado"] != contract["sha256_dataset_supervisado"]:
             raise ValueError("El perfil de desempeño no corresponde al modelo")
     else:
+        if args.permitir_intervalos_fuera_de_entrenamiento:
+            parser.error("La excepción temporal requiere --modelo")
         quality = None
     args.salida.mkdir(parents=True)
     report = {"version_pipeline": "forestguard_historico_v2",
@@ -337,6 +343,7 @@ def main():
               "deforestacion_una_fecha": ("no_evaluable_sin_comparacion_temporal"
                                             if len(scenes) == 1 else None),
               "modelo_temporal": str(args.modelo.resolve()) if args.modelo else None,
+              "excepcion_temporal_experimental": args.permitir_intervalos_fuera_de_entrenamiento,
               "calidad_modelo": quality,
               "ventana_pixeles": args.ventana}
     for acquisition, path in scenes:
@@ -347,7 +354,8 @@ def main():
             reason = None
             days = item["dias"]
             low, high = contract["intervalo_entrenamiento_dias"]
-            if not low <= days <= high:
+            outside_training_interval = not low <= days <= high
+            if outside_training_interval and not args.permitir_intervalos_fuera_de_entrenamiento:
                 reason = f"Intervalo fuera del contrato de {low} a {high} días"
             elif item["pixeles_comunes"] == 0:
                 reason = "Sin píxeles comunes válidos"
@@ -366,9 +374,12 @@ def main():
                             deforestacion_observada={"estado": "no_evaluable",
                                                      "motivo": reason})
             else:
-                area = run_model(first, second, folder, args.modelo, args.ventana)
+                area = run_model(first, second, folder, args.modelo, args.ventana,
+                                 allow_outside_training=outside_training_interval)
                 positive = area.get("pixeles_clase_1", 0)
                 item.update(estado_clasificacion="ejecutada",
+                            fuera_intervalo_entrenamiento=outside_training_interval,
+                            ejecucion_experimental=outside_training_interval,
                             clasificacion_piloto=str(folder / "clasificacion_piloto"),
                             superficie=area,
                             deforestacion_observada={
