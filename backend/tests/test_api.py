@@ -81,10 +81,12 @@ def test_upload_and_analysis_contract(settings, tmp_path):
     assert result.status_code == 201, result.data
     assert [item["date"] for item in result.data["images"]] == ["2024-05-17", "2024-09-24"]
     single = client.post("/api/v1/analyses/", {
-        "name": "Índices de una imagen", "image_ids": [first_id],
+        "name": "Índices de una imagen", "study_area": area.pk,
+        "image_ids": [first_id], "model_id": model.pk,
     }, format="json")
     assert single.status_code == 201, single.data
     assert single.data["study_area"] == area.pk
+    assert single.data["model_id"] is None
     assert len(single.data["images"]) == 1
     other_area = StudyArea.objects.create(owner=user, name="Otra área")
     assert client.post("/api/v1/analyses/", {
@@ -96,7 +98,8 @@ def test_upload_and_analysis_contract(settings, tmp_path):
     }, format="multipart")
     assert elsewhere.status_code == 201, elsewhere.data
     assert client.post("/api/v1/analyses/", {
-        "name": "Áreas mezcladas", "image_ids": [first_id, elsewhere.data["id"]],
+        "name": "Áreas mezcladas", "study_area": area.pk,
+        "image_ids": [first_id, elsewhere.data["id"]],
     }, format="json").status_code == 400
     assert client.post("/api/v1/analyses/", {"name": "Repetido", "study_area": area.pk,
                                              "image_ids": [first_id, first_id]}, format="json").status_code == 400
@@ -224,7 +227,7 @@ def test_worker_runs_packaged_pipeline_for_one_scene(settings, tmp_path):
     }, format="multipart")
     assert uploaded.status_code == 201, uploaded.data
     queued = client.post("/api/v1/analyses/", {
-        "name": "Índices", "image_ids": [uploaded.data["id"]],
+        "name": "Índices", "study_area": area.pk, "image_ids": [uploaded.data["id"]],
     }, format="json")
     assert queued.status_code == 201, queued.data
     analysis_id = claim_next_analysis()
@@ -235,6 +238,8 @@ def test_worker_runs_packaged_pipeline_for_one_scene(settings, tmp_path):
     assert analysis.summary["modalidad"] == "indices_una_fecha"
     assert analysis.artifacts.filter(relative_path="resumen_serie.json").exists()
     assert analysis.artifacts.filter(relative_path="reporte.pdf", kind="report").exists()
+    assert analysis.artifacts.filter(relative_path="visualizacion_individual.png", kind="visualization").exists()
+    assert analysis.artifacts.filter(relative_path="fechas/2024-05-17/NDVI.png", kind="visualization").exists()
     assert (tmp_path / "results" / str(analysis_id) / "reporte.pdf").read_bytes().startswith(b"%PDF")
     report = analysis.artifacts.get(relative_path="reporte.pdf")
     response = client.get(f"/api/v1/analyses/{analysis_id}/artifacts/{report.pk}/download/")
@@ -244,6 +249,11 @@ def test_worker_runs_packaged_pipeline_for_one_scene(settings, tmp_path):
     assert client.get(f"/api/v1/analyses/{analysis_id}/artifacts/{ndvi.pk}/metadata/").status_code == 200
     preview = client.get(f"/api/v1/analyses/{analysis_id}/artifacts/{ndvi.pk}/preview/")
     assert preview.status_code == 200 and preview.content.startswith(b"\x89PNG")
+    board = analysis.artifacts.get(relative_path="visualizacion_individual.png")
+    image = client.get(f"/api/v1/artifacts/{board.pk}/download/", HTTP_ACCEPT="application/octet-stream")
+    assert image.status_code == 200
+    assert b"".join(image.streaming_content).startswith(b"\x89PNG")
+    image.close()
     assert client.delete(f"/api/v1/analyses/{analysis_id}/").status_code == 204
     assert not (tmp_path / "results" / str(analysis_id)).exists()
 
@@ -278,6 +288,7 @@ def test_worker_runs_two_scene_model(settings, tmp_path):
     assert analysis.status == Analysis.Status.COMPLETED
     assert len(analysis.summary["intervalos"]) == 1
     assert analysis.summary["intervalos"][0]["estado_clasificacion"] == "ejecutada"
+    assert analysis.artifacts.filter(relative_path="visualizacion_comparativa.png", kind="visualization").exists()
 
 
 @pytest.mark.django_db(transaction=True)

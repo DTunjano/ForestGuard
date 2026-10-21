@@ -85,20 +85,25 @@ class ArtifactMetadataView(APIView):
         tags=["Análisis"], summary="Analizar una imagen o comparar varias",
         description=(
             "Crea un trabajo en estado `queued`; el worker local debe estar en ejecución para procesarlo. "
-            "Elige los IDs de las escenas cargadas en `GET /api/v1/images/`; el área se deduce automáticamente. "
+            "Elige un área de `GET /api/v1/study-areas/` y los IDs de las escenas de `GET /api/v1/images/`. "
             "`image_ids` admite de 1 a 32 imágenes distintas de la misma área y con fechas diferentes; "
-            "se ordenan por fecha. Una imagen produce índices descriptivos. Dos o más permiten "
-            "comparar fechas. `model_id` es opcional y requiere al menos dos escenas con SCL; "
+            "se ordenan por fecha. Una imagen produce índices descriptivos automáticamente y no usa v9, "
+            "aunque se envíe `model_id`. Dos o más imágenes permiten comparar fechas. "
+            "`model_id` es opcional y, para varias fechas, requiere escenas con SCL; "
             "el modelo solo se aplica a intervalos compatibles con su contrato. "
             "Los resultados exploratorios requieren revisión humana."
         ),
         examples=[
             OpenApiExample("Análisis de una imagen", value={
-                "name": "Índices de una escena", "image_ids": [1],
+                "name": "Índices de una escena", "study_area": 1, "image_ids": [1],
             }, request_only=True),
             OpenApiExample("Comparación de dos fechas", value={
-                "name": "Comparación histórica", "image_ids": [1, 2],
+                "name": "Comparación histórica", "study_area": 1, "image_ids": [1, 2],
                 "description": "Escenas del mismo sector",
+            }, request_only=True),
+            OpenApiExample("Comparación con v9", value={
+                "name": "Clasificación exploratoria", "study_area": 1,
+                "image_ids": [1, 2], "model_id": 1,
             }, request_only=True),
         ],
     ),

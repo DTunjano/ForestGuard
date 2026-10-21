@@ -40,14 +40,15 @@ POST /analyses/
 {
   "name": "Cambio mayo-septiembre",
   "description": "Análisis histórico exploratorio",
+  "study_area": 1,
   "image_ids": [11, 12],
   "model_id": 1
 }
 ```
 
-Para una sola imagen use, por ejemplo, `{"name":"Índices de una escena","image_ids":[11]}` y omita `model_id`. El servidor deduce `study_area` de las imágenes seleccionadas; por compatibilidad también acepta ese campo si coincide con el área de todas las imágenes. `model_id` puede omitirse para índices y diferencias sin clasificación ML. Una escena genera índices; de 2 a 32 fechas distintas generan comparaciones de intervalos consecutivos. Para usar el modelo v9 se requieren al menos dos escenas con SCL. La creación devuelve `201` y `status=queued`. `GET /analyses/{id}/` devuelve `queued`, `running`, `completed` o `failed`, además de fechas, error, resumen y artefactos. No se debe interpretar `queued` como resultado disponible.
+Para una sola imagen use, por ejemplo, `{"name":"Índices de una escena","study_area":1,"image_ids":[11]}`. El área se elige explícitamente; todas las imágenes deben pertenecer a ella. Con una imagen el backend omite v9 automáticamente, incluso si se envió `model_id`, y calcula NDVI, NDMI, NBR y NDRE con sus estadísticas. De 2 a 32 fechas distintas se generan comparaciones de intervalos consecutivos; `model_id` es opcional y v9 requiere al menos dos escenas con SCL. La creación devuelve `201` y `status=queued`. `GET /analyses/{id}/` devuelve `queued`, `running`, `completed` o `failed`, además de fechas, error, resumen y artefactos. No se debe interpretar `queued` como resultado disponible.
 
-Un resultado completo incluye `resumen_serie.json`, mapas GeoTIFF y `reporte.pdf`. Cada artefacto devuelve `download_url`; `GET /api/v1/artifacts/{artifact_id}/download/` comprueba la propiedad del análisis y sirve el archivo como adjunto. `DELETE /analyses/{id}/` se permite después de completar o fallar y borra resultados y copias normalizadas.
+Un resultado completo incluye `resumen_serie.json`, mapas GeoTIFF, una versión PNG descargable de cada raster y `reporte.pdf`. También incluye `visualizacion_individual.png` y, para varias fechas, `visualizacion_comparativa.png`: son láminas con color natural, índices y mapas de cambio. Cada artefacto devuelve `download_url`; `GET /api/v1/artifacts/{artifact_id}/download/` comprueba la propiedad del análisis y sirve el archivo como adjunto. Los PNG tienen `kind=visualization`. `DELETE /analyses/{id}/` se permite después de completar o fallar y borra resultados y copias normalizadas.
 
 Para un artefacto `kind=raster`, el detalle del análisis incluye `preview_url` y `metadata_url`. `GET /api/v1/artifacts/{artifact_id}/preview/` devuelve un PNG transparente usando un tamaño elegido por el servidor; `GET /api/v1/artifacts/{artifact_id}/metadata/` devuelve dimensiones, CRS, límites en WGS84 (`bounds_wgs84` como oeste, sur, este, norte), descripción de banda y leyenda. En Swagger, cada operación de resultados solicita únicamente `artifact_id`. Las rutas previas `GET /analyses/{id}/artifacts/{artifact_id}/...` siguen funcionando para clientes existentes, pero no se muestran en Swagger. La vista es una miniatura para la interfaz; el GeoTIFF descargable conserva la resolución y los valores originales. Estas rutas exigen el JWT del propietario. Las clases de cambio son exploratorias y la leyenda no las presenta como riesgo futuro.
 

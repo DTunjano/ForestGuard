@@ -24,11 +24,12 @@ def test_openapi_groups_modules_and_documents_uploads_and_results():
     assert not schema["paths"]["/api/v1/auth/token/"]["post"].get("security")
     assert schema["paths"]["/api/v1/analyses/"]["post"]["security"] == [{"jwtAuth": []}]
     analysis_request = schema["components"]["schemas"]["AnalysisRequest"]
-    assert "study_area" not in analysis_request["properties"]
-    assert set(analysis_request["required"]) == {"image_ids", "name"}
+    assert "study_area" in analysis_request["properties"]
+    assert set(analysis_request["required"]) == {"image_ids", "name", "study_area"}
     examples = schema["paths"]["/api/v1/analyses/"]["post"]["requestBody"]["content"]["application/json"]["examples"]
     assert any(example["value"]["image_ids"] == [1] for example in examples.values())
     assert any(example["value"]["image_ids"] == [1, 2] for example in examples.values())
+    assert all("study_area" in example["value"] for example in examples.values())
     preview = schema["paths"]["/api/v1/artifacts/{artifact_id}/preview/"]["get"]
     assert preview["tags"] == ["Resultados"]
     assert "image/png" in preview["responses"]["200"]["content"]

@@ -15,6 +15,7 @@ from django.utils import timezone
 
 from .models import Analysis, ResultArtifact
 from .reports import write_report
+from .visualizations import write_visualizations
 
 logger = logging.getLogger(__name__)
 
@@ -102,12 +103,14 @@ def process_analysis(analysis_id):
         subprocess.run(command, check=True, capture_output=True, text=True, timeout=7200)
         summary = json.loads((result_root / "resumen_serie.json").read_text(encoding="utf-8"))
         write_report(analysis, summary, result_root / "reporte.pdf")
+        write_visualizations(summary, result_root, [Path(scene.split("=", 1)[1]) for scene in scenes])
         artifacts = []
         for path in result_root.rglob("*"):
-            if path.is_file() and path.suffix.lower() in {".tif", ".json", ".pdf"}:
+            if path.is_file() and path.suffix.lower() in {".tif", ".json", ".pdf", ".png"}:
                 artifacts.append(ResultArtifact(
                     analysis=analysis, relative_path=path.relative_to(result_root).as_posix(),
-                    kind={".tif": "raster", ".json": "metadata", ".pdf": "report"}[path.suffix.lower()],
+                    kind={".tif": "raster", ".json": "metadata", ".pdf": "report",
+                          ".png": "visualization"}[path.suffix.lower()],
                     size_bytes=path.stat().st_size,
                 ))
         with transaction.atomic():
