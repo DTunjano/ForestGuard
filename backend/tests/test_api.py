@@ -80,6 +80,24 @@ def test_upload_and_analysis_contract(settings, tmp_path):
     }, format="json")
     assert result.status_code == 201, result.data
     assert [item["date"] for item in result.data["images"]] == ["2024-05-17", "2024-09-24"]
+    single = client.post("/api/v1/analyses/", {
+        "name": "Índices de una imagen", "image_ids": [first_id],
+    }, format="json")
+    assert single.status_code == 201, single.data
+    assert single.data["study_area"] == area.pk
+    assert len(single.data["images"]) == 1
+    other_area = StudyArea.objects.create(owner=user, name="Otra área")
+    assert client.post("/api/v1/analyses/", {
+        "name": "Área incorrecta", "study_area": other_area.pk, "image_ids": [first_id],
+    }, format="json").status_code == 400
+    elsewhere = client.post("/api/v1/images/", {
+        "study_area": other_area.pk,
+        "file": SimpleUploadedFile("scene_2024_10_17.tif", make_geotiff(), content_type="image/tiff"),
+    }, format="multipart")
+    assert elsewhere.status_code == 201, elsewhere.data
+    assert client.post("/api/v1/analyses/", {
+        "name": "Áreas mezcladas", "image_ids": [first_id, elsewhere.data["id"]],
+    }, format="json").status_code == 400
     assert client.post("/api/v1/analyses/", {"name": "Repetido", "study_area": area.pk,
                                              "image_ids": [first_id, first_id]}, format="json").status_code == 400
     client.force_authenticate(user=other)
@@ -206,7 +224,7 @@ def test_worker_runs_packaged_pipeline_for_one_scene(settings, tmp_path):
     }, format="multipart")
     assert uploaded.status_code == 201, uploaded.data
     queued = client.post("/api/v1/analyses/", {
-        "study_area": area.pk, "name": "Índices", "image_ids": [uploaded.data["id"]],
+        "name": "Índices", "image_ids": [uploaded.data["id"]],
     }, format="json")
     assert queued.status_code == 201, queued.data
     analysis_id = claim_next_analysis()

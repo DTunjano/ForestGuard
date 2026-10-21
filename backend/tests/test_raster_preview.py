@@ -45,25 +45,35 @@ def test_preview_metadata_and_owner_scope(settings, tmp_path):
     assert client.get(f"{base}/metadata/").status_code == 404
     assert client.get(f"{base}/preview/").status_code == 404
     assert client.get(simple_preview, HTTP_ACCEPT="image/png").status_code == 404
+    assert client.get(f"/api/v1/artifacts/{artifact.pk}/metadata/").status_code == 404
+    assert client.get(f"/api/v1/artifacts/{artifact.pk}/download/", HTTP_ACCEPT="application/octet-stream").status_code == 404
     client.force_authenticate(user=owner)
     metadata = client.get(f"{base}/metadata/")
     assert metadata.status_code == 200
     assert metadata.data["crs"] == "EPSG:32618"
     assert len(metadata.data["bounds_wgs84"]) == 4
     assert metadata.data["style"]["type"] == "classes"
+    assert client.get(f"/api/v1/artifacts/{artifact.pk}/metadata/").data == metadata.data
     preview = client.get(f"{base}/preview/")
     assert preview.status_code == 200 and preview["Content-Type"] == "image/png"
     swagger_preview = client.get(simple_preview, HTTP_ACCEPT="image/png")
     assert swagger_preview.status_code == 200
     assert swagger_preview["Content-Type"] == "image/png"
     assert swagger_preview.content == preview.content
-    assert client.get(f"/api/v1/analyses/{analysis.pk}/").data["artifacts"][0]["preview_url"].endswith(simple_preview)
+    artifact_details = client.get(f"/api/v1/analyses/{analysis.pk}/").data["artifacts"][0]
+    assert artifact_details["preview_url"].endswith(simple_preview)
+    assert artifact_details["download_url"].endswith(f"/api/v1/artifacts/{artifact.pk}/download/")
+    assert artifact_details["metadata_url"].endswith(f"/api/v1/artifacts/{artifact.pk}/metadata/")
+    download = client.get(f"/api/v1/artifacts/{artifact.pk}/download/", HTTP_ACCEPT="application/octet-stream")
+    assert download.status_code == 200
+    assert b"".join(download.streaming_content).startswith(b"II*")
     pixels = Image.open(BytesIO(preview.content)).convert("RGBA")
     assert pixels.size == (2, 2)
     assert pixels.getpixel((0, 0)) == (56, 161, 105, 255)
     assert pixels.getpixel((1, 0)) == (231, 76, 60, 255)
     assert pixels.getpixel((0, 1))[3] == 0
     assert client.get(f"{base}/preview/?max_size=2000").status_code == 400
+    download.close()
 
 
 @pytest.mark.django_db
@@ -94,4 +104,9 @@ def test_preview_rejects_non_raster_and_escape_path(settings, tmp_path):
         assert client.get(f"{base}/preview/").status_code == 404
         assert client.get(f"/api/v1/artifacts/{artifact.pk}/preview/").status_code == 404
         assert client.get(f"{base}/metadata/").status_code == 404
+        assert client.get(f"/api/v1/artifacts/{artifact.pk}/metadata/").status_code == 404
     assert client.get(f"/api/v1/analyses/{analysis.pk}/artifacts/{escape.pk}/download/").status_code == 404
+    assert client.get(f"/api/v1/artifacts/{escape.pk}/download/").status_code == 404
+    document = client.get(f"/api/v1/artifacts/{report.pk}/download/", HTTP_ACCEPT="application/octet-stream")
+    assert document.status_code == 200
+    document.close()

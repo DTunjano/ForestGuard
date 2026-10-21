@@ -28,15 +28,15 @@ def artifact_file(artifact):
     return target
 
 
-class PreviewContentNegotiation(DefaultContentNegotiation):
-    """The success response is a Django PNG response; DRF renders only errors."""
+class BinaryResponseContentNegotiation(DefaultContentNegotiation):
+    """Binary success responses bypass DRF rendering; DRF renders only errors."""
 
     def select_renderer(self, request, renderers, format_suffix=None):
         return renderers[0], renderers[0].media_type
 
 
 class ArtifactPreviewView(APIView):
-    content_negotiation_class = PreviewContentNegotiation
+    content_negotiation_class = BinaryResponseContentNegotiation
 
     @extend_schema(
         tags=["Resultados"], summary="Ver PNG de un artefacto raster",
@@ -52,22 +52,55 @@ class ArtifactPreviewView(APIView):
         return HttpResponse(render_preview(artifact_file(artifact)), content_type="image/png")
 
 
+class ArtifactDownloadView(APIView):
+    content_negotiation_class = BinaryResponseContentNegotiation
+
+    @extend_schema(
+        tags=["Resultados"], summary="Descargar archivo por ID de artefacto",
+        description="El ID del artefacto identifica el análisis y se obtiene en `artifacts`. Solo el propietario puede descargarlo.",
+        responses={(200, "application/octet-stream"): OpenApiTypes.BINARY},
+    )
+    def get(self, request, artifact_id):
+        artifact = get_object_or_404(ResultArtifact, pk=artifact_id, analysis__owner=request.user)
+        target = artifact_file(artifact)
+        return FileResponse(target.open("rb"), as_attachment=True, filename=target.name)
+
+
+class ArtifactMetadataView(APIView):
+    @extend_schema(
+        tags=["Resultados"], summary="Consultar metadatos por ID de artefacto",
+        description="Solo admite artefactos raster del usuario autenticado.",
+        responses={200: OpenApiTypes.OBJECT},
+    )
+    def get(self, request, artifact_id):
+        artifact = get_object_or_404(
+            ResultArtifact, pk=artifact_id, analysis__owner=request.user, kind="raster",
+        )
+        return Response(raster_metadata(artifact_file(artifact)))
+
+
 @extend_schema_view(
     list=extend_schema(tags=["Análisis"], summary="Listar mis análisis"),
     create=extend_schema(
-        tags=["Análisis"], summary="Solicitar análisis histórico",
+        tags=["Análisis"], summary="Analizar una imagen o comparar varias",
         description=(
             "Crea un trabajo en estado `queued`; el worker local debe estar en ejecución para procesarlo. "
+            "Elige los IDs de las escenas cargadas en `GET /api/v1/images/`; el área se deduce automáticamente. "
             "`image_ids` admite de 1 a 32 imágenes distintas de la misma área y con fechas diferentes; "
-            "se ordenan por fecha. Una escena produce índices descriptivos. Dos o más escenas permiten "
+            "se ordenan por fecha. Una imagen produce índices descriptivos. Dos o más permiten "
             "comparar fechas. `model_id` es opcional y requiere al menos dos escenas con SCL; "
             "el modelo solo se aplica a intervalos compatibles con su contrato. "
             "Los resultados exploratorios requieren revisión humana."
         ),
-        examples=[OpenApiExample("Análisis de dos fechas", value={
-            "name": "Comparación histórica", "study_area": 1, "image_ids": [1, 2],
-            "description": "Escenas del mismo sector",
-        }, request_only=True)],
+        examples=[
+            OpenApiExample("Análisis de una imagen", value={
+                "name": "Índices de una escena", "image_ids": [1],
+            }, request_only=True),
+            OpenApiExample("Comparación de dos fechas", value={
+                "name": "Comparación histórica", "image_ids": [1, 2],
+                "description": "Escenas del mismo sector",
+            }, request_only=True),
+        ],
     ),
     retrieve=extend_schema(tags=["Análisis"], summary="Consultar estado y resumen"),
     destroy=extend_schema(
@@ -100,21 +133,13 @@ class AnalysisViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, mixins.
             if folder.is_dir():
                 shutil.rmtree(folder)
 
-    @extend_schema(
-        tags=["Resultados"], summary="Descargar artefacto",
-        description="Descarga un archivo del análisis propio. El `artifact_id` se obtiene de `artifacts` en el detalle del análisis.",
-        responses={(200, "application/octet-stream"): OpenApiTypes.BINARY},
-    )
+    @extend_schema(exclude=True)
     @decorators.action(detail=True, methods=["get"], url_path="artifacts/(?P<artifact_id>[0-9]+)/download")
     def download(self, request, pk=None, artifact_id=None):
         _, target = self._artifact_file(artifact_id)
         return FileResponse(target.open("rb"), as_attachment=True, filename=target.name)
 
-    @extend_schema(
-        tags=["Resultados"], summary="Consultar metadatos de raster",
-        description="Devuelve tamaño, CRS, límites WGS84 y estilo de visualización. Solo acepta artefactos raster.",
-        responses={200: OpenApiTypes.OBJECT},
-    )
+    @extend_schema(exclude=True)
     @decorators.action(detail=True, methods=["get"], url_path="artifacts/(?P<artifact_id>[0-9]+)/metadata")
     def metadata(self, request, pk=None, artifact_id=None):
         artifact, target = self._artifact_file(artifact_id)

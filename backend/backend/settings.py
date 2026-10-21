@@ -86,7 +86,9 @@ SPECTACULAR_SETTINGS = {
         "**Inicio rápido:** registre una cuenta en Autenticación, obtenga un token en "
         "`POST /api/v1/auth/token/` y use **Authorize** con el access token. "
         "Luego cree un área, cargue un GeoTIFF y solicite un análisis. "
-        "Los recursos y resultados son privados para su propietario."
+        "Los recursos y resultados son privados para su propietario. "
+        "Los IDs son generados por el servidor; consulte los listados para elegir imágenes u otros recursos. "
+        "Swagger UI no copia automáticamente un ID de una respuesta a otra operación."
     ),
     "VERSION": "1.0.0", "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
