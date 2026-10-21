@@ -1,12 +1,16 @@
 import shutil
 from pathlib import Path
+from tempfile import SpooledTemporaryFile
+from zipfile import ZIP_DEFLATED, ZipFile
 
 from django.conf import settings
 from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404
+from django.urls import reverse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiExample,
+    OpenApiParameter,
     extend_schema,
     extend_schema_view,
 )
@@ -17,7 +21,37 @@ from rest_framework.views import APIView
 
 from .models import Analysis, ResultArtifact
 from .raster_preview import raster_metadata, render_preview
-from .serializers import AnalysisSerializer
+from .serializers import AnalysisResultsSerializer, AnalysisSerializer, ResultArtifactSerializer
+
+RESULT_SECTIONS = ("all", "summary", "individual", "comparison")
+EXPORT_FORMATS = ("png", "tiff", "both")
+
+
+def _query_choice(request, name, choices, default):
+    value = request.query_params.get(name, default)
+    if value not in choices:
+        raise serializers.ValidationError({name: f"Elija una opción válida: {', '.join(choices)}."})
+    return value
+
+
+def _result_groups(analysis):
+    artifacts = list(analysis.artifacts.all())
+    raster_paths = {item.relative_path for item in artifacts if item.kind == "raster"}
+    groups = {"reports": [], "individual": [], "comparisons": [], "other": []}
+    for item in artifacts:
+        path = item.relative_path
+        # Each raster already offers its PNG through png_download_url.
+        if item.kind == "visualization" and str(Path(path).with_suffix(".tif")).replace("\\", "/") in raster_paths:
+            continue
+        if path in ("resumen_serie.json", "reporte.pdf"):
+            groups["reports"].append(item)
+        elif path == "visualizacion_individual.png" or path.startswith("fechas/"):
+            groups["individual"].append(item)
+        elif path == "visualizacion_comparativa.png" or path.startswith("intervalos/"):
+            groups["comparisons"].append(item)
+        else:
+            groups["other"].append(item)
+    return groups
 
 
 def artifact_file(artifact):
@@ -57,13 +91,126 @@ class ArtifactDownloadView(APIView):
 
     @extend_schema(
         tags=["Resultados"], summary="Descargar archivo por ID de artefacto",
-        description="El ID del artefacto identifica el análisis y se obtiene en `artifacts`. Solo el propietario puede descargarlo.",
+        description=("Para un raster, `format=tiff` descarga los datos georreferenciados y "
+                     "`format=png` descarga el mapa con colores usando el mismo ID. "
+                     "Sin `format`, se descarga el archivo original. Para obtener todos los "
+                     "resultados sin elegir artefactos use la exportación del análisis."),
+        parameters=[OpenApiParameter("format", str, OpenApiParameter.QUERY, required=False,
+                                     enum=["png", "tiff"],
+                                     description="Formato deseado del raster; omitir para el archivo original.")],
         responses={(200, "application/octet-stream"): OpenApiTypes.BINARY},
     )
     def get(self, request, artifact_id):
         artifact = get_object_or_404(ResultArtifact, pk=artifact_id, analysis__owner=request.user)
+        requested_format = request.query_params.get("format")
+        if requested_format not in (None, "png", "tiff"):
+            raise serializers.ValidationError({"format": "Elija png o tiff."})
+        if requested_format and artifact.kind != "raster":
+            raise serializers.ValidationError({"format": "Este formato solo se aplica a raster GeoTIFF."})
+        if requested_format == "png":
+            png_path = str(Path(artifact.relative_path).with_suffix(".png")).replace("\\", "/")
+            png = ResultArtifact.objects.filter(analysis=artifact.analysis, relative_path=png_path,
+                                                kind="visualization").first()
+            if png is not None:
+                target = artifact_file(png)
+                return FileResponse(target.open("rb"), as_attachment=True, filename=target.name,
+                                    content_type="image/png")
+            target = artifact_file(artifact)
+            return HttpResponse(render_preview(target, max_size=1024), content_type="image/png",
+                                headers={"Content-Disposition": f'attachment; filename="{target.stem}.png"'})
         target = artifact_file(artifact)
         return FileResponse(target.open("rb"), as_attachment=True, filename=target.name)
+
+
+class AnalysisResultsView(APIView):
+    @extend_schema(
+        tags=["Resultados"], summary="Ver todos los resultados de un análisis",
+        description=("Devuelve métricas, informe, láminas PNG y mapas de cada fecha e intervalo "
+                     "sin pedir IDs de artefactos. `section` permite mostrar solo una parte. "
+                     "Cada GeoTIFF incluye su descarga PNG. Disponible al completar el análisis."),
+        parameters=[OpenApiParameter("section", str, OpenApiParameter.QUERY, required=False,
+                                     enum=list(RESULT_SECTIONS),
+                                     description="Filtra las secciones visibles; predeterminado: all.")],
+        responses={200: AnalysisResultsSerializer},
+    )
+    def get(self, request, analysis_id):
+        analysis = get_object_or_404(Analysis.objects.prefetch_related("artifacts"),
+                                     pk=analysis_id, owner=request.user)
+        section = _query_choice(request, "section", RESULT_SECTIONS, "all")
+        groups = _result_groups(analysis)
+        visible = {"summary": "reports", "individual": "individual", "comparison": "comparisons"}
+        selected = None if section == "all" else visible[section]
+        root = request.build_absolute_uri(reverse("analysis-export", kwargs={"analysis_id": analysis.pk}))
+        return Response({
+            "analysis_id": analysis.pk, "status": analysis.status, "section": section,
+            "summary": analysis.summary if section in ("all", "summary") else {},
+            **{name: ResultArtifactSerializer(items, many=True, context={"request": request}).data
+               if selected is None or selected == name else [] for name, items in groups.items()},
+            "download_png_url": f"{root}?format=png",
+            "download_tiff_url": f"{root}?format=tiff",
+            "download_both_url": f"{root}?format=both",
+        })
+
+
+class AnalysisExportView(APIView):
+    content_negotiation_class = BinaryResponseContentNegotiation
+
+    @extend_schema(
+        tags=["Resultados"], summary="Descargar análisis completo en ZIP",
+        description=("Incluye siempre resumen JSON e informe PDF. `format=png` añade mapas en color "
+                     "y láminas; `format=tiff` añade mapas GeoTIFF; `format=both` añade ambos. "
+                     "`section` permite exportar solo resultados individuales o comparaciones."),
+        parameters=[
+            OpenApiParameter("format", str, OpenApiParameter.QUERY, required=False,
+                             enum=list(EXPORT_FORMATS), description="Formato de mapas; predeterminado: png."),
+            OpenApiParameter("section", str, OpenApiParameter.QUERY, required=False,
+                             enum=list(RESULT_SECTIONS), description="Parte del análisis; predeterminado: all."),
+        ],
+        responses={(200, "application/zip"): OpenApiTypes.BINARY},
+    )
+    def get(self, request, analysis_id):
+        analysis = get_object_or_404(Analysis.objects.prefetch_related("artifacts"),
+                                     pk=analysis_id, owner=request.user)
+        if analysis.status != Analysis.Status.COMPLETED:
+            raise serializers.ValidationError("El análisis debe estar completado para descargarlo.")
+        export_format = _query_choice(request, "format", EXPORT_FORMATS, "png")
+        section = _query_choice(request, "section", RESULT_SECTIONS, "all")
+        groups = _result_groups(analysis)
+        chosen = [*groups["reports"]]
+        if section in ("all", "individual"):
+            chosen.extend(groups["individual"])
+        if section in ("all", "comparison"):
+            chosen.extend(groups["comparisons"])
+        if section == "all":
+            chosen.extend(groups["other"])
+        png_paths = {item.relative_path: item for item in analysis.artifacts.all()
+                     if item.kind == "visualization"}
+        archive = SpooledTemporaryFile(max_size=16 * 1024 * 1024)
+        try:
+            with ZipFile(archive, "w", ZIP_DEFLATED) as output:
+                for item in chosen:
+                    path = artifact_file(item)
+                    if item.kind == "raster":
+                        if export_format in ("tiff", "both"):
+                            output.write(path, f"tiff/{item.relative_path}")
+                        if export_format in ("png", "both"):
+                            png_path = str(Path(item.relative_path).with_suffix(".png")).replace("\\", "/")
+                            png = png_paths.get(png_path)
+                            if png:
+                                output.write(artifact_file(png), f"png/{png_path}")
+                            else:
+                                output.writestr(f"png/{png_path}", render_preview(path, max_size=1024))
+                    elif item.kind == "visualization" and export_format in ("png", "both"):
+                        output.write(path, f"png/{item.relative_path}")
+                    elif item.kind in ("report", "metadata"):
+                        output.write(path, item.relative_path)
+            archive.seek(0)
+            return FileResponse(archive, as_attachment=True,
+                                filename=f"forestguard_analisis_{analysis.pk}_{section}_{export_format}.zip",
+                                content_type="application/zip")
+        except Exception:
+            archive.close()
+            raise
 
 
 class ArtifactMetadataView(APIView):

@@ -52,8 +52,9 @@ class ResultArtifactSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.URLField(allow_null=True))
     def get_png_download_url(self, obj):
-        png_id = self.get_png_artifact_id(obj)
-        return self._absolute_url("artifact-download", png_id) if png_id else None
+        if obj.kind != "raster":
+            return None
+        return f'{self._absolute_url("artifact-download", obj.pk)}?format=png'
 
     @extend_schema_field(serializers.URLField(allow_null=True))
     def get_preview_url(self, obj):
@@ -143,3 +144,17 @@ class AnalysisSerializer(serializers.ModelSerializer):
             for order, image in enumerate(images)
         ])
         return analysis
+
+
+class AnalysisResultsSerializer(serializers.Serializer):
+    analysis_id = serializers.IntegerField()
+    status = serializers.CharField()
+    section = serializers.CharField()
+    summary = serializers.JSONField()
+    reports = ResultArtifactSerializer(many=True)
+    individual = ResultArtifactSerializer(many=True)
+    comparisons = ResultArtifactSerializer(many=True)
+    other = ResultArtifactSerializer(many=True)
+    download_png_url = serializers.URLField()
+    download_tiff_url = serializers.URLField()
+    download_both_url = serializers.URLField()

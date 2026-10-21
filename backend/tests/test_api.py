@@ -1,4 +1,7 @@
 
+from io import BytesIO
+from zipfile import ZipFile
+
 import numpy as np
 import pytest
 from django.contrib.auth import get_user_model
@@ -105,6 +108,8 @@ def test_upload_and_analysis_contract(settings, tmp_path):
                                              "image_ids": [first_id, first_id]}, format="json").status_code == 400
     client.force_authenticate(user=other)
     assert client.get(f"/api/v1/analyses/{result.data['id']}/").status_code == 404
+    assert client.get(f"/api/v1/analyses/{result.data['id']}/results/").status_code == 404
+    assert client.get(f"/api/v1/analyses/{result.data['id']}/export/?format=png").status_code == 404
     assert client.get(f"/api/v1/images/{first_id}/").status_code == 404
 
 
@@ -252,7 +257,31 @@ def test_worker_runs_packaged_pipeline_for_one_scene(settings, tmp_path):
     raster_entry = next(item for item in detail.data["artifacts"] if item["id"] == ndvi.pk)
     assert raster_entry["label"] == "NDVI · 2024-05-17 (TIF)"
     assert raster_entry["png_artifact_id"] == ndvi_png.pk
-    assert raster_entry["png_download_url"].endswith(f"/api/v1/artifacts/{ndvi_png.pk}/download/")
+    assert raster_entry["png_download_url"].endswith(f"/api/v1/artifacts/{ndvi.pk}/download/?format=png")
+    results = client.get(f"/api/v1/analyses/{analysis_id}/results/")
+    assert results.status_code == 200
+    assert results.data["summary"]["modalidad"] == "indices_una_fecha"
+    assert any(item["id"] == ndvi.pk for item in results.data["individual"])
+    assert results.data["comparisons"] == []
+    assert client.get(f"/api/v1/analyses/{analysis_id}/results/?section=comparison").data["individual"] == []
+    png_response = client.get(f"/api/v1/artifacts/{ndvi.pk}/download/?format=png")
+    assert png_response.status_code == 200
+    assert b"".join(png_response.streaming_content).startswith(b"\x89PNG")
+    png_response.close()
+    tif_response = client.get(f"/api/v1/artifacts/{ndvi.pk}/download/?format=tiff")
+    assert tif_response.status_code == 200
+    assert b"".join(tif_response.streaming_content).startswith(b"II*\x00")
+    tif_response.close()
+    assert client.get(f"/api/v1/artifacts/{ndvi.pk}/download/?format=jpg").status_code == 400
+    export = client.get(f"/api/v1/analyses/{analysis_id}/export/?format=both")
+    assert export.status_code == 200
+    with ZipFile(BytesIO(b"".join(export.streaming_content))) as bundle:
+        names = bundle.namelist()
+        assert "resumen_serie.json" in names and "reporte.pdf" in names
+        assert "png/visualizacion_individual.png" in names
+        assert "png/fechas/2024-05-17/NDVI.png" in names
+        assert "tiff/fechas/2024-05-17/NDVI.tif" in names
+    export.close()
     assert client.get(f"/api/v1/analyses/{analysis_id}/artifacts/{ndvi.pk}/metadata/").status_code == 200
     preview = client.get(f"/api/v1/analyses/{analysis_id}/artifacts/{ndvi.pk}/preview/")
     assert preview.status_code == 200 and preview.content.startswith(b"\x89PNG")
@@ -296,6 +325,19 @@ def test_worker_runs_two_scene_model(settings, tmp_path):
     assert len(analysis.summary["intervalos"]) == 1
     assert analysis.summary["intervalos"][0]["estado_clasificacion"] == "ejecutada"
     assert analysis.artifacts.filter(relative_path="visualizacion_comparativa.png", kind="visualization").exists()
+    results = client.get(f"/api/v1/analyses/{analysis_id}/results/?section=comparison")
+    assert results.status_code == 200
+    assert results.data["individual"] == []
+    assert any(item["relative_path"] == "visualizacion_comparativa.png"
+               for item in results.data["comparisons"])
+    export = client.get(f"/api/v1/analyses/{analysis_id}/export/?format=png&section=comparison")
+    assert export.status_code == 200
+    with ZipFile(BytesIO(b"".join(export.streaming_content))) as bundle:
+        names = bundle.namelist()
+        assert "png/visualizacion_comparativa.png" in names
+        assert any(name.startswith("png/intervalos/") for name in names)
+        assert not any(name.startswith("tiff/") for name in names)
+    export.close()
 
 
 @pytest.mark.django_db(transaction=True)

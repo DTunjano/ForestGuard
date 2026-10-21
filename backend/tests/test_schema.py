@@ -36,5 +36,11 @@ def test_openapi_groups_modules_and_documents_uploads_and_results():
     assert [parameter["name"] for parameter in preview["parameters"]] == ["artifact_id"]
     for operation in ("download", "metadata", "preview"):
         path = f"/api/v1/artifacts/{{artifact_id}}/{operation}/"
-        assert [parameter["name"] for parameter in schema["paths"][path]["get"]["parameters"]] == ["artifact_id"]
+        names = [parameter["name"] for parameter in schema["paths"][path]["get"]["parameters"]]
+        assert names == (["artifact_id", "format"] if operation == "download" else ["artifact_id"])
         assert f"/api/v1/analyses/{{id}}/artifacts/{{artifact_id}}/{operation}/" not in schema["paths"]
+    results = schema["paths"]["/api/v1/analyses/{analysis_id}/results/"]["get"]
+    export = schema["paths"]["/api/v1/analyses/{analysis_id}/export/"]["get"]
+    assert [parameter["name"] for parameter in results["parameters"]] == ["analysis_id", "section"]
+    assert [parameter["name"] for parameter in export["parameters"]] == ["analysis_id", "format", "section"]
+    assert "application/zip" in export["responses"]["200"]["content"]
