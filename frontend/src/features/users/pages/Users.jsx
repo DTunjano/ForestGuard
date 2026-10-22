@@ -18,10 +18,12 @@ export function Users() {
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [message, setMessage] = useState("");
   async function submit(e) {
     e.preventDefault();
     setBusy(true);
     setError(null);
+    setMessage("");
     const form = e.currentTarget;
     const body = Object.fromEntries(new FormData(form));
     body.is_active = body.is_active === "true";
@@ -30,6 +32,7 @@ export function Users() {
       setEdit(null);
       form.reset();
       query.reload();
+      setMessage("Usuario guardado.");
     } catch (err) {
       setError(err);
     } finally {
@@ -65,7 +68,13 @@ export function Users() {
               {user.role === "admin" ? "Administrador" : "Analista"} ·{" "}
               {user.is_active ? "Activo" : "Inactivo"}
             </span>
-            <Button onClick={() => setEdit(user)}>
+            <Button
+              disabled={busy}
+              onClick={() => {
+                setEdit(user);
+                setMessage("");
+              }}
+            >
               Editar {user.username}
             </Button>
           </div>
@@ -88,66 +97,64 @@ export function Users() {
       </Panel>
       <Panel>
         <h2>{edit ? `Editar ${edit.username}` : "Crear usuario"}</h2>
-        <form
-          key={edit?.id || "new"}
-          onSubmit={submit}
-          className="grid gap-4 md:grid-cols-2"
-        >
-          <Field
-            label="Usuario"
-            name="username"
-            required
-            defaultValue={edit?.username}
-          />
-          <Field
-            label="Correo"
-            name="email"
-            type="email"
-            required
-            defaultValue={edit?.email}
-          />
-          <Field
-            label="Nombre"
-            name="first_name"
-            defaultValue={edit?.first_name}
-          />
-          <Field
-            label="Apellido"
-            name="last_name"
-            defaultValue={edit?.last_name}
-          />
-          {!edit && (
+        <form key={edit?.id || "new"} onSubmit={submit}>
+          <fieldset disabled={busy} className="grid gap-4 md:grid-cols-2">
             <Field
-              label="Contraseña inicial"
-              name="password"
-              type="password"
+              label="Usuario"
+              name="username"
               required
-              autoComplete="new-password"
+              defaultValue={edit?.username}
             />
-          )}
-          <Field label="Rol">
-            <Select name="role" defaultValue={edit?.role || "analyst"}>
-              <option value="analyst">Analista</option>
-              <option value="admin">Administrador</option>
-            </Select>
-          </Field>
-          <Field label="Estado">
-            <Select
-              name="is_active"
-              defaultValue={String(edit?.is_active ?? true)}
-            >
-              <option value="true">Activo</option>
-              <option value="false">Inactivo</option>
-            </Select>
-          </Field>
-          <Button disabled={busy}>Guardar usuario</Button>
-          {edit && (
-            <Button type="button" onClick={() => setEdit(null)}>
-              Cancelar edición
-            </Button>
-          )}
+            <Field
+              label="Correo"
+              name="email"
+              type="email"
+              required
+              defaultValue={edit?.email}
+            />
+            <Field
+              label="Nombre"
+              name="first_name"
+              defaultValue={edit?.first_name}
+            />
+            <Field
+              label="Apellido"
+              name="last_name"
+              defaultValue={edit?.last_name}
+            />
+            {!edit && (
+              <Field
+                label="Contraseña inicial"
+                name="password"
+                type="password"
+                required
+                autoComplete="new-password"
+              />
+            )}
+            <Field label="Rol">
+              <Select name="role" defaultValue={edit?.role || "analyst"}>
+                <option value="analyst">Analista</option>
+                <option value="admin">Administrador</option>
+              </Select>
+            </Field>
+            <Field label="Estado">
+              <Select
+                name="is_active"
+                defaultValue={String(edit?.is_active ?? true)}
+              >
+                <option value="true">Activo</option>
+                <option value="false">Inactivo</option>
+              </Select>
+            </Field>
+            <Button disabled={busy}>Guardar usuario</Button>
+            {edit && (
+              <Button type="button" onClick={() => setEdit(null)}>
+                Cancelar edición
+              </Button>
+            )}
+          </fieldset>
         </form>
-        <Notice error={error} />
+        <Notice error={error}>{message}</Notice>
       </Panel>
     </Page>
   );

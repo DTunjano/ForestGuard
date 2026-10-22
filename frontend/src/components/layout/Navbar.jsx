@@ -114,12 +114,8 @@ export const NavBar = () => {
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-50 flex flex-col overflow-visible border-r border-white/10 bg-[#0b1728] px-3 py-5 transition-[width] duration-300 ease-out ${isExpanded ? "w-64" : "w-19"}`}
-      onMouseEnter={() => {
-        if (window.matchMedia("(min-width: 1024px) and (hover: hover)").matches)
-          expandSidebar();
-      }}
-      onMouseLeave={collapseSidebar}
+      data-expanded={isExpanded}
+      className={`peer fixed inset-y-0 left-0 z-50 flex flex-col overflow-visible border-r border-white/10 bg-[#0b1728] px-3 py-5 transition-[width] duration-300 ease-out ${isExpanded ? "w-64" : "w-19"}`}
       onKeyDown={(event) => {
         if (event.key === "Escape") collapseSidebar();
       }}
