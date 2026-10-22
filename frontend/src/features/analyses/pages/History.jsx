@@ -8,6 +8,7 @@ import {
   Field,
   Select,
   Notice,
+  StatusBadge,
 } from "../../../shared/components/UI";
 import { statusLabel } from "../utils/status";
 export function History() {
@@ -53,26 +54,43 @@ export function History() {
             ? "Cargando historial…"
             : `${query.data?.count ?? 0} análisis`}
         </Notice>
-        {query.data?.results.map((item) => (
-          <article
-            key={item.id}
-            className="flex flex-wrap justify-between gap-3 border-b border-white/10 py-4"
-          >
-            <div>
-              <h2>{item.name}</h2>
-              <p>
-                {statusLabel(item.status)} ·{" "}
-                {new Date(item.created_at).toLocaleString("es-CO")}
-              </p>
-            </div>
-            <Link
-              className="text-[#b9e75c] underline"
-              to={`/dashboard/results/${item.id}`}
-            >
-              Abrir análisis
-            </Link>
-          </article>
-        ))}
+        <div className="overflow-x-auto">
+          <table className="fg-table">
+            <thead>
+              <tr>
+                <th scope="col">Análisis</th>
+                <th scope="col">Fecha de creación</th>
+                <th scope="col">Escenas</th>
+                <th scope="col">Estado</th>
+                <th scope="col">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {query.data?.results.map((item) => (
+                <tr key={item.id}>
+                  <td>
+                    <strong>{item.name}</strong>
+                  </td>
+                  <td>{new Date(item.created_at).toLocaleString("es-CO")}</td>
+                  <td>{item.images.length} fechas</td>
+                  <td>
+                    <StatusBadge status={item.status}>
+                      {statusLabel(item.status)}
+                    </StatusBadge>
+                  </td>
+                  <td>
+                    <Link
+                      className="text-[#b9e75c] underline"
+                      to={`/dashboard/results/${item.id}`}
+                    >
+                      Abrir análisis
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         {query.data?.count === 0 && (
           <p>
             Aún no hay análisis que coincidan. Carga imágenes y crea el primero.

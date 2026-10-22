@@ -1,3 +1,9 @@
+import {
+  LuTrees,
+  LuSatellite,
+  LuScanLine,
+  LuShieldCheck,
+} from "react-icons/lu";
 import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router";
 import { useAuth } from "../hooks/useAuth";
@@ -34,10 +40,39 @@ export function AuthPage({ registration = false }) {
     }
   }
   return (
-    <main className="min-h-screen bg-[#08111f] p-6 text-white">
-      <div className="mx-auto mt-12 max-w-md">
+    <main className="fg-auth text-white">
+      <section className="fg-auth-story" aria-label="Acerca de ForestGuard">
+        <div className="fg-auth-brand">
+          <LuTrees size={32} />
+          ForestGuard
+        </div>
+        <div>
+          <p className="fg-eyebrow">Inteligencia territorial</p>
+          <h2>Cada píxel cuenta para entender el bosque.</h2>
+          <p>
+            Observa tu territorio a través del tiempo. Convierte escenas
+            satelitales en mapas, índices y nuevas preguntas para tu
+            investigación.
+          </p>
+        </div>
+        <div className="fg-auth-foot">
+          <span>
+            <LuSatellite /> Sentinel-2
+          </span>
+          <span>
+            <LuScanLine /> Análisis histórico
+          </span>
+          <span>
+            <LuShieldCheck /> Espacio privado
+          </span>
+        </div>
+      </section>
+      <div className="fg-auth-form">
         <Panel>
-          <h1 className="text-3xl">ForestGuard</h1>
+          <p className="fg-eyebrow">Tu espacio de observación</p>
+          <h1 className="fg-auth-brand">
+            <LuTrees /> ForestGuard
+          </h1>
           <h2>{registration ? "Crear cuenta" : "Iniciar sesión"}</h2>
           {registered && (
             <Notice>

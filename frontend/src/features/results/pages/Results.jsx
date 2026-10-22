@@ -105,33 +105,46 @@ function CompletedResults({ id, summary }) {
   }
   return (
     <>
-      <Panel>
-        <h2 className="text-xl">Resumen y métricas</h2>
-        <p>
-          Resultados exploratorios: valores bajos o descensos de índices no
-          demuestran por sí solos deforestación. Las superficies de fechas e
-          intervalos se presentan separadas y no deben sumarse.
-        </p>
-        <Metrics summary={summary || {}} />
-      </Panel>
-      <Panel>
-        <h2 className="text-xl">Descargar análisis completo</h2>
-        <Field label="Formato del paquete">
-          <Select value={format} onChange={(e) => setFormat(e.target.value)}>
-            <option value="both">PNG y GeoTIFF</option>
-            <option value="png">PNG</option>
-            <option value="tiff">GeoTIFF</option>
-          </Select>
-        </Field>
-        <Button disabled={busy || !query.data} onClick={exportAll}>
-          {busy ? "Preparando descarga…" : "Descargar ZIP completo"}
-        </Button>
-        <p>
-          El paquete completo incluye las láminas disponibles y los informes.
-          Los filtros de abajo afectan solo a la visualización.
-        </p>
-        <Notice error={error} />
-      </Panel>
+      <div className="fg-results-overview">
+        {visible
+          .filter(
+            (item) =>
+              item.kind === "visualization" &&
+              !item.relative_path.includes("/"),
+          )
+          .map((artifact) => (
+            <ArtifactCard key={artifact.id} artifact={artifact} />
+          ))}
+      </div>
+      <div className="fg-workspace">
+        <Panel>
+          <h2 className="text-xl">Resumen y métricas</h2>
+          <p>
+            Resultados exploratorios: valores bajos o descensos de índices no
+            demuestran por sí solos deforestación. Las superficies de fechas e
+            intervalos se presentan separadas y no deben sumarse.
+          </p>
+          <Metrics summary={summary || {}} />
+        </Panel>
+        <Panel>
+          <h2 className="text-xl">Descargar análisis completo</h2>
+          <Field label="Formato del paquete">
+            <Select value={format} onChange={(e) => setFormat(e.target.value)}>
+              <option value="both">PNG y GeoTIFF</option>
+              <option value="png">PNG</option>
+              <option value="tiff">GeoTIFF</option>
+            </Select>
+          </Field>
+          <Button disabled={busy || !query.data} onClick={exportAll}>
+            {busy ? "Preparando descarga…" : "Descargar ZIP completo"}
+          </Button>
+          <p>
+            El paquete completo incluye las láminas disponibles y los informes.
+            Los filtros de abajo afectan solo a la visualización.
+          </p>
+          <Notice error={error} />
+        </Panel>
+      </div>
       <Panel>
         <h2 className="text-xl">Mapas e informes</h2>
         <p>
@@ -178,9 +191,14 @@ function CompletedResults({ id, summary }) {
         </Notice>
         {query.error && <Button onClick={query.reload}>Reintentar</Button>}
       </Panel>
-      {visible.map((artifact) => (
-        <ArtifactCard key={artifact.id} artifact={artifact} />
-      ))}
+      {visible
+        .filter(
+          (item) =>
+            item.kind !== "visualization" || item.relative_path.includes("/"),
+        )
+        .map((artifact) => (
+          <ArtifactCard key={artifact.id} artifact={artifact} />
+        ))}
     </>
   );
 }

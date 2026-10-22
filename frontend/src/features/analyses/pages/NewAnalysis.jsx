@@ -96,7 +96,7 @@ function AreaAnalysis({ area, models }) {
     }
   }
   return (
-    <>
+    <div className="fg-workspace">
       <Panel>
         <h2 className="text-xl">1. Cargar imágenes</h2>
         <UploadImages
@@ -220,6 +220,6 @@ function AreaAnalysis({ area, models }) {
           el historial. Los índices no confirman por sí solos deforestación.
         </p>
       </Panel>
-    </>
+    </div>
   );
 }
