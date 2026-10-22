@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from "react-router";
-import { useAuth } from "../features/auth/hooks/useAuth";
+import { useAuth } from "../../features/auth/hooks/useAuth";
 
 export const AdminRoute = () => {
   const { isAuthenticated, isAdmin } = useAuth();

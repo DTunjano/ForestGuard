@@ -31,7 +31,11 @@ export const ProfileDropdown = ({
   };
 
   const handleLogout = async () => {
-    try { await logout(); } catch { /* Local session is already cleared. */ }
+    try {
+      await logout();
+    } catch {
+      /* Local session is already cleared. */
+    }
     navigate("/auth/login");
   };
 
@@ -70,10 +74,10 @@ export const ProfileDropdown = ({
           className={`${sidebar ? (expanded ? "flex" : "hidden") : "hidden sm:flex"} min-w-0 flex-col items-start leading-tight`}
         >
           <p className="max-w-32 truncate text-sm font-semibold text-white">
-            {(user?.first_name || user?.username)}
+            {user?.first_name || user?.username}
           </p>
           <p className="max-w-32 truncate text-[11px] text-gray-400">
-            {user?.role === 'admin' ? 'Administrador' : 'Analista'}
+            {user?.role === "admin" ? "Administrador" : "Analista"}
           </p>
         </div>
       </button>
@@ -95,13 +99,19 @@ export const ProfileDropdown = ({
                   />
                 ) : (
                   <span className="text-lg font-bold text-white">
-                    {(user?.first_name || user?.username)?.charAt(0).toUpperCase()}
+                    {(user?.first_name || user?.username)
+                      ?.charAt(0)
+                      .toUpperCase()}
                   </span>
                 )}
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">{(user?.first_name || user?.username)}</p>
-                <p className="text-xs text-green-400/80">{user?.role === 'admin' ? 'Administrador' : 'Analista'}</p>
+                <p className="text-sm font-semibold text-white">
+                  {user?.first_name || user?.username}
+                </p>
+                <p className="text-xs text-green-400/80">
+                  {user?.role === "admin" ? "Administrador" : "Analista"}
+                </p>
               </div>
             </div>
           </div>

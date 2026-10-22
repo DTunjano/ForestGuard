@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router";
 import {
   LuCircleHelp,
@@ -16,7 +16,10 @@ import { useAuth } from "../../features/auth/hooks/useAuth";
 
 export const NavBar = () => {
   const [isExpanded, setIsExpanded] = useState(() => {
-    return sessionStorage.getItem("forestguard-sidebar-expanded") === "true";
+    return (
+      window.matchMedia("(min-width: 1024px)").matches &&
+      sessionStorage.getItem("forestguard-sidebar-expanded") === "true"
+    );
   });
   const [openSections, setOpenSections] = useState(() => ({
     images: sessionStorage.getItem("forestguard-section-images") !== "false",
@@ -24,6 +27,12 @@ export const NavBar = () => {
     admin: sessionStorage.getItem("forestguard-section-admin") !== "false",
   }));
   const { isAdmin } = useAuth();
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const onResize = () => setIsExpanded(false);
+    desktop.addEventListener("change", onResize);
+    return () => desktop.removeEventListener("change", onResize);
+  }, []);
 
   const setSidebarExpanded = (expanded) => {
     setIsExpanded(expanded);
@@ -106,14 +115,25 @@ export const NavBar = () => {
   return (
     <aside
       className={`fixed inset-y-0 left-0 z-50 flex flex-col overflow-visible border-r border-white/10 bg-[#0b1728] px-3 py-5 transition-[width] duration-300 ease-out ${isExpanded ? "w-64" : "w-19"}`}
-      onFocus={expandSidebar}
-      onMouseEnter={expandSidebar}
+      onMouseEnter={() => {
+        if (window.matchMedia("(min-width: 1024px) and (hover: hover)").matches)
+          expandSidebar();
+      }}
       onMouseLeave={collapseSidebar}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") collapseSidebar();
+      }}
     >
       <div className="flex shrink-0 items-center gap-3 overflow-hidden px-2">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#b9e75c] text-[#10261d] shadow-[0_0_26px_rgba(185,231,92,0.2)]">
+        <button
+          type="button"
+          aria-label={isExpanded ? "Cerrar navegación" : "Abrir navegación"}
+          aria-expanded={isExpanded}
+          onClick={() => setSidebarExpanded(!isExpanded)}
+          className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#b9e75c] text-[#10261d] shadow-[0_0_26px_rgba(185,231,92,0.2)]"
+        >
           <LuTrees size={22} strokeWidth={2.2} />
-        </span>
+        </button>
         <div
           className={`min-w-0 whitespace-nowrap transition-opacity duration-200 ${isExpanded ? "opacity-100" : "opacity-0"}`}
         >
@@ -168,7 +188,7 @@ export const NavBar = () => {
                       to={to}
                       end={to === "/dashboard"}
                       title={itemLabel}
-                      onClick={expandSidebar}
+                      onClick={collapseSidebar}
                       className={({ isActive }) => subtitleClass(isActive)}
                     >
                       <ItemIcon className="size-4 shrink-0" />

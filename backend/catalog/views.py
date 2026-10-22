@@ -1,5 +1,10 @@
 from django.db.models.deletion import ProtectedError
-from drf_spectacular.utils import OpenApiExample, extend_schema, extend_schema_view
+from drf_spectacular.utils import (
+    OpenApiExample,
+    OpenApiParameter,
+    extend_schema,
+    extend_schema_view,
+)
 from rest_framework import filters, parsers, serializers, viewsets
 
 from .models import PipelineModel, SatelliteImage, StudyArea
@@ -41,7 +46,8 @@ class StudyAreaViewSet(viewsets.ModelViewSet):
 
 
 @extend_schema_view(
-    list=extend_schema(tags=["Imágenes satelitales"], summary="Listar mis imágenes"),
+    list=extend_schema(tags=["Imágenes satelitales"], summary="Listar mis imágenes",
+                       parameters=[OpenApiParameter("study_area", int, description="Filtrar por área propia.")]),
     create=extend_schema(
         tags=["Imágenes satelitales"], summary="Cargar GeoTIFF Sentinel-2",
         description=(
@@ -67,7 +73,13 @@ class SatelliteImageViewSet(viewsets.ModelViewSet):
     http_method_names = ("get", "post", "delete", "head", "options")
 
     def get_queryset(self):
-        return SatelliteImage.objects.filter(owner=self.request.user).select_related("study_area")
+        queryset = SatelliteImage.objects.filter(owner=self.request.user).select_related("study_area")
+        area = self.request.query_params.get("study_area")
+        if area is not None:
+            if not area.isdecimal() or int(area) < 1:
+                raise serializers.ValidationError({"study_area": "Seleccione un área válida."})
+            queryset = queryset.filter(study_area_id=int(area))
+        return queryset
 
     def perform_destroy(self, instance):
         try:

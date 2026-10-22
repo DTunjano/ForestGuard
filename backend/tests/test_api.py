@@ -101,6 +101,10 @@ def test_upload_and_analysis_contract(settings, tmp_path):
         "file": SimpleUploadedFile("scene_2024_10_17.tif", make_geotiff(), content_type="image/tiff"),
     }, format="multipart")
     assert elsewhere.status_code == 201, elsewhere.data
+    filtered = client.get(f"/api/v1/images/?study_area={area.pk}")
+    assert filtered.status_code == 200
+    assert {item["id"] for item in filtered.data["results"]} == {first_id, second_id}
+    assert client.get("/api/v1/images/?study_area=invalid").status_code == 400
     assert client.post("/api/v1/analyses/", {
         "name": "Áreas mezcladas", "study_area": area.pk,
         "image_ids": [first_id, elsewhere.data["id"]],
@@ -108,6 +112,7 @@ def test_upload_and_analysis_contract(settings, tmp_path):
     assert client.post("/api/v1/analyses/", {"name": "Repetido", "study_area": area.pk,
                                              "image_ids": [first_id, first_id]}, format="json").status_code == 400
     client.force_authenticate(user=other)
+    assert client.get(f"/api/v1/images/?study_area={area.pk}").data["count"] == 0
     assert client.get(f"/api/v1/analyses/{result.data['id']}/").status_code == 404
     assert client.get(f"/api/v1/analyses/{result.data['id']}/results/").status_code == 404
     assert client.get(f"/api/v1/analyses/{result.data['id']}/export/?format=png").status_code == 404
