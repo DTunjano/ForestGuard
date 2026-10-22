@@ -1,37 +1,57 @@
-# Integración posterior con React
+# Integración React y contrato de API
 
-El frontend actual contiene datos simulados y todavía no llama a la API. Esta guía describe el contrato que debe usar cuando se autorice su integración. La base local es `http://localhost:8000/api/v1/`; el esquema completo está en `/api/schema/` y Swagger en `/api/docs/`.
+La integración local se desarrolla en integration/frontend-backend.
+Consulta [arquitectura, ejecución, sesión y pruebas](integracion-local.md).
+Swagger sigue disponible en /api/docs/ y el esquema en /api/schema/.
 
-## Sesión y usuarios
+## Flujos conectados
 
-1. `POST /auth/register/` con `username`, `email`, `password`, `first_name`, `last_name`. La respuesta crea un analista; no inicia sesión automáticamente.
-2. `POST /auth/token/` con `username` y `password` devuelve `access` y `refresh` en JSON. Enviar `Authorization: Bearer <access>` en rutas protegidas.
-3. Ante `401` por expiración, llamar una vez a `POST /auth/token/refresh/` con el refresh vigente. Guardar el refresh nuevo: el anterior queda revocado por rotación. Si falla, limpiar la sesión y volver a iniciar sesión.
-4. `GET /auth/me/` obtiene `id`, `username`, `email`, `first_name`, `last_name`, `role`, `is_active`, `date_joined`. `PATCH /auth/me/` modifica nombre, apellido y correo. `POST /auth/password/change/` exige contraseña actual y nueva; después hay que volver a iniciar sesión.
-5. `POST /auth/logout/` revoca el refresh enviado. El cliente también debe borrar los tokens locales. La API devuelve los JWT en el cuerpo; no configura cookies de sesión para React.
-
-`role` usa `analyst` o `admin`, no etiquetas de presentación. `GET/POST/PATCH /admin/users/` exige `admin`. Las listas usan el formato paginado `{count, next, previous, results}` y `?search=` / `?ordering=`. `date_joined` es fecha y hora del servidor; no se edita. Se desactiva una cuenta con `PATCH {"is_active":false}` en lugar de borrarla. No existe un rol `Consulta` ni eliminación de cuentas en la API.
-
-## Flujo de análisis
-
-1. `POST /study-areas/` con `name`, `department`, `municipality` y `description`; guardar el `id` devuelto.
-2. Por cada escena, `POST /images/` como `multipart/form-data` con `study_area` y `file` GeoTIFF; `name` es opcional. No pida al usuario fecha, escala de reflectancia ni factor SCL: el backend los detecta y devuelve junto con el `id`. Muestre `acquisition_date` y la cobertura válida de la respuesta para que el usuario compruebe que corresponde a su escena. Si el nombre o los metadatos no contienen una fecha de adquisición inequívoca, muestre el error de la API y pida un archivo con la fecha verdadera en su nombre o metadatos. `uploaded_at` es la fecha de carga.
-3. `GET /models/` lista modelos confiables activos. Crear un análisis con `POST /analyses/` y `{ "name": "...", "study_area": 1, "image_ids": [1, 2], "model_id": 1 }`. La página muestra el nombre del área y envía su ID. `model_id` es opcional: una sola fecha usa `{ "name": "...", "study_area": 1, "image_ids": [1] }` y el backend genera índices sin v9 automáticamente; el modelo v9 requiere dos o más fechas con SCL. El backend ordena cronológicamente las escenas. Puede omitir la clasificación de un intervalo fuera del contrato del modelo y explica el motivo en `summary`.
-4. La creación devuelve `status=queued`. Consultar `GET /analyses/{id}/` hasta `completed` o `failed`; `running` no informa un porcentaje real. `error_message` explica un fallo técnico. `summary` contiene las estadísticas y límites científicos; no son probabilidades de riesgo futuro.
-5. En `artifacts`, usar `id`, `kind`, `preview_url`, `metadata_url` y `download_url`. Los PNG persistidos (`kind=visualization`) incluyen mapas individuales y láminas `visualizacion_individual.png` / `visualizacion_comparativa.png`; se obtienen con `download_url`. Las tres rutas nuevas `/api/v1/artifacts/{artifact_id}/...` solo usan el ID del artefacto; las rutas anteriores con ID del análisis siguen disponibles. Tanto el PNG como el GeoTIFF necesitan el JWT; un `<img src>` sin cabecera Bearer no basta. Un `fetch` autenticado y un object URL sirven para mostrarlos. PDF y JSON también usan `download_url`.
-
-`GET /analyses/?search=...&ordering=-created_at` alimenta historial. El borrado se permite solo cuando el estado es `completed` o `failed`. Las fechas, áreas y métricas deben provenir de `summary`; no hay valores fijos por zona en la API.
-
-## Diferencias que debe resolver la futura integración
-
-| Pantalla actual | Contrato real |
+| Pantalla | Contrato |
 | --- | --- |
-| `AuthContext` inicia con un administrador simulado autenticado | Consultar `/auth/me/` con un JWT válido; iniciar sin sesión si no existe. |
-| Registro comprueba confirmación solo en el navegador | Enviar `password`; mostrar también los errores de validación devueltos por la API. |
-| Perfil edita `username` y contraseña sin contraseña actual | `username` es fijo en `/auth/me/`; contraseña usa `/auth/password/change/` con la actual. |
-| Usuarios usa etiquetas `Admin`, `Analista`, `Consulta`, y ofrece borrar | Traducir `admin`/`analyst` solo para mostrar; desactivar en vez de borrar. |
-| Nuevo análisis exige siempre modelo y simula progreso porcentual | El modelo es opcional y la API expone estados, no porcentaje de avance. |
-| Modelos muestra cargas y modelos de incendio/riesgo simulados | `/models/` es de solo lectura y contiene únicamente el modelo v9 confiable. Riesgo futuro sigue fuera del alcance. |
-| Resultados e historial usan cifras e imágenes fijas | Usar `summary`, artefactos, miniaturas y metadatos del análisis terminado. |
+| Registro / login | POST auth/register/, auth/token/; recuperación con token/refresh/ y auth/me/ |
+| Perfil | GET/PATCH auth/me/; POST auth/password/change/; volver a ingresar al cambiar contraseña |
+| Usuarios (admin) | GET/POST/PATCH admin/users/; roles admin/analyst; desactivación, sin borrado |
+| Modelos | GET models/ paginado; catálogo de solo lectura |
+| Áreas | GET/POST study-areas/; selección por nombre, ID interno |
+| Nuevo análisis | POST images/ multipart; GET images/?study_area=; POST analyses/ |
+| Historial | GET analyses/?search=&ordering=&page= |
+| Resultados | GET analyses/{id}/ y results/; polling solo en queued/running |
+| Descargas | URL privada devuelta por el backend; Bearer JWT; blob y objectURL |
+| Dashboard | count del servidor para áreas, imágenes y análisis; últimos cinco análisis |
 
-Para errores, esperar `400` por validación, `401` por sesión inválida, `403` por permisos, `404` para recursos ajenos o ausentes y `429` por exceso de solicitudes. No mostrar al usuario como resultado científico un análisis en cola o fallido.
+La entrada necesita bandas descritas B2, B3, B4, B5, B8, B11 y B12;
+SCL es opcional para índices y necesaria para v9. El servidor detecta fecha de
+adquisición, escala y SCL. No se envían valores radiométricos desde el formulario.
+La carga informa dimensiones y metadatos; **la cobertura válida exacta aparece
+después en summary**, no existe ese campo en la respuesta de carga.
+
+Una imagen produce índices sin modelo; varias imágenes distintas del área y
+con fechas diferentes permiten comparar. Se admiten fechas del mismo año, máximo
+32. El modelo es opcional y el servidor decide la compatibilidad de cada intervalo;
+la omisión y su motivo se muestran en los resultados.
+
+summary.escenas contiene índices y cobertura por fecha. summary.intervalos
+contiene diferencias, área común, indicios y clasificación. No se suman áreas
+solapadas. p10–p90 son percentiles de píxeles válidos, no confianza ni exactitud.
+
+Los grupos reports, individual, comparisons y other de results/ ofrecen
+archivos reales y URLs autenticadas. La vista filtra por grupo, fecha/intervalo e
+índice; las láminas generales se ocultan al filtrar una fecha concreta.
+Cada raster permite PNG y GeoTIFF. Los informes PDF/JSON y las láminas PNG se
+descargan en su formato original. El ZIP completo permite png, tiff o both y no
+depende de los filtros visuales.
+
+## Errores y permisos
+
+400: validación; 401: sesión inválida; 403: permiso insuficiente; 404: recurso
+inexistente o ajeno; 429: límite de solicitudes. El cliente presenta el error y no
+inventa resultados. Las imágenes privadas se obtienen como blobs autenticados,
+nunca como enlaces públicos a media. La autorización efectiva sigue en Django.
+
+## Fuera de la interfaz actual
+
+La API conserva edición/eliminación de áreas, eliminación de imágenes sin uso y
+de análisis terminados. No se añadieron controles destructivos a la web: su
+ciclo de vida continúa manual mediante API, con sus validaciones. Tampoco hay
+pantallas para instalar modelos, cargar SAFE/COG por banda, recuperar contraseña
+por correo ni evaluar científicamente v9. No se simulan esas operaciones.

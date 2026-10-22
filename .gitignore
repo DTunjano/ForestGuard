@@ -73,6 +73,8 @@ staticfiles/
 .pytest_cache/
 .coverage
 htmlcov/
+test-results/
+playwright-report/
 
 # Type checking
 .mypy_cache/

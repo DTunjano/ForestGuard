@@ -1,6 +1,8 @@
-# ForestGuard backend
+# ForestGuard
 
-API Django para registrar escenas Sentinel-2 y ejecutar el pipeline histórico v7. La interfaz React vive en `frontend/` y no forma parte de los cambios del backend. El sistema **no predice riesgo futuro**. La clase ML expresa un patrón exploratorio de cambio entre fechas; los indicios de degradación son reglas espectrales y requieren revisión.
+API Django y frontend React para registrar escenas Sentinel-2 y ejecutar el pipeline histórico v7. La integración local permite cargar imágenes, crear análisis y consultar/descargar resultados desde `frontend/`. El sistema **no predice riesgo futuro**. La clase ML expresa un patrón exploratorio de cambio entre fechas; los indicios espectrales requieren revisión.
+
+La [guía de integración local](docs/integracion-local.md) incluye arquitectura, sesión, ramas, pruebas y comandos de las tres consolas. El frontend continúa iniciándose con `pnpm dev`.
 
 ## Requisitos
 
@@ -92,7 +94,7 @@ El worker actualiza un latido cada 30 segundos. En el siguiente ciclo de espera 
 
 ## Entrada aceptada
 
-La primera versión de la API recibe un **GeoTIFF de una sola grilla** con descripciones inequívocas `B2, B3, B4, B5, B8, B11, B12` y opcionalmente `SCL`. La escala de reflectancia y el factor SCL deben declararse. El worker normaliza el archivo sin alterar el original. Sin SCL se permiten índices descriptivos, pero no la clasificación ML. SAFE L2A y COG por banda existen en el paquete v7, pero todavía no tienen endpoint de carga; sus metadatos y estructura necesitan una interfaz propia.
+La API recibe un **GeoTIFF de una sola grilla** con descripciones inequívocas `B2, B3, B4, B5, B8, B11, B12` y opcionalmente `SCL`. La fecha, escala de reflectancia y el factor SCL se detectan en el servidor. El worker normaliza el archivo sin alterar el original. Sin SCL se permiten índices descriptivos, pero no clasificación ML. SAFE L2A y COG por banda todavía no tienen endpoint de carga; sus metadatos y estructura necesitan una interfaz propia.
 
 ## Desarrollo y pruebas
 
