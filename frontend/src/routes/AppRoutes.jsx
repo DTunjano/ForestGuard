@@ -7,9 +7,10 @@ import { NewAnalysis } from "../pages/dashboard/NewAnalysis";
 import { Results } from "../pages/dashboard/Results";
 import { History } from "../pages/dashboard/History";
 import { Help } from "../pages/dashboard/Help";
-import { Profile } from "../pages/profile/Profile";
-import { Users } from "../pages/admin/Users";
-import { Models } from "../pages/admin/Models";
+import { Profile } from "../features/profile/pages/Profile";
+import { Users } from "../features/users/pages/Users";
+import { Models } from "../features/models/pages/Models";
+import { StudyAreas } from "../features/study-areas/pages/StudyAreas";
 import { AdminRoute } from "./AdminRoute";
 
 function PrivateRoute() {
@@ -30,6 +31,8 @@ export const AppRoutes = () => {
       <Route path="/dashboard/results" element={<Results />} />
       <Route path="/help" element={<Help />} />
 
+      <Route path="/study-areas" element={<StudyAreas />} />
+      <Route path="/models" element={<Models />} />
       <Route path="/profile" element={<Profile />} />
 
       <Route element={<AdminRoute />}>

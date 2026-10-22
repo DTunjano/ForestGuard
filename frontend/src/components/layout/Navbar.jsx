@@ -47,7 +47,8 @@ export const NavBar = () => {
         { to: "/dashboard", label: "Dashboard", icon: LuLayoutDashboard },
         { to: "/dashboard/new", label: "Nuevo análisis", icon: LuPlus },
         { to: "/dashboard/history", label: "Historial", icon: LuClock3 },
-        { to: "/dashboard/results", label: "Resultados", icon: LuScanLine },
+        { to: "/study-areas", label: "Áreas de estudio", icon: LuTrees },
+        { to: "/models", label: "Modelos", icon: LuBrainCircuit },
       ],
     },
     {
@@ -105,6 +106,7 @@ export const NavBar = () => {
   return (
     <aside
       className={`fixed inset-y-0 left-0 z-50 flex flex-col overflow-visible border-r border-white/10 bg-[#0b1728] px-3 py-5 transition-[width] duration-300 ease-out ${isExpanded ? "w-64" : "w-19"}`}
+      onFocus={expandSidebar}
       onMouseEnter={expandSidebar}
       onMouseLeave={collapseSidebar}
     >
