@@ -105,6 +105,7 @@ def test_upload_and_analysis_contract(settings, tmp_path):
     assert filtered.status_code == 200
     assert {item["id"] for item in filtered.data["results"]} == {first_id, second_id}
     assert client.get("/api/v1/images/?study_area=invalid").status_code == 400
+    assert client.get(f"/api/v1/images/?study_area={2**64}").status_code == 400
     assert client.post("/api/v1/analyses/", {
         "name": "Áreas mezcladas", "study_area": area.pk,
         "image_ids": [first_id, elsewhere.data["id"]],

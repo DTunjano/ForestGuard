@@ -76,9 +76,11 @@ class SatelliteImageViewSet(viewsets.ModelViewSet):
         queryset = SatelliteImage.objects.filter(owner=self.request.user).select_related("study_area")
         area = self.request.query_params.get("study_area")
         if area is not None:
-            if not area.isdecimal() or int(area) < 1:
-                raise serializers.ValidationError({"study_area": "Seleccione un área válida."})
-            queryset = queryset.filter(study_area_id=int(area))
+            try:
+                area_id = serializers.IntegerField(min_value=1, max_value=2**63 - 1).run_validation(area)
+            except serializers.ValidationError as exc:
+                raise serializers.ValidationError({"study_area": exc.detail}) from exc
+            queryset = queryset.filter(study_area_id=area_id)
         return queryset
 
     def perform_destroy(self, instance):
