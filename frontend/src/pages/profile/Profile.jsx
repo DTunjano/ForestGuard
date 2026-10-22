@@ -11,7 +11,7 @@ import {
   LuX,
 } from "react-icons/lu";
 import { toast } from "sonner";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../features/auth/hooks/useAuth";
 import { MainLayout } from "../../components/layout/MainLayout";
 
 const fieldClass =

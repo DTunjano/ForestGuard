@@ -12,7 +12,7 @@ import {
   LuUserRound,
 } from "react-icons/lu";
 import { ProfileDropdown } from "./ProfileDropdown";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../features/auth/hooks/useAuth";
 
 export const NavBar = () => {
   const [isExpanded, setIsExpanded] = useState(() => {

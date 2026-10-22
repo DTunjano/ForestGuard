@@ -1,5 +1,5 @@
 import { AppRoutes } from "./routes/AppRoutes";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider } from "./app/providers/AuthProvider";
 import { Toaster } from "sonner";
 
 function App() {
