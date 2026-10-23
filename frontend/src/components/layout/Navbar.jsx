@@ -34,8 +34,19 @@ export const NavBar = () => {
     setSidebarExpanded(true);
   };
 
-  const collapseSidebar = () => {
-    setSidebarExpanded(false);
+  const collapseSidebar = (event) => {
+    if (event?.relatedTarget) {
+      setSidebarExpanded(false);
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      const sidebar = document.querySelector("[data-forestguard-sidebar]");
+
+      if (!sidebar?.matches(":hover")) {
+        setSidebarExpanded(false);
+      }
+    });
   };
 
   const navigationSections = [
@@ -104,6 +115,7 @@ export const NavBar = () => {
 
   return (
     <aside
+      data-forestguard-sidebar
       className={`fixed inset-y-0 left-0 z-50 flex flex-col overflow-visible border-r border-white/10 bg-[#0b1728] px-3 py-5 transition-[width] duration-300 ease-out ${isExpanded ? "w-64" : "w-19"}`}
       onMouseEnter={expandSidebar}
       onMouseLeave={collapseSidebar}
