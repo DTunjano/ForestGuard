@@ -30,11 +30,21 @@ async function capture(name) {
   await page.screenshot({
     path: `test-results/redesign/${name}.png`,
     fullPage: true,
-    animations: 'disabled',
+    animations: "disabled",
   });
 }
 page.on("pageerror", (error) => errors.push(error.message));
 const password = "BrowserTest123!";
+async function pick(label, choice) {
+  const control = page.getByRole("combobox", { name: label, exact: true });
+  await control.click();
+  const option =
+    typeof choice === "object"
+      ? page.getByRole("option", { name: choice.label, exact: true })
+      : page.locator(`[role="option"][data-value="${choice}"]`);
+  await option.click();
+  await expect(control).toHaveAttribute("aria-expanded", "false");
+}
 async function login(username, currentPassword = password) {
   await page.goto("/auth/login");
   await page.getByLabel("Usuario", { exact: true }).fill(username);
@@ -86,6 +96,18 @@ try {
   ).toBeVisible();
   await page.goto("/admin/users");
   await expect(page).toHaveURL(/\/dashboard$/);
+  const rail = page.locator("aside");
+  await page.mouse.move(1100, 500);
+  await rail.hover();
+  await expect(rail).toHaveAttribute("data-expanded", "true");
+  await page.mouse.move(1100, 500);
+  await expect(rail).toHaveAttribute("data-expanded", "false");
+  await page
+    .getByRole("button", { name: "Abrir navegación", exact: true })
+    .focus();
+  await expect(rail).toHaveAttribute("data-expanded", "true");
+  await page.keyboard.press("Escape");
+  await expect(rail).toHaveAttribute("data-expanded", "false");
   await page.goto("/profile");
   await page.getByLabel("Nombre", { exact: true }).fill("Analista prueba");
   await capture("profile");
@@ -98,7 +120,24 @@ try {
   await page.getByRole("button", { name: "Crear área", exact: true }).click();
   await expect(
     page.getByLabel("Área de estudio", { exact: true }),
-  ).not.toHaveValue("");
+  ).toContainText("Área controlada");
+  const areaPicker = page.getByRole("combobox", {
+    name: "Área de estudio",
+    exact: true,
+  });
+  await areaPicker.focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("listbox")).toBeVisible();
+  await page.screenshot({
+    path: "test-results/redesign/styled-dropdown.png",
+    animations: "disabled",
+  });
+  await page.keyboard.press("Escape");
+  await expect(areaPicker).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("End");
+  await page.keyboard.press("Enter");
+  await expect(areaPicker).toContainText("Área controlada");
   await page
     .getByLabel("Archivos Sentinel-2 GeoTIFF")
     .setInputFiles([
@@ -152,9 +191,7 @@ try {
     page.getByRole("heading", { name: "Individual controlado", exact: true }),
   ).toBeVisible();
   await page.goto("/dashboard/new");
-  await page
-    .getByLabel("Área de estudio", { exact: true })
-    .selectOption({ label: "Área controlada" });
+  await pick("Área de estudio", { label: "Área controlada" });
   await page.getByRole("checkbox").first().check();
   await page
     .getByLabel("Archivos Sentinel-2 GeoTIFF")
@@ -163,9 +200,7 @@ try {
     .getByRole("button", { name: "Cargar pendientes / reintentar fallidas" })
     .click();
   await expect(page.getByText(/Seleccionadas: 2 \/ 32/)).toBeVisible();
-  await page
-    .getByLabel("Clasificación opcional")
-    .selectOption({ label: "ForestGuard · v9" });
+  await pick("Clasificación opcional", { label: "ForestGuard · v9" });
   await create("Comparación controlada");
   await expect(page.getByText(/Clasificación: ejecutada/)).toBeVisible();
   await mkdir("test-results", { recursive: true });
@@ -173,13 +208,13 @@ try {
     path: "test-results/integration-results.png",
     fullPage: true,
   });
-  await page.getByLabel("Sección", { exact: true }).selectOption("comparisons");
+  await pick("Sección", "comparisons");
   await expect(
     page.getByRole("heading", {
       name: "Lámina de cambios entre fechas en PNG",
     }),
   ).toBeVisible();
-  await page.getByLabel("Índice / lámina").selectOption("NDVI");
+  await pick("Índice / lámina", "NDVI");
   await expect(
     page.getByRole("button", { name: "Descargar GeoTIFF", exact: true }),
   ).toHaveCount(1);
@@ -192,9 +227,7 @@ try {
   await page.getByRole("link", { name: "Abrir análisis" }).last().click();
   expect(page.url()).toBe(individualUrl);
   await page.goto("/dashboard/new");
-  await page
-    .getByLabel("Área de estudio", { exact: true })
-    .selectOption({ label: "Área controlada" });
+  await pick("Área de estudio", { label: "Área controlada" });
   await page.getByRole("checkbox").first().check();
   await page.getByLabel("Nombre del análisis").fill("Controlled failure");
   await page
@@ -221,7 +254,7 @@ try {
     .getByRole("button", { name: "Editar integration_analyst" })
     .click();
   await capture("users");
-  await page.getByLabel("Estado", { exact: true }).selectOption("false");
+  await pick("Estado", "false");
   await page.getByRole("button", { name: "Guardar usuario" }).click();
   await expect(
     page

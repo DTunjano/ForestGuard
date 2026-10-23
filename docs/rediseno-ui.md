@@ -99,3 +99,39 @@ Las mejoras científicas y la validación independiente de v9 siguen fuera de
 esta fase. El prototipo de probabilidades, selección geográfica y cancelación
 de trabajos no se habilita como función simulada: necesita soporte de API antes
 de convertirse en una interacción real. Se conserva la descarga de PNG y GeoTIFF.
+
+## Ajuste de desplegables y navegación
+
+Rama `fix/ui-select-navigation`, desde el rediseño aprobado visualmente.
+El selector compartido ahora utiliza un combobox con lista personalizada en un
+portal: colores propios, indicador de selección, opciones deshabilitadas,
+desplazamiento interno, búsqueda por escritura y teclas flecha/Home/End/Enter/
+Escape/Tab. Mantiene un campo nativo fuera de la navegación para enviar FormData
+y conservar el reset de los formularios. Las etiquetas se asocian al control
+visible. No requiere bibliotecas nuevas ni cambios en API.
+
+La lista se posiciona arriba o abajo según el espacio visible, cierra al salir
+con foco/clic y no desplaza el documento al recorrer opciones. Este último caso
+se corrigió tras detectarlo en la prueba del filtro de resultados en una página
+larga. El menú del sistema operativo ya no determina los colores de las opciones.
+
+La barra lateral se abre con el cursor en escritorio y se cierra al salir.
+El foco de teclado permite expandirla sin ratón y Escape la cierra. En móvil se
+conserva el botón. Ancho, espacio del contenido y secciones usan transiciones
+coordinadas de 300 ms; se respeta movimiento reducido. Los enlaces ocultos quedan
+fuera del foco mediante inert. El icono tiene dimensiones de 40×40 y no proyecta
+la sombra verde fuera del contenedor. La búsqueda de usuarios alinea su botón
+al extremo inferior de los campos y admite salto de línea en espacios pequeños.
+
+Verificaciones: lint, build y cuatro pruebas de cliente correctos. El recorrido
+de navegador se amplió para usar las opciones visibles, comprobar hover/salida,
+foco/Escape y elección por teclado, además de conservar análisis y exportaciones.
+La captura `frontend/test-results/redesign/styled-dropdown.png` muestra la lista
+abierta con el estilo compartido; archivo temporal ignorado por Git.
+
+Resultado final: recorrido integrado **1 passed en 70,93 s**, incluidos filtros
+de resultados y guardado de estado de usuario mediante el nuevo selector.
+El posicionamiento se actualiza con scroll, resize y ResizeObserver del control
+para acompañar la animación del lateral; la opción activa desplaza solo la lista.
+Se mantuvieron los cuatro tests de HTTP, lint y build correctos. No hay cambios
+en backend, contratos, dependencias ni despliegue.
