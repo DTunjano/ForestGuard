@@ -9,6 +9,7 @@ import { History } from "../../features/analyses/pages/History";
 import { Help } from "../../features/analyses/pages/Help";
 import { Profile } from "../../features/profile/pages/Profile";
 import { Users } from "../../features/users/pages/Users";
+import { Images } from "../../features/images/pages/Images";
 import { Models } from "../../features/models/pages/Models";
 import { StudyAreas } from "../../features/study-areas/pages/StudyAreas";
 import { AdminRoute } from "./AdminRoute";
@@ -35,6 +36,7 @@ export const AppRoutes = () => {
         <Route path="/dashboard/results/:id" element={<Results />} />
         <Route path="/help" element={<Help />} />
 
+        <Route path="/images" element={<Images />} />
         <Route path="/study-areas" element={<StudyAreas />} />
         <Route path="/models" element={<Models />} />
         <Route path="/profile" element={<Profile />} />

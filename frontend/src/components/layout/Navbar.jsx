@@ -17,6 +17,8 @@ import { useAuth } from "../../features/auth/hooks/useAuth";
 export const NavBar = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [openSections, setOpenSections] = useState(() => ({
+    catalogs:
+      sessionStorage.getItem("forestguard-section-catalogs") !== "false",
     images: sessionStorage.getItem("forestguard-section-images") !== "false",
     support: sessionStorage.getItem("forestguard-section-support") === "true",
     admin: sessionStorage.getItem("forestguard-section-admin") !== "false",
@@ -44,12 +46,20 @@ export const NavBar = () => {
   const navigationSections = [
     {
       id: "images",
-      label: "Imágenes",
+      label: "Análisis",
       icon: LuScanLine,
       items: [
         { to: "/dashboard", label: "Dashboard", icon: LuLayoutDashboard },
         { to: "/dashboard/new", label: "Nuevo análisis", icon: LuPlus },
         { to: "/dashboard/history", label: "Historial", icon: LuClock3 },
+      ],
+    },
+    {
+      id: "catalogs",
+      label: "Datos y recursos",
+      icon: LuTrees,
+      items: [
+        { to: "/images", label: "Colección de imágenes", icon: LuScanLine },
         { to: "/study-areas", label: "Áreas de estudio", icon: LuTrees },
         { to: "/models", label: "Modelos", icon: LuBrainCircuit },
       ],

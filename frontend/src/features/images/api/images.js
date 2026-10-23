@@ -5,3 +5,6 @@ export function uploadImage(file, area) {
   body.append("study_area", area);
   return request("images/", { method: "POST", body });
 }
+
+export const deleteImage = (id) =>
+  request(`images/${id}/`, { method: "DELETE" });

@@ -1,3 +1,4 @@
+import { Modal } from "../../../shared/components/Modal";
 import { useState } from "react";
 import { useResource } from "../../../shared/api/useResource";
 import { saveUser } from "../api/users";
@@ -13,6 +14,7 @@ export function Users() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [edit, setEdit] = useState(null);
+  const [showForm, setShowForm] = useState(false);
   const query = useResource(
     `admin/users/?page=${page}&search=${encodeURIComponent(search)}&ordering=username`,
   );
@@ -30,6 +32,7 @@ export function Users() {
     try {
       await saveUser(body, edit?.id);
       setEdit(null);
+      setShowForm(false);
       form.reset();
       query.reload();
       setMessage("Usuario guardado.");
@@ -41,6 +44,22 @@ export function Users() {
   }
   return (
     <Page title="Usuarios">
+      <div className="fg-module-toolbar">
+        <p>
+          Gestiona las cuentas de tu equipo. Las cuentas se desactivan para
+          conservar sus estudios.
+        </p>
+        <Button
+          onClick={() => {
+            setEdit(null);
+            setShowForm(true);
+            setError(null);
+          }}
+        >
+          Nuevo usuario
+        </Button>
+      </div>
+      <Notice>{message}</Notice>
       <Panel>
         <form
           onSubmit={(e) => {
@@ -90,6 +109,8 @@ export function Users() {
                       disabled={busy}
                       onClick={() => {
                         setEdit(user);
+                        setShowForm(true);
+                        setError(null);
                         setMessage("");
                       }}
                     >
@@ -117,67 +138,76 @@ export function Users() {
           </Button>
         </div>
       </Panel>
-      <Panel>
-        <h2>{edit ? `Editar ${edit.username}` : "Crear usuario"}</h2>
-        <form key={edit?.id || "new"} onSubmit={submit}>
-          <fieldset disabled={busy} className="grid gap-4 md:grid-cols-2">
-            <Field
-              label="Usuario"
-              name="username"
-              required
-              defaultValue={edit?.username}
-            />
-            <Field
-              label="Correo"
-              name="email"
-              type="email"
-              required
-              defaultValue={edit?.email}
-            />
-            <Field
-              label="Nombre"
-              name="first_name"
-              defaultValue={edit?.first_name}
-            />
-            <Field
-              label="Apellido"
-              name="last_name"
-              defaultValue={edit?.last_name}
-            />
-            {!edit && (
+      {showForm && (
+        <Modal
+          title={edit ? `Editar ${edit.username}` : "Crear usuario"}
+          busy={busy}
+          onClose={() => setShowForm(false)}
+        >
+          <form key={edit?.id || "new"} onSubmit={submit}>
+            <fieldset disabled={busy} className="grid gap-4 md:grid-cols-2">
               <Field
-                label="Contraseña inicial"
-                name="password"
-                type="password"
+                label="Usuario"
+                name="username"
                 required
-                autoComplete="new-password"
+                defaultValue={edit?.username}
               />
-            )}
-            <Field label="Rol">
-              <Select name="role" defaultValue={edit?.role || "analyst"}>
-                <option value="analyst">Analista</option>
-                <option value="admin">Administrador</option>
-              </Select>
-            </Field>
-            <Field label="Estado">
-              <Select
-                name="is_active"
-                defaultValue={String(edit?.is_active ?? true)}
-              >
-                <option value="true">Activo</option>
-                <option value="false">Inactivo</option>
-              </Select>
-            </Field>
-            <Button disabled={busy}>Guardar usuario</Button>
-            {edit && (
-              <Button type="button" onClick={() => setEdit(null)}>
-                Cancelar edición
-              </Button>
-            )}
-          </fieldset>
-        </form>
-        <Notice error={error}>{message}</Notice>
-      </Panel>
+              <Field
+                label="Correo"
+                name="email"
+                type="email"
+                required
+                defaultValue={edit?.email}
+              />
+              <Field
+                label="Nombre"
+                name="first_name"
+                defaultValue={edit?.first_name}
+              />
+              <Field
+                label="Apellido"
+                name="last_name"
+                defaultValue={edit?.last_name}
+              />
+              {!edit && (
+                <Field
+                  label="Contraseña inicial"
+                  name="password"
+                  type="password"
+                  required
+                  autoComplete="new-password"
+                />
+              )}
+              <Field label="Rol">
+                <Select name="role" defaultValue={edit?.role || "analyst"}>
+                  <option value="analyst">Analista</option>
+                  <option value="admin">Administrador</option>
+                </Select>
+              </Field>
+              <Field label="Estado">
+                <Select
+                  name="is_active"
+                  defaultValue={String(edit?.is_active ?? true)}
+                >
+                  <option value="true">Activo</option>
+                  <option value="false">Inactivo</option>
+                </Select>
+              </Field>
+              <Button disabled={busy}>Guardar usuario</Button>
+              {edit && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setShowForm(false)}
+                >
+                  Cancelar edición
+                </Button>
+              )}
+            </fieldset>
+          </form>
+          <Notice error={error} />
+        </Modal>
+      )}
     </Page>
   );
 }

@@ -1,3 +1,5 @@
+import { DeleteConfirmation } from "../../../shared/components/DeleteConfirmation";
+import { deleteAnalysis } from "../api/analyses";
 import { useState } from "react";
 import { Link } from "react-router";
 import { useResource } from "../../../shared/api/useResource";
@@ -12,6 +14,8 @@ import {
 } from "../../../shared/components/UI";
 import { statusLabel } from "../utils/status";
 export function History() {
+  const [remove, setRemove] = useState(null);
+  const [message, setMessage] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [ordering, setOrdering] = useState("-created_at");
@@ -23,6 +27,7 @@ export function History() {
       <Link className="underline" to="/dashboard/new">
         Crear análisis
       </Link>
+      <Notice>{message}</Notice>
       <Panel>
         <form
           className="flex flex-wrap items-end gap-4"
@@ -79,12 +84,23 @@ export function History() {
                     </StatusBadge>
                   </td>
                   <td>
-                    <Link
-                      className="text-[#b9e75c] underline"
-                      to={`/dashboard/results/${item.id}`}
-                    >
-                      Abrir análisis
-                    </Link>
+                    <div className="fg-actions">
+                      <Link
+                        className="text-[#b9e75c] underline"
+                        to={`/dashboard/results/${item.id}`}
+                      >
+                        Abrir análisis
+                      </Link>
+                      <Button
+                        variant="danger"
+                        disabled={
+                          !["completed", "failed"].includes(item.status)
+                        }
+                        onClick={() => setRemove(item)}
+                      >
+                        Eliminar análisis
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -113,6 +129,21 @@ export function History() {
           <Button onClick={query.reload}>Actualizar</Button>
         </div>
       </Panel>
+      {remove && (
+        <DeleteConfirmation
+          name={remove.name}
+          explanation="Se eliminarán este análisis y sus resultados. Las imágenes originales se conservarán. Solo se pueden eliminar trabajos terminados o fallidos."
+          onClose={() => setRemove(null)}
+          onDelete={async () => {
+            await deleteAnalysis(remove.id);
+            setRemove(null);
+            setMessage("Análisis eliminado.");
+            if (query.data.results.length === 1 && page > 1)
+              setPage((p) => p - 1);
+            else query.reload();
+          }}
+        />
+      )}
     </Page>
   );
 }
