@@ -1,6 +1,9 @@
 import { useRef, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { PiSignOutBold, PiUserBold } from "react-icons/pi";
+import {
+  LuLogOut as PiSignOutBold,
+  LuUserRound as PiUserBold,
+} from "react-icons/lu";
 import { useAuth } from "../../features/auth/hooks/useAuth";
 
 export const ProfileDropdown = ({

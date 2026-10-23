@@ -450,3 +450,113 @@ main {
     scroll-behavior: auto !important;
   }
 }
+
+.fg-button-primary {
+  background: #b9e75c;
+  color: #10261d;
+}
+.fg-button-secondary {
+  background: #223347;
+  color: #d7e3ed;
+  border: 1px solid #496077;
+}
+.fg-button-secondary:hover:not(:disabled) {
+  background: #30475e;
+  color: white;
+}
+.fg-model-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  background: #b9e75c12;
+  color: #b9e75c;
+  margin-right: 16px;
+}
+.fg-results-overview {
+  display: grid;
+  gap: 20px;
+}
+.fg-results-overview img {
+  border-radius: 12px;
+  background: #101e2d;
+}
+.fg-page[data-page="Ayuda"] ol {
+  counter-reset: steps;
+  list-style: none;
+  display: grid;
+  gap: 14px;
+}
+.fg-page[data-page="Ayuda"] li {
+  padding: 20px;
+  border: 1px solid var(--fg-border);
+  border-radius: 12px;
+  background: #152638;
+  line-height: 1.8;
+}
+.fg-page[data-page="Ayuda"] li:before {
+  counter-increment: steps;
+  content: counter(steps, decimal-leading-zero);
+  color: #b9e75c;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 8px;
+}
+@media (min-width: 1100px) {
+  .fg-page[data-page="Mi perfil"] {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .fg-page[data-page="Mi perfil"] > header,
+  .fg-page[data-page="Mi perfil"] > .fg-notice {
+    grid-column: 1/-1;
+  }
+  .fg-page[data-page="Mi perfil"] > * {
+    margin-block: 0;
+  }
+}
+
+.fg-skip {
+  position: fixed;
+  left: 100px;
+  top: -100px;
+  z-index: 100;
+  padding: 12px 20px;
+  border-radius: 8px;
+  background: #b9e75c;
+  color: #10261d;
+}
+.fg-skip:focus {
+  top: 12px;
+}
+.fg-processing {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--fg-border);
+}
+.fg-processing li[aria-current] {
+  outline: 1px solid #b9e75c70;
+  outline-offset: 4px;
+  border-radius: 30px;
+}
+[data-sonner-toast] {
+  font-family: inherit !important;
+  border-color: #496077 !important;
+  background: #122032 !important;
+  color: #e7edf5 !important;
+}
+@media (max-width: 600px) {
+  .fg-section-heading {
+    flex-wrap: wrap;
+  }
+  .fg-stat {
+    padding: 10px;
+  }
+  .fg-stat strong {
+    margin-top: 12px;
+  }
+}

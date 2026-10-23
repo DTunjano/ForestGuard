@@ -9,6 +9,7 @@ import {
   Select,
   Button,
   Notice,
+  StatusBadge,
 } from "../../../shared/components/UI";
 import { statusLabel } from "../../analyses/utils/status";
 import { Metrics } from "../components/Metrics";
@@ -30,6 +31,26 @@ export function Results() {
       {query.data && (
         <>
           <Panel>
+            <ol className="fg-processing" aria-label="Etapas del análisis">
+              {[
+                ["queued", "En cola"],
+                ["running", "Procesando"],
+                ["completed", "Resultados"],
+              ].map(([state, label]) => (
+                <li
+                  key={state}
+                  aria-current={
+                    query.data.status === state ? "step" : undefined
+                  }
+                >
+                  <StatusBadge
+                    status={query.data.status === state ? state : undefined}
+                  >
+                    {label}
+                  </StatusBadge>
+                </li>
+              ))}
+            </ol>
             <p role="status">Estado: {statusLabel(query.data.status)}</p>
             <p>
               Fechas: {query.data.images.map((image) => image.date).join(", ")}
@@ -112,8 +133,12 @@ function CompletedResults({ id, summary }) {
               item.kind === "visualization" &&
               !item.relative_path.includes("/"),
           )
-          .map((artifact) => (
-            <ArtifactCard key={artifact.id} artifact={artifact} />
+          .map((artifact, position) => (
+            <ArtifactCard
+              key={artifact.id}
+              artifact={artifact}
+              initialOpen={position === 0}
+            />
           ))}
       </div>
       <div className="fg-workspace">

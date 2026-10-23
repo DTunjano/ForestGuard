@@ -33,10 +33,10 @@ function PrivateImage({ url, label }) {
     </Notice>
   );
 }
-export function ArtifactCard({ artifact }) {
+export function ArtifactCard({ artifact, initialOpen }) {
   const board =
     artifact.kind === "visualization" && !artifact.relative_path.includes("/");
-  const [open, setOpen] = useState(board);
+  const [open, setOpen] = useState(initialOpen ?? board);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const name = artifact.relative_path.split("/").at(-1);
@@ -67,6 +67,7 @@ export function ArtifactCard({ artifact }) {
           </Button>
         )}
         <Button
+          variant="secondary"
           disabled={busy}
           onClick={() => save(artifact.download_url, name)}
         >
@@ -77,6 +78,7 @@ export function ArtifactCard({ artifact }) {
         </Button>
         {artifact.kind === "raster" && (
           <Button
+            variant="secondary"
             disabled={busy}
             onClick={() =>
               save(artifact.png_download_url, name.replace(/\.tiff?$/i, ".png"))

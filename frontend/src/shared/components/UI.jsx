@@ -16,7 +16,7 @@ const descriptions = {
 export function Page({ title, children }) {
   return (
     <MainLayout>
-      <div className="mx-auto max-w-6xl space-y-6">
+      <div data-page={title} className="fg-page mx-auto max-w-6xl space-y-6">
         <header className="fg-page-header">
           <p className="fg-eyebrow">
             <LuTrees aria-hidden="true" /> ForestGuard / Observación territorial
@@ -39,10 +39,10 @@ export function Panel({ children }) {
     </section>
   );
 }
-export function Button({ children, ...props }) {
+export function Button({ children, variant = "primary", ...props }) {
   return (
     <button
-      className="fg-button rounded-lg bg-[#b9e75c] px-4 py-2 font-semibold text-[#10261d] disabled:opacity-50"
+      className={`fg-button fg-button-${variant} rounded-lg px-4 py-2 font-semibold disabled:opacity-50`}
       {...props}
     >
       {children}

@@ -104,10 +104,10 @@ export const NavBar = () => {
   const sectionIsOpen = (sectionId) => isExpanded && openSections[sectionId];
 
   const sectionClass = (isOpen) =>
-    `flex shrink-0 items-center overflow-hidden rounded-xl text-left text-xs font-semibold uppercase tracking-[0.12em] transition ${isExpanded ? "h-11 w-full justify-between px-3" : "mx-auto size-11 justify-center px-0"} ${isOpen ? "text-[#b9e75c]" : "text-white/35 hover:bg-white/6 hover:text-white"}`;
+    `flex shrink-0 items-center overflow-hidden rounded-xl text-left text-xs font-semibold uppercase tracking-[0.12em] transition ${isExpanded ? "h-11 w-full justify-between px-3" : "mx-auto size-11 justify-center px-0"} ${isOpen ? "text-[#b9e75c]" : "text-slate-400 hover:bg-white/6 hover:text-white"}`;
 
   const linkClass = (isActive) =>
-    `flex h-10 shrink-0 items-center overflow-hidden rounded-lg px-3 text-sm transition ${isExpanded ? "justify-start" : "justify-center"} ${isActive ? "bg-[#b9e75c] text-[#10261d] shadow-[0_8px_24px_rgba(185,231,92,0.12)]" : "text-white/45 hover:bg-white/6 hover:text-white"}`;
+    `flex h-10 shrink-0 items-center overflow-hidden rounded-lg px-3 text-sm transition ${isExpanded ? "justify-start" : "justify-center"} ${isActive ? "bg-[#b9e75c] text-[#10261d] shadow-[0_8px_24px_rgba(185,231,92,0.12)]" : "text-slate-300 hover:bg-white/6 hover:text-white"}`;
 
   const subtitleClass = (isActive) =>
     `${linkClass(isActive)} ml-3 border-l border-white/10 pl-4`;
@@ -136,7 +136,7 @@ export const NavBar = () => {
           <h1 className="text-base font-bold tracking-tight text-white">
             ForestGuard
           </h1>
-          <p className="text-[10px] uppercase tracking-[0.13em] text-white/40">
+          <p className="text-[10px] uppercase tracking-[0.13em] text-slate-400">
             Inteligencia forestal
           </p>
         </div>
