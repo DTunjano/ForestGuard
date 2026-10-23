@@ -143,9 +143,10 @@ en la prueba para verificar su presentación. No es una evaluación científica.
 - Áreas y modelos se cargan como catálogos de referencia. Imágenes, historial y
   usuarios permanecen paginados. Si el catálogo de áreas crece sustancialmente,
   conviene sustituir el selector por búsqueda paginada.
-- La web no ofrece aún edición/borrado de áreas ni eliminación de imágenes o
-  análisis. La API conserva esas operaciones protegidas. No hay borrados al
-  abandonar formularios ni limpieza automática de datos.
+- La web ofrece edición/borrado de áreas, colección de imágenes y eliminación
+  de imágenes y análisis con confirmación y restricciones del backend; consulte
+  [organización de módulos](modulos-crud.md). No hay borrados al abandonar
+  formularios ni limpieza automática de datos.
 - Se conservan colores, sidebar y layout; se reemplazaron las pantallas simuladas
   por controles del contrato real. Coordinar cambios visuales con el compañero
   antes de integrar esta rama en dev.

@@ -239,6 +239,88 @@ try {
   await expect(
     page.getByRole("button", { name: "Descargar ZIP completo" }),
   ).toHaveCount(0);
+  await page.goto("/study-areas");
+  let row = page.getByRole("row").filter({ hasText: "Área controlada" });
+  await row.getByRole("button", { name: "Ver detalle", exact: true }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await row.getByRole("button", { name: "Editar", exact: true }).click();
+  await page.getByLabel("Descripción del área").fill("Descripción revisada");
+  await page.getByRole("button", { name: "Guardar área", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await row.getByRole("button", { name: "Eliminar", exact: true }).click();
+  await page.getByRole("button", { name: "Confirmar eliminación" }).click();
+  await expect(page.getByRole("dialog").getByRole("alert")).toContainText(
+    "imágenes",
+  );
+  await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+  await page.getByRole("button", { name: "Nueva área" }).click();
+  await page.getByLabel("Nombre del área").fill("Área temporal CRUD");
+  await page.getByRole("button", { name: "Crear área", exact: true }).click();
+  row = page.getByRole("row").filter({ hasText: "Área temporal CRUD" });
+  await row.getByRole("button", { name: "Editar", exact: true }).click();
+  await page.getByLabel("Nombre del área").fill("Área temporal editada");
+  await page.getByRole("button", { name: "Guardar área", exact: true }).click();
+  row = page.getByRole("row").filter({ hasText: "Área temporal editada" });
+  await row.getByRole("button", { name: "Eliminar", exact: true }).click();
+  await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+  await expect(row).toBeVisible();
+  await row.getByRole("button", { name: "Eliminar", exact: true }).click();
+  await page.getByRole("button", { name: "Confirmar eliminación" }).click();
+  await expect(row).toHaveCount(0);
+  await expect(
+    page.getByRole("row").filter({ hasText: "Área controlada" }),
+  ).toBeVisible();
+  await capture("areas-crud");
+  await page.goto("/images");
+  await pick("Filtrar por área", { label: "Área controlada" });
+  await page.getByRole("button", { name: "Ver metadatos" }).first().click();
+  await expect(page.getByRole("dialog")).toContainText("Dimensiones");
+  await page.keyboard.press("Escape");
+  await page
+    .getByRole("button", { name: "Eliminar", exact: true })
+    .first()
+    .click();
+  await page.getByRole("button", { name: "Confirmar eliminación" }).click();
+  await expect(page.getByRole("dialog").getByRole("alert")).toContainText(
+    "análisis",
+  );
+  await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+  await capture("images-module");
+  await page
+    .getByRole("button", { name: "Cargar imágenes", exact: true })
+    .click();
+  await page.getByLabel("Archivos Sentinel-2 GeoTIFF").setInputFiles({
+    name: "unused_2024_01_01.tif",
+    mimeType: "image/tiff",
+    buffer: await readFile(
+      join(process.env.FG_TEST_FILES, "scene_2024_01_01.tif"),
+    ),
+  });
+  await page
+    .getByRole("button", { name: "Cargar pendientes / reintentar fallidas" })
+    .click();
+  await expect(page.getByText(/unused_2024_01_01.tif — Cargada/)).toBeVisible();
+  await page.getByRole("button", { name: "Cerrar ventana" }).click();
+  const unusedRow = page
+    .getByRole("row")
+    .filter({ hasText: "unused_2024_01_01" });
+  await unusedRow
+    .getByRole("button", { name: "Eliminar", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Confirmar eliminación" }).click();
+  await expect(unusedRow).toHaveCount(0);
+  await page.goto("/dashboard/history");
+  await page
+    .getByRole("row")
+    .filter({ hasText: "Controlled failure" })
+    .getByRole("button", { name: "Eliminar análisis" })
+    .click();
+  await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+  await expect(
+    page.getByRole("row").filter({ hasText: "Controlled failure" }),
+  ).toBeVisible();
+
   await logout();
   await login("integration_admin");
   await page.goto(individualUrl);
@@ -254,6 +336,9 @@ try {
     .getByRole("button", { name: "Editar integration_analyst" })
     .click();
   await capture("users");
+  await page.getByRole("combobox", { name: "Estado", exact: true }).click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toBeVisible();
   await pick("Estado", "false");
   await page.getByRole("button", { name: "Guardar usuario" }).click();
   await expect(
@@ -265,6 +350,9 @@ try {
   await expect(
     page.getByText("Usuario guardado.", { exact: true }),
   ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Nuevo usuario", exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "Crear usuario", exact: true }),
   ).toBeVisible();
@@ -323,7 +411,25 @@ try {
   await expect(
     page.getByRole("heading", { name: "Áreas de estudio", exact: true }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "No hay áreas que mostrar" }),
+  ).toBeVisible();
   await capture("areas");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Nueva área" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.keyboard.press("Shift+Tab");
+  await expect(
+    page.getByRole("button", { name: "Crear área", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(
+    page.getByRole("button", { name: "Cerrar ventana" }),
+  ).toBeFocused();
+  await capture("area-form-mobile");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto("/help");
   await expect(
     page.getByRole("heading", { name: "Ayuda", exact: true }),

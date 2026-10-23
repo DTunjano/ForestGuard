@@ -50,8 +50,8 @@ nunca como enlaces públicos a media. La autorización efectiva sigue en Django.
 
 ## Fuera de la interfaz actual
 
-La API conserva edición/eliminación de áreas, eliminación de imágenes sin uso y
-de análisis terminados. No se añadieron controles destructivos a la web: su
-ciclo de vida continúa manual mediante API, con sus validaciones. Tampoco hay
+La web ofrece edición/eliminación de áreas, eliminación de imágenes sin uso y
+de análisis terminados, con confirmaciones y validaciones de la API. Consulte
+[organización de módulos](modulos-crud.md). Tampoco hay
 pantallas para instalar modelos, cargar SAFE/COG por banda, recuperar contraseña
 por correo ni evaluar científicamente v9. No se simulan esas operaciones.

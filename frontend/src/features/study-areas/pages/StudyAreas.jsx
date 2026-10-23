@@ -69,7 +69,7 @@ export function StudyAreas() {
           {query.loading
             ? "Cargando áreas…"
             : query.data
-              ? `${query.data.count} áreas encontradas`
+              ? `${query.data.count} ${query.data.count === 1 ? "área encontrada" : "áreas encontradas"}`
               : null}
         </Notice>
         {query.error && <Button onClick={query.reload}>Reintentar</Button>}
