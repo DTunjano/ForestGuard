@@ -44,3 +44,58 @@ No se incorporan controles destructivos nuevos a esta fase.
 Registrar resultados de lint, build, pruebas de cliente, recorrido integrado y
 capturas de escritorio, tableta y móvil al finalizar. Las capturas y los renders
 del PDF son archivos temporales ignorados en frontend/test-results.
+
+## Entrega por fases
+
+| Fase | Archivos y resultado | Verificación / commit |
+| --- | --- | --- |
+| 1 | Este documento; comparación de PDF 7.4 y código de dev | Renders de páginas 87–88; cf86a7c |
+| 2 | shared/components/UI.jsx, index.css; paneles, encabezados, foco, avisos e iconos | Lint y build; b497ae1 |
+| 3 | AuthPage, Dashboard, History, NewAnalysis, Results | Acceso dividido, actividad real, tabla y mapas prioritarios; 357e2c8 |
+| 4 | Users, Models, StudyAreas, componentes compartidos; perfil y ayuda heredan el sistema | Tabla administrativa, tarjetas y paneles consistentes; 80d4951 |
+| 5–6 | ArtifactCard, MainLayout, Navbar, ProfileDropdown, UI y CSS | Descargas secundarias, estados reales, Lucide, salto al contenido, contraste, movimiento reducido; 318a15b |
+| 7 | frontend/tests/integration.mjs | Capturas y recorrido real en Edge; commit final de pruebas |
+
+No se eliminaron archivos, funcionalidades ni dependencias en este rediseño.
+Los componentes de perfil y ayuda mantienen sus flujos; su presentación cambia
+a través del sistema compartido y estilos específicos adaptables. El menú
+existente se conserva y mejora su contraste. El backend no tiene cambios.
+
+## Evidencia visual y funcional
+
+Primer recorrido integrado: 1 passed en 75,17 s. Procesó escenas sintéticas con
+PostgreSQL y pipeline reales, verificó sesión, roles, perfil, usuarios, análisis
+individual/comparativo y descargas privadas. Lint, build y las cuatro pruebas
+del cliente HTTP pasaron. Bundle JS de construcción: aproximadamente 338 kB
+(104 kB gzip), sin dependencias nuevas. No es una medición de rendimiento de campo.
+
+Capturas revisadas: login, carga, historial, análisis individual y dashboard en
+1440×1000, 768×1024 y 390×844. El mapa de las capturas es sintético y no representa
+un resultado científico real. Se observa una lámina principal desplegada; las
+restantes pueden abrirse individualmente. Los filtros y exportaciones se conservan.
+
+Se calcularon contrastes de tres parejas del sistema: texto secundario sobre
+panel 8,73:1, texto de botón sobre lima 11,12:1 y texto principal sobre panel
+13,95:1. Esto no constituye una auditoría integral ni certificación WCAG 2.2 AA.
+El recorrido ampliado comprueba foco de teclado en el salto al contenido,
+navegación, ausencia de errores JS, reducción de movimiento y capturas adicionales.
+Ese recorrido pasó en 55,27 s. Se observaron capturas de perfil, modelos, áreas,
+usuarios y ayuda. Las dos últimas se tomaron durante una transición del menú;
+la prueba visual ahora espera explícitamente a que su ancho alcance el estado
+final antes de capturar. No se utilizan capturas intermedias como entrega visual.
+La ejecución final, con animaciones detenidas para las capturas, pasó en 53,52 s.
+Se volvieron a inspeccionar usuarios y ayuda: el contenido queda visible sin
+superposición del lateral. Las capturas finales permanecen en
+`frontend/test-results/redesign/` (ignoradas por Git).
+
+## Cómo revisar
+
+En frontend: `pnpm dev`. API y worker se ejecutan como antes en sus consolas.
+No hay migraciones, variables ni dependencias nuevas. Las pruebas se repiten con
+los comandos de docs/integracion-local.md. La rama de rediseño parte de 595a1d2;
+no se fusiona a dev/main ni se publica sin una instrucción posterior.
+
+Las mejoras científicas y la validación independiente de v9 siguen fuera de
+esta fase. El prototipo de probabilidades, selección geográfica y cancelación
+de trabajos no se habilita como función simulada: necesita soporte de API antes
+de convertirse en una interacción real. Se conserva la descarga de PNG y GeoTIFF.

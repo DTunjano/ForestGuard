@@ -10,6 +10,29 @@ const context = await browser.newContext({
 const page = await context.newPage();
 page.setDefaultTimeout(15000);
 const errors = [];
+await mkdir("test-results/redesign", { recursive: true });
+async function capture(name) {
+  if (await page.locator("aside").count()) {
+    await expect
+      .poll(() =>
+        page
+          .locator("aside")
+          .evaluate(
+            (element) =>
+              Math.abs(
+                element.getBoundingClientRect().width -
+                  (element.dataset.expanded === "true" ? 256 : 76),
+              ) < 1,
+          ),
+      )
+      .toBe(true);
+  }
+  await page.screenshot({
+    path: `test-results/redesign/${name}.png`,
+    fullPage: true,
+    animations: 'disabled',
+  });
+}
 page.on("pageerror", (error) => errors.push(error.message));
 const password = "BrowserTest123!";
 async function login(username, currentPassword = password) {
@@ -49,6 +72,7 @@ async function download(button, extension) {
 try {
   await page.goto("/dashboard/new");
   await expect(page).toHaveURL(/auth\/login/);
+  await capture("login");
   await page.getByRole("link", { name: "Crear cuenta" }).click();
   await page.getByLabel("Usuario", { exact: true }).fill("integration_analyst");
   await page.getByLabel("Correo", { exact: true }).fill("analyst@example.test");
@@ -64,10 +88,12 @@ try {
   await expect(page).toHaveURL(/\/dashboard$/);
   await page.goto("/profile");
   await page.getByLabel("Nombre", { exact: true }).fill("Analista prueba");
+  await capture("profile");
   await page.getByRole("button", { name: "Guardar perfil" }).click();
   await expect(page.getByText("Perfil actualizado.")).toBeVisible();
   await page.goto("/dashboard/new");
   await page.getByText("Crear un área de estudio", { exact: true }).click();
+  await capture("upload");
   await page.getByLabel("Nombre del área").fill("Área controlada");
   await page.getByRole("button", { name: "Crear área", exact: true }).click();
   await expect(
@@ -87,6 +113,7 @@ try {
   await expect(page.getByText(/Seleccionadas: 1 \/ 32/)).toBeVisible();
   await create("Individual controlado");
   const individualUrl = page.url();
+  await capture("individual");
   await expect(page.locator("img").first()).toBeVisible();
   await expect
     .poll(() =>
@@ -157,6 +184,8 @@ try {
     page.getByRole("button", { name: "Descargar GeoTIFF", exact: true }),
   ).toHaveCount(1);
   await page.goto("/dashboard/history");
+  await expect(page.getByRole("table")).toBeVisible();
+  await capture("history");
   await expect(
     page.getByText("Comparación controlada", { exact: true }),
   ).toBeVisible();
@@ -191,9 +220,15 @@ try {
   await page
     .getByRole("button", { name: "Editar integration_analyst" })
     .click();
+  await capture("users");
   await page.getByLabel("Estado", { exact: true }).selectOption("false");
   await page.getByRole("button", { name: "Guardar usuario" }).click();
-  await expect(page.getByText(/integration_analyst.*Inactivo/)).toBeVisible();
+  await expect(
+    page
+      .getByRole("row")
+      .filter({ hasText: "integration_analyst" })
+      .getByText("Inactivo", { exact: true }),
+  ).toBeVisible();
   await expect(
     page.getByText("Usuario guardado.", { exact: true }),
   ).toBeVisible();
@@ -217,6 +252,7 @@ try {
   await expect(
     page.getByRole("heading", { name: "ForestGuard · v9" }),
   ).toBeVisible();
+  await capture("models");
   await page.goto("/profile");
   await page.getByLabel("Contraseña actual").fill(password);
   await page.getByLabel("Nueva contraseña").fill("ChangedBrowser123!");
@@ -245,6 +281,29 @@ try {
     path: "test-results/integration-mobile.png",
     fullPage: true,
   });
+  await capture("mobile");
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await capture("tablet");
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await capture("desktop");
+  await page.goto("/study-areas");
+  await expect(
+    page.getByRole("heading", { name: "Áreas de estudio", exact: true }),
+  ).toBeVisible();
+  await capture("areas");
+  await page.goto("/help");
+  await expect(
+    page.getByRole("heading", { name: "Ayuda", exact: true }),
+  ).toBeVisible();
+  await capture("help");
+  await page.getByRole("link", { name: "Saltar al contenido" }).focus();
+  await expect(
+    page.getByRole("link", { name: "Saltar al contenido" }),
+  ).toBeFocused();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(
+    page.getByRole("button", { name: "Abrir navegación", exact: true }),
+  ).toBeVisible();
   expect(errors).toEqual([]);
   console.log(
     "Browser flow passed: auth, reload, roles, profile, area, valid/invalid TIFF, single, v9 comparison, history, private PNG/PDF/JSON/TIFF/ZIP, failure, admin, mobile.",
