@@ -122,6 +122,7 @@ export function Select({
     )
       event.preventDefault();
     if (event.key === "Escape" || event.key === "Tab") {
+      if (event.key === "Escape" && popup) event.stopPropagation();
       close();
       return;
     }
