@@ -1,3 +1,4 @@
+import { LuMapPin } from "react-icons/lu";
 import { useState } from "react";
 import { useResource } from "../../../shared/api/useResource";
 import { AreaForm } from "../components/AreaForm";
@@ -21,6 +22,9 @@ export function StudyAreas() {
       </Notice>
       {query.data?.results.map((area) => (
         <Panel key={area.id}>
+          <div className="fg-model-icon">
+            <LuMapPin size={26} aria-hidden="true" />
+          </div>
           <h2>{area.name}</h2>
           <p>
             {[area.department, area.municipality].filter(Boolean).join(" · ")}

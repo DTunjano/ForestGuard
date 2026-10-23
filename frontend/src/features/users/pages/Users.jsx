@@ -58,27 +58,49 @@ export function Users() {
             ? "Cargando usuarios…"
             : `${query.data?.count ?? 0} usuarios`}
         </Notice>
-        {query.data?.results.map((user) => (
-          <div
-            key={user.id}
-            className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 py-3"
-          >
-            <span>
-              {user.username} · {user.email} ·{" "}
-              {user.role === "admin" ? "Administrador" : "Analista"} ·{" "}
-              {user.is_active ? "Activo" : "Inactivo"}
-            </span>
-            <Button
-              disabled={busy}
-              onClick={() => {
-                setEdit(user);
-                setMessage("");
-              }}
-            >
-              Editar {user.username}
-            </Button>
-          </div>
-        ))}
+        <div className="overflow-x-auto">
+          <table className="fg-table">
+            <thead>
+              <tr>
+                <th scope="col">Cuenta</th>
+                <th scope="col">Rol</th>
+                <th scope="col">Estado</th>
+                <th scope="col">Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              {query.data?.results.map((user) => (
+                <tr key={user.id}>
+                  <td>
+                    <strong>{user.username}</strong>
+                    <small className="block text-slate-400">{user.email}</small>
+                  </td>
+                  <td>
+                    {user.role === "admin" ? "Administrador" : "Analista"}
+                  </td>
+                  <td>
+                    <span
+                      className={`fg-status fg-status-${user.is_active ? "completed" : "failed"}`}
+                    >
+                      {user.is_active ? "Activo" : "Inactivo"}
+                    </span>
+                  </td>
+                  <td>
+                    <Button
+                      disabled={busy}
+                      onClick={() => {
+                        setEdit(user);
+                        setMessage("");
+                      }}
+                    >
+                      Editar {user.username}
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         <div className="flex gap-3">
           <Button
             disabled={!query.data?.previous}

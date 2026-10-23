@@ -1,3 +1,4 @@
+import { LuBrainCircuit } from "react-icons/lu";
 import { useState } from "react";
 import { useResource } from "../../../shared/api/useResource";
 import { Page, Panel, Button, Notice } from "../../../shared/components/UI";
@@ -13,6 +14,10 @@ export function Models() {
       <Notice error={query.error}>{query.loading ? "Cargando…" : null}</Notice>
       {query.data?.results.map((model) => (
         <Panel key={model.id}>
+          <div className="fg-model-icon">
+            <LuBrainCircuit size={28} aria-hidden="true" />
+          </div>
+          <span className="fg-status fg-status-completed">Modelo activo</span>
           <h2>
             {model.name} · {model.version}
           </h2>
