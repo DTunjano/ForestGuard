@@ -1,6 +1,7 @@
 import { MainLayout } from "../../components/layout/MainLayout";
 import { cloneElement, useId } from "react";
 import { LuCircleAlert, LuInfo, LuTrees, LuArrowUpRight } from "react-icons/lu";
+export { Select } from "./Select";
 const descriptions = {
   "Nuevo análisis":
     "De una escena a una nueva perspectiva del territorio. Selecciona el área, carga tus imágenes y compara fechas.",
@@ -53,7 +54,7 @@ export function Field({ label, children, ...props }) {
   const id = useId();
   return (
     <div className="space-y-2">
-      <label className="block" htmlFor={id}>
+      <label id={`${id}-label`} className="block" htmlFor={id}>
         {label}
       </label>
       {children ? (
@@ -112,13 +113,5 @@ export function SectionHeading({ eyebrow, title, children }) {
         </span>
       )}
     </div>
-  );
-}
-export function Select(props) {
-  return (
-    <select
-      className="w-full rounded-lg border border-white/25 bg-[#08111f] p-2"
-      {...props}
-    />
   );
 }

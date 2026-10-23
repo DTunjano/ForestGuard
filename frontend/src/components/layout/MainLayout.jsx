@@ -10,7 +10,7 @@ export const MainLayout = ({ children }) => {
       <main
         id="fg-main"
         tabIndex={-1}
-        className="min-h-screen px-5 py-6 pl-25 lg:pr-8 lg:peer-data-[expanded=true]:pl-72"
+        className="fg-main min-h-screen px-5 py-6 pl-25 lg:pr-8 lg:peer-data-[expanded=true]:pl-72"
       >
         {children}
       </main>

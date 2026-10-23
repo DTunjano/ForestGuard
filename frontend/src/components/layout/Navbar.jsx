@@ -15,12 +15,7 @@ import { ProfileDropdown } from "./ProfileDropdown";
 import { useAuth } from "../../features/auth/hooks/useAuth";
 
 export const NavBar = () => {
-  const [isExpanded, setIsExpanded] = useState(() => {
-    return (
-      window.matchMedia("(min-width: 1024px)").matches &&
-      sessionStorage.getItem("forestguard-sidebar-expanded") === "true"
-    );
-  });
+  const [isExpanded, setIsExpanded] = useState(false);
   const [openSections, setOpenSections] = useState(() => ({
     images: sessionStorage.getItem("forestguard-section-images") !== "false",
     support: sessionStorage.getItem("forestguard-section-support") === "true",
@@ -36,7 +31,6 @@ export const NavBar = () => {
 
   const setSidebarExpanded = (expanded) => {
     setIsExpanded(expanded);
-    sessionStorage.setItem("forestguard-sidebar-expanded", String(expanded));
   };
 
   const expandSidebar = () => {
@@ -116,17 +110,41 @@ export const NavBar = () => {
     <aside
       data-expanded={isExpanded}
       className={`peer fixed inset-y-0 left-0 z-50 flex flex-col overflow-visible border-r border-white/10 bg-[#0b1728] px-3 py-5 transition-[width] duration-300 ease-out ${isExpanded ? "w-64" : "w-19"}`}
+      onPointerEnter={(event) => {
+        if (
+          event.pointerType === "mouse" &&
+          window.matchMedia("(hover: hover) and (min-width: 1024px)").matches
+        )
+          expandSidebar();
+      }}
+      onPointerLeave={(event) => {
+        if (
+          event.pointerType === "mouse" &&
+          !event.currentTarget.querySelector(":focus-visible")
+        )
+          collapseSidebar();
+      }}
+      onFocus={(event) => {
+        if (event.target.matches(":focus-visible")) expandSidebar();
+      }}
+      onBlur={(event) => {
+        if (
+          !event.currentTarget.contains(event.relatedTarget) &&
+          !event.currentTarget.matches(":hover")
+        )
+          collapseSidebar();
+      }}
       onKeyDown={(event) => {
         if (event.key === "Escape") collapseSidebar();
       }}
     >
-      <div className="flex shrink-0 items-center gap-3 overflow-hidden px-2">
+      <div className="fg-sidebar-brand flex shrink-0 items-center gap-3 overflow-hidden">
         <button
           type="button"
           aria-label={isExpanded ? "Cerrar navegación" : "Abrir navegación"}
           aria-expanded={isExpanded}
           onClick={() => setSidebarExpanded(!isExpanded)}
-          className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#b9e75c] text-[#10261d] shadow-[0_0_26px_rgba(185,231,92,0.2)]"
+          className="fg-brand-button grid size-10 shrink-0 place-items-center rounded-xl bg-[#b9e75c] text-[#10261d]"
         >
           <LuTrees size={22} strokeWidth={2.2} />
         </button>
@@ -176,27 +194,34 @@ export const NavBar = () => {
                 )}
               </button>
 
-              {isOpen && (
-                <div className="mt-2 flex flex-col gap-1">
-                  {items.map(({ to, label: itemLabel, icon: ItemIcon }) => (
-                    <NavLink
-                      key={to}
-                      to={to}
-                      end={to === "/dashboard"}
-                      title={itemLabel}
-                      onClick={collapseSidebar}
-                      className={({ isActive }) => subtitleClass(isActive)}
-                    >
-                      <ItemIcon className="size-4 shrink-0" />
-                      <span
-                        className={`overflow-hidden whitespace-nowrap transition-[max-width,margin,opacity] duration-200 ${isExpanded ? "ml-3 max-w-36 opacity-100" : "ml-0 max-w-0 opacity-0"}`}
+              <div
+                className="fg-nav-items"
+                data-open={isOpen}
+                inert={!isOpen}
+                aria-hidden={!isOpen}
+              >
+                <div className="overflow-hidden">
+                  <div className="mt-2 flex flex-col gap-1">
+                    {items.map(({ to, label: itemLabel, icon: ItemIcon }) => (
+                      <NavLink
+                        key={to}
+                        to={to}
+                        end={to === "/dashboard"}
+                        title={itemLabel}
+                        onClick={collapseSidebar}
+                        className={({ isActive }) => subtitleClass(isActive)}
                       >
-                        {itemLabel}
-                      </span>
-                    </NavLink>
-                  ))}
+                        <ItemIcon className="size-4 shrink-0" />
+                        <span
+                          className={`overflow-hidden whitespace-nowrap transition-[max-width,margin,opacity] duration-200 ${isExpanded ? "ml-3 max-w-36 opacity-100" : "ml-0 max-w-0 opacity-0"}`}
+                        >
+                          {itemLabel}
+                        </span>
+                      </NavLink>
+                    ))}
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           );
         })}

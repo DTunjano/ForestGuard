@@ -48,7 +48,7 @@ export function Users() {
             setSearch(new FormData(e.currentTarget).get("search"));
             setPage(1);
           }}
-          className="flex gap-3"
+          className="flex flex-wrap items-end gap-3"
         >
           <Field label="Buscar usuarios" name="search" />
           <Button>Buscar</Button>
