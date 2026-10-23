@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router";
 import {
   LuCircleHelp,
@@ -14,8 +14,14 @@ import {
 import { ProfileDropdown } from "./ProfileDropdown";
 import { useAuth } from "../../features/auth/hooks/useAuth";
 
+const SIDEBAR_EXPANDED_STORAGE_KEY = "forestguard-sidebar-expanded";
+
 export const NavBar = () => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(
+    () => sessionStorage.getItem(SIDEBAR_EXPANDED_STORAGE_KEY) === "true",
+  );
+  const [isNavScrolling, setIsNavScrolling] = useState(false);
+  const navScrollTimeoutRef = useRef(null);
   const [openSections, setOpenSections] = useState(() => ({
     catalogs:
       sessionStorage.getItem("forestguard-section-catalogs") !== "false",
@@ -24,34 +30,39 @@ export const NavBar = () => {
     admin: sessionStorage.getItem("forestguard-section-admin") !== "false",
   }));
   const { isAdmin } = useAuth();
-  useEffect(() => {
-    const desktop = window.matchMedia("(min-width: 1024px)");
-    const onResize = () => setIsExpanded(false);
-    desktop.addEventListener("change", onResize);
-    return () => desktop.removeEventListener("change", onResize);
-  }, []);
 
   const setSidebarExpanded = (expanded) => {
     setIsExpanded(expanded);
+    sessionStorage.setItem(
+      SIDEBAR_EXPANDED_STORAGE_KEY,
+      String(expanded),
+    );
   };
 
   const expandSidebar = () => {
     setSidebarExpanded(true);
   };
 
-  const collapseSidebar = (event) => {
-    if (event?.relatedTarget) {
-      setSidebarExpanded(false);
-      return;
-    }
+  const collapseSidebar = () => {
+    setSidebarExpanded(false);
+  };
 
-    requestAnimationFrame(() => {
-      const sidebar = document.querySelector("[data-forestguard-sidebar]");
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const onResize = () => setSidebarExpanded(false);
+    desktop.addEventListener("change", onResize);
+    return () => {
+      desktop.removeEventListener("change", onResize);
+      window.clearTimeout(navScrollTimeoutRef.current);
+    };
+  }, []);
 
-      if (!sidebar?.matches(":hover")) {
-        setSidebarExpanded(false);
-      }
-    });
+  const handleNavScroll = () => {
+    setIsNavScrolling(true);
+    window.clearTimeout(navScrollTimeoutRef.current);
+    navScrollTimeoutRef.current = window.setTimeout(() => {
+      setIsNavScrolling(false);
+    }, 700);
   };
 
   const navigationSections = [
@@ -122,56 +133,25 @@ export const NavBar = () => {
     `flex shrink-0 items-center overflow-hidden rounded-xl text-left text-xs font-semibold uppercase tracking-[0.12em] transition ${isExpanded ? "h-11 w-full justify-between px-3" : "mx-auto size-11 justify-center px-0"} ${isOpen ? "text-[#b9e75c]" : "text-slate-400 hover:bg-white/6 hover:text-white"}`;
 
   const linkClass = (isActive) =>
-    `flex h-10 shrink-0 items-center overflow-hidden rounded-lg px-3 text-sm transition ${isExpanded ? "justify-start" : "justify-center"} ${isActive ? "bg-[#b9e75c] text-[#10261d] shadow-[0_8px_24px_rgba(185,231,92,0.12)]" : "text-slate-300 hover:bg-white/6 hover:text-white"}`;
+    `flex h-10 shrink-0 items-center overflow-hidden rounded-lg text-sm transition ${isExpanded ? "justify-start px-3" : "mx-auto size-11 justify-center px-0"} ${isActive ? "bg-[#b9e75c] text-[#10261d] shadow-[0_8px_24px_rgba(185,231,92,0.12)]" : "text-slate-300 hover:bg-white/6 hover:text-white"}`;
 
   const subtitleClass = (isActive) =>
-    `${linkClass(isActive)} ml-3 border-l border-white/10 pl-4`;
+    `${linkClass(isActive)} ${isExpanded ? "ml-3 w-[calc(100%-0.75rem)] border-l border-white/10 pl-4" : ""}`;
 
   return (
     <aside
-<<<<<<< HEAD
       data-forestguard-sidebar
+      data-expanded={isExpanded}
       className={`fixed inset-y-0 left-0 z-50 flex flex-col overflow-visible border-r border-white/10 bg-[#0b1728] px-3 py-5 transition-[width] duration-300 ease-out ${isExpanded ? "w-64" : "w-19"}`}
       onMouseEnter={expandSidebar}
       onMouseLeave={collapseSidebar}
-=======
-      data-expanded={isExpanded}
-      className={`peer fixed inset-y-0 left-0 z-50 flex flex-col overflow-visible border-r border-white/10 bg-[#0b1728] px-3 py-5 transition-[width] duration-300 ease-out ${isExpanded ? "w-64" : "w-19"}`}
-      onPointerEnter={(event) => {
-        if (
-          event.pointerType === "mouse" &&
-          window.matchMedia("(hover: hover) and (min-width: 1024px)").matches
-        )
-          expandSidebar();
-      }}
-      onPointerLeave={(event) => {
-        if (
-          event.pointerType === "mouse" &&
-          !event.currentTarget.querySelector(":focus-visible")
-        )
-          collapseSidebar();
-      }}
-      onFocus={(event) => {
-        if (event.target.matches(":focus-visible")) expandSidebar();
-      }}
-      onBlur={(event) => {
-        if (
-          !event.currentTarget.contains(event.relatedTarget) &&
-          !event.currentTarget.matches(":hover")
-        )
-          collapseSidebar();
-      }}
-      onKeyDown={(event) => {
-        if (event.key === "Escape") collapseSidebar();
-      }}
->>>>>>> dev
     >
       <div className="fg-sidebar-brand flex shrink-0 items-center gap-3 overflow-hidden">
         <button
           type="button"
-          aria-label={isExpanded ? "Cerrar navegación" : "Abrir navegación"}
+          aria-label={isExpanded ? "Navegación abierta" : "Abrir navegación"}
           aria-expanded={isExpanded}
-          onClick={() => setSidebarExpanded(!isExpanded)}
+          onClick={expandSidebar}
           className="fg-brand-button grid size-10 shrink-0 place-items-center rounded-xl bg-[#b9e75c] text-[#10261d]"
         >
           <LuTrees size={22} strokeWidth={2.2} />
@@ -191,8 +171,9 @@ export const NavBar = () => {
       <div className="my-8 h-px bg-white/10" />
 
       <nav
-        className="flex flex-1 flex-col gap-4 overflow-y-auto"
+        className={`fg-sidebar-nav flex flex-1 flex-col gap-4 overflow-y-auto ${isNavScrolling ? "is-scrolling" : ""}`}
         aria-label="Navegación principal"
+        onScroll={handleNavScroll}
       >
         {navigationSections.map(({ id, label, icon: SectionIcon, items }) => {
           const isOpen = sectionIsOpen(id);
@@ -236,7 +217,6 @@ export const NavBar = () => {
                         to={to}
                         end={to === "/dashboard"}
                         title={itemLabel}
-                        onClick={collapseSidebar}
                         className={({ isActive }) => subtitleClass(isActive)}
                       >
                         <ItemIcon className="size-4 shrink-0" />

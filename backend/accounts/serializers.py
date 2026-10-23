@@ -9,7 +9,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ("id", "username", "email", "first_name", "last_name", "role", "is_active", "date_joined")
-        read_only_fields = ("id", "username", "role", "is_active", "date_joined")
+        read_only_fields = ("id", "role", "is_active", "date_joined")
 
     def validate_email(self, value):
         email = value.strip().lower()
