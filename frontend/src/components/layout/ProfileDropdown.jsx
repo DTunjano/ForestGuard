@@ -1,7 +1,10 @@
 import { useRef, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { PiSignOutBold, PiUserBold } from "react-icons/pi";
-import { useAuth } from "../../context/AuthContext";
+import {
+  LuLogOut as PiSignOutBold,
+  LuUserRound as PiUserBold,
+} from "react-icons/lu";
+import { useAuth } from "../../features/auth/hooks/useAuth";
 
 export const ProfileDropdown = ({
   sidebar = false,
@@ -30,8 +33,12 @@ export const ProfileDropdown = ({
     navigate("/profile");
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch {
+      /* Local session is already cleared. */
+    }
     navigate("/auth/login");
   };
 
@@ -60,7 +67,7 @@ export const ProfileDropdown = ({
             />
           ) : (
             <span className="text-sm font-bold text-white">
-              {user?.name?.charAt(0).toUpperCase()}
+              {(user?.first_name || user?.username)?.charAt(0).toUpperCase()}
             </span>
           )}
         </div>
@@ -70,10 +77,10 @@ export const ProfileDropdown = ({
           className={`${sidebar ? (expanded ? "flex" : "hidden") : "hidden sm:flex"} min-w-0 flex-col items-start leading-tight`}
         >
           <p className="max-w-32 truncate text-sm font-semibold text-white">
-            {user?.name}
+            {user?.first_name || user?.username}
           </p>
           <p className="max-w-32 truncate text-[11px] text-gray-400">
-            {user?.role}
+            {user?.role === "admin" ? "Administrador" : "Analista"}
           </p>
         </div>
       </button>
@@ -95,13 +102,19 @@ export const ProfileDropdown = ({
                   />
                 ) : (
                   <span className="text-lg font-bold text-white">
-                    {user?.name?.charAt(0).toUpperCase()}
+                    {(user?.first_name || user?.username)
+                      ?.charAt(0)
+                      .toUpperCase()}
                   </span>
                 )}
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">{user?.name}</p>
-                <p className="text-xs text-green-400/80">{user?.role}</p>
+                <p className="text-sm font-semibold text-white">
+                  {user?.first_name || user?.username}
+                </p>
+                <p className="text-xs text-green-400/80">
+                  {user?.role === "admin" ? "Administrador" : "Analista"}
+                </p>
               </div>
             </div>
           </div>

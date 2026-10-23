@@ -60,6 +60,7 @@ env/
 *.sqlite3
 db.sqlite3
 media/
+backups/
 
 # Static files
 staticfiles/
@@ -72,6 +73,8 @@ staticfiles/
 .pytest_cache/
 .coverage
 htmlcov/
+test-results/
+playwright-report/
 
 # Type checking
 .mypy_cache/

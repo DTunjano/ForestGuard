@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router";
 import {
   LuCircleHelp,
@@ -12,22 +12,27 @@ import {
   LuUserRound,
 } from "react-icons/lu";
 import { ProfileDropdown } from "./ProfileDropdown";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../features/auth/hooks/useAuth";
 
 export const NavBar = () => {
-  const [isExpanded, setIsExpanded] = useState(() => {
-    return sessionStorage.getItem("forestguard-sidebar-expanded") === "true";
-  });
+  const [isExpanded, setIsExpanded] = useState(false);
   const [openSections, setOpenSections] = useState(() => ({
+    catalogs:
+      sessionStorage.getItem("forestguard-section-catalogs") !== "false",
     images: sessionStorage.getItem("forestguard-section-images") !== "false",
     support: sessionStorage.getItem("forestguard-section-support") === "true",
     admin: sessionStorage.getItem("forestguard-section-admin") !== "false",
   }));
   const { isAdmin } = useAuth();
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const onResize = () => setIsExpanded(false);
+    desktop.addEventListener("change", onResize);
+    return () => desktop.removeEventListener("change", onResize);
+  }, []);
 
   const setSidebarExpanded = (expanded) => {
     setIsExpanded(expanded);
-    sessionStorage.setItem("forestguard-sidebar-expanded", String(expanded));
   };
 
   const expandSidebar = () => {
@@ -52,13 +57,22 @@ export const NavBar = () => {
   const navigationSections = [
     {
       id: "images",
-      label: "Imágenes",
+      label: "Análisis",
       icon: LuScanLine,
       items: [
         { to: "/dashboard", label: "Dashboard", icon: LuLayoutDashboard },
         { to: "/dashboard/new", label: "Nuevo análisis", icon: LuPlus },
         { to: "/dashboard/history", label: "Historial", icon: LuClock3 },
-        { to: "/dashboard/results", label: "Resultados", icon: LuScanLine },
+      ],
+    },
+    {
+      id: "catalogs",
+      label: "Datos y recursos",
+      icon: LuTrees,
+      items: [
+        { to: "/images", label: "Colección de imágenes", icon: LuScanLine },
+        { to: "/study-areas", label: "Áreas de estudio", icon: LuTrees },
+        { to: "/models", label: "Modelos", icon: LuBrainCircuit },
       ],
     },
     {
@@ -105,32 +119,70 @@ export const NavBar = () => {
   const sectionIsOpen = (sectionId) => isExpanded && openSections[sectionId];
 
   const sectionClass = (isOpen) =>
-    `flex shrink-0 items-center overflow-hidden rounded-xl text-left text-xs font-semibold uppercase tracking-[0.12em] transition ${isExpanded ? "h-11 w-full justify-between px-3" : "mx-auto size-11 justify-center px-0"} ${isOpen ? "text-[#b9e75c]" : "text-white/35 hover:bg-white/6 hover:text-white"}`;
+    `flex shrink-0 items-center overflow-hidden rounded-xl text-left text-xs font-semibold uppercase tracking-[0.12em] transition ${isExpanded ? "h-11 w-full justify-between px-3" : "mx-auto size-11 justify-center px-0"} ${isOpen ? "text-[#b9e75c]" : "text-slate-400 hover:bg-white/6 hover:text-white"}`;
 
   const linkClass = (isActive) =>
-    `flex h-10 shrink-0 items-center overflow-hidden rounded-lg px-3 text-sm transition ${isExpanded ? "justify-start" : "justify-center"} ${isActive ? "bg-[#b9e75c] text-[#10261d] shadow-[0_8px_24px_rgba(185,231,92,0.12)]" : "text-white/45 hover:bg-white/6 hover:text-white"}`;
+    `flex h-10 shrink-0 items-center overflow-hidden rounded-lg px-3 text-sm transition ${isExpanded ? "justify-start" : "justify-center"} ${isActive ? "bg-[#b9e75c] text-[#10261d] shadow-[0_8px_24px_rgba(185,231,92,0.12)]" : "text-slate-300 hover:bg-white/6 hover:text-white"}`;
 
   const subtitleClass = (isActive) =>
     `${linkClass(isActive)} ml-3 border-l border-white/10 pl-4`;
 
   return (
     <aside
+<<<<<<< HEAD
       data-forestguard-sidebar
       className={`fixed inset-y-0 left-0 z-50 flex flex-col overflow-visible border-r border-white/10 bg-[#0b1728] px-3 py-5 transition-[width] duration-300 ease-out ${isExpanded ? "w-64" : "w-19"}`}
       onMouseEnter={expandSidebar}
       onMouseLeave={collapseSidebar}
+=======
+      data-expanded={isExpanded}
+      className={`peer fixed inset-y-0 left-0 z-50 flex flex-col overflow-visible border-r border-white/10 bg-[#0b1728] px-3 py-5 transition-[width] duration-300 ease-out ${isExpanded ? "w-64" : "w-19"}`}
+      onPointerEnter={(event) => {
+        if (
+          event.pointerType === "mouse" &&
+          window.matchMedia("(hover: hover) and (min-width: 1024px)").matches
+        )
+          expandSidebar();
+      }}
+      onPointerLeave={(event) => {
+        if (
+          event.pointerType === "mouse" &&
+          !event.currentTarget.querySelector(":focus-visible")
+        )
+          collapseSidebar();
+      }}
+      onFocus={(event) => {
+        if (event.target.matches(":focus-visible")) expandSidebar();
+      }}
+      onBlur={(event) => {
+        if (
+          !event.currentTarget.contains(event.relatedTarget) &&
+          !event.currentTarget.matches(":hover")
+        )
+          collapseSidebar();
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") collapseSidebar();
+      }}
+>>>>>>> dev
     >
-      <div className="flex shrink-0 items-center gap-3 overflow-hidden px-2">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#b9e75c] text-[#10261d] shadow-[0_0_26px_rgba(185,231,92,0.2)]">
+      <div className="fg-sidebar-brand flex shrink-0 items-center gap-3 overflow-hidden">
+        <button
+          type="button"
+          aria-label={isExpanded ? "Cerrar navegación" : "Abrir navegación"}
+          aria-expanded={isExpanded}
+          onClick={() => setSidebarExpanded(!isExpanded)}
+          className="fg-brand-button grid size-10 shrink-0 place-items-center rounded-xl bg-[#b9e75c] text-[#10261d]"
+        >
           <LuTrees size={22} strokeWidth={2.2} />
-        </span>
+        </button>
         <div
           className={`min-w-0 whitespace-nowrap transition-opacity duration-200 ${isExpanded ? "opacity-100" : "opacity-0"}`}
         >
           <h1 className="text-base font-bold tracking-tight text-white">
             ForestGuard
           </h1>
-          <p className="text-[10px] uppercase tracking-[0.13em] text-white/40">
+          <p className="text-[10px] uppercase tracking-[0.13em] text-slate-400">
             Inteligencia forestal
           </p>
         </div>
@@ -170,27 +222,34 @@ export const NavBar = () => {
                 )}
               </button>
 
-              {isOpen && (
-                <div className="mt-2 flex flex-col gap-1">
-                  {items.map(({ to, label: itemLabel, icon: ItemIcon }) => (
-                    <NavLink
-                      key={to}
-                      to={to}
-                      end={to === "/dashboard"}
-                      title={itemLabel}
-                      onClick={expandSidebar}
-                      className={({ isActive }) => subtitleClass(isActive)}
-                    >
-                      <ItemIcon className="size-4 shrink-0" />
-                      <span
-                        className={`overflow-hidden whitespace-nowrap transition-[max-width,margin,opacity] duration-200 ${isExpanded ? "ml-3 max-w-36 opacity-100" : "ml-0 max-w-0 opacity-0"}`}
+              <div
+                className="fg-nav-items"
+                data-open={isOpen}
+                inert={!isOpen}
+                aria-hidden={!isOpen}
+              >
+                <div className="overflow-hidden">
+                  <div className="mt-2 flex flex-col gap-1">
+                    {items.map(({ to, label: itemLabel, icon: ItemIcon }) => (
+                      <NavLink
+                        key={to}
+                        to={to}
+                        end={to === "/dashboard"}
+                        title={itemLabel}
+                        onClick={collapseSidebar}
+                        className={({ isActive }) => subtitleClass(isActive)}
                       >
-                        {itemLabel}
-                      </span>
-                    </NavLink>
-                  ))}
+                        <ItemIcon className="size-4 shrink-0" />
+                        <span
+                          className={`overflow-hidden whitespace-nowrap transition-[max-width,margin,opacity] duration-200 ${isExpanded ? "ml-3 max-w-36 opacity-100" : "ml-0 max-w-0 opacity-0"}`}
+                        >
+                          {itemLabel}
+                        </span>
+                      </NavLink>
+                    ))}
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           );
         })}
