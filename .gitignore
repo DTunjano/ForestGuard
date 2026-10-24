@@ -100,3 +100,5 @@ dmypy.json
 *.njsproj
 *.sln
 *.sw?
+
+AGENTS.MD

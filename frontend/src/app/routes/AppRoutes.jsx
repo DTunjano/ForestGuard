@@ -1,4 +1,5 @@
 import { Navigate, Outlet, Route, Routes } from "react-router";
+import { MainLayout } from "../../components/layout/MainLayout";
 import { Dashboard } from "../../features/analyses/pages/Dashboard";
 import { AuthPage } from "../../features/auth/pages/AuthPage";
 import { useAuth } from "../../features/auth/hooks/useAuth";
@@ -17,7 +18,13 @@ import { AdminRoute } from "./AdminRoute";
 function PrivateRoute() {
   const { checking, isAuthenticated } = useAuth();
   if (checking) return <p role="status">Comprobando sesión…</p>;
-  return isAuthenticated ? <Outlet /> : <Navigate to="/auth/login" replace />;
+  return isAuthenticated ? (
+    <MainLayout>
+      <Outlet />
+    </MainLayout>
+  ) : (
+    <Navigate to="/auth/login" replace />
+  );
 }
 export const AppRoutes = () => {
   return (

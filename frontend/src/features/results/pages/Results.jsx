@@ -51,6 +51,29 @@ export function Results() {
                 </li>
               ))}
             </ol>
+            <div
+              className="fg-ml-progress-track"
+              role="progressbar"
+              aria-label="Estado de ejecución del procesamiento ML"
+            >
+              <div
+                className={`fg-ml-progress-fill ${
+                  ["queued", "running"].includes(query.data.status)
+                    ? "is-animating"
+                    : ""
+                } ${query.data.status === "failed" ? "is-failed" : ""}`}
+                style={{
+                  width:
+                    query.data.status === "completed"
+                      ? "100%"
+                      : query.data.status === "running"
+                        ? "68%"
+                        : query.data.status === "queued"
+                          ? "28%"
+                          : "100%",
+                }}
+              />
+            </div>
             <p role="status">Estado: {statusLabel(query.data.status)}</p>
             <p>
               Fechas: {query.data.images.map((image) => image.date).join(", ")}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { NavLink } from "react-router";
 import {
   LuCircleHelp,
@@ -15,12 +15,14 @@ import { ProfileDropdown } from "./ProfileDropdown";
 import { useAuth } from "../../features/auth/hooks/useAuth";
 
 const SIDEBAR_EXPANDED_STORAGE_KEY = "forestguard-sidebar-expanded";
+const SIDEBAR_SCROLL_STORAGE_KEY = "forestguard-sidebar-scroll";
 
 export const NavBar = () => {
   const [isExpanded, setIsExpanded] = useState(
     () => sessionStorage.getItem(SIDEBAR_EXPANDED_STORAGE_KEY) === "true",
   );
   const [isNavScrolling, setIsNavScrolling] = useState(false);
+  const navRef = useRef(null);
   const navScrollTimeoutRef = useRef(null);
   const [openSections, setOpenSections] = useState(() => ({
     catalogs:
@@ -47,6 +49,15 @@ export const NavBar = () => {
     setSidebarExpanded(false);
   };
 
+  useLayoutEffect(() => {
+    const savedScrollTop = Number(
+      sessionStorage.getItem(SIDEBAR_SCROLL_STORAGE_KEY) || 0,
+    );
+    if (navRef.current && Number.isFinite(savedScrollTop) && savedScrollTop > 0) {
+      navRef.current.scrollTop = savedScrollTop;
+    }
+  }, []);
+
   useEffect(() => {
     const desktop = window.matchMedia("(min-width: 1024px)");
     const onResize = () => setSidebarExpanded(false);
@@ -57,7 +68,13 @@ export const NavBar = () => {
     };
   }, []);
 
-  const handleNavScroll = () => {
+  const handleNavScroll = (event) => {
+    if (isExpanded) {
+      sessionStorage.setItem(
+        SIDEBAR_SCROLL_STORAGE_KEY,
+        String(event.currentTarget.scrollTop),
+      );
+    }
     setIsNavScrolling(true);
     window.clearTimeout(navScrollTimeoutRef.current);
     navScrollTimeoutRef.current = window.setTimeout(() => {
@@ -142,7 +159,7 @@ export const NavBar = () => {
     <aside
       data-forestguard-sidebar
       data-expanded={isExpanded}
-      className={`fixed inset-y-0 left-0 z-50 flex flex-col overflow-visible border-r border-white/10 bg-[#0b1728] px-3 py-5 transition-[width] duration-300 ease-out ${isExpanded ? "w-64" : "w-19"}`}
+      className={`peer fixed inset-y-0 left-0 z-50 flex flex-col overflow-visible border-r border-white/10 bg-[#0b1728] px-3 py-5 transition-[width] duration-300 ease-out ${isExpanded ? "w-64" : "w-19"}`}
       onMouseEnter={expandSidebar}
       onMouseLeave={collapseSidebar}
     >
@@ -171,6 +188,7 @@ export const NavBar = () => {
       <div className="my-8 h-px bg-white/10" />
 
       <nav
+        ref={navRef}
         className={`fg-sidebar-nav flex flex-1 flex-col gap-4 overflow-y-auto ${isNavScrolling ? "is-scrolling" : ""}`}
         aria-label="Navegación principal"
         onScroll={handleNavScroll}

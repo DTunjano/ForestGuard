@@ -2,9 +2,9 @@ services:
   db:
     image: postgres:17.6-alpine
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-forestguard}
-      POSTGRES_USER: ${POSTGRES_USER:-forestguard}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -19,7 +19,7 @@ services:
     image: elestio/pgadmin:latest
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-${POSTGRES_PASSWORD}}
+      PGADMIN_DEFAULT_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "127.0.0.1:${PGADMIN_PORT:-5050}:80"
     volumes:

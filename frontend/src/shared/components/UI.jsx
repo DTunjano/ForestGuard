@@ -1,4 +1,3 @@
-import { MainLayout } from "../../components/layout/MainLayout";
 import { cloneElement, useId } from "react";
 import { LuCircleAlert, LuInfo, LuTrees, LuArrowUpRight } from "react-icons/lu";
 export { Select } from "./Select";
@@ -16,21 +15,19 @@ const descriptions = {
 };
 export function Page({ title, children }) {
   return (
-    <MainLayout>
-      <div data-page={title} className="fg-page mx-auto max-w-6xl space-y-6">
-        <header className="fg-page-header">
-          <p className="fg-eyebrow">
-            <LuTrees aria-hidden="true" /> ForestGuard / Observación territorial
-          </p>
-          <h1 className="text-3xl font-semibold">{title}</h1>
-          <p>
-            {descriptions[title] ||
-              "Explora tus imágenes y resultados de Sentinel-2 en un solo espacio."}
-          </p>
-        </header>
-        {children}
-      </div>
-    </MainLayout>
+    <div data-page={title} className="fg-page mx-auto max-w-6xl space-y-6">
+      <header className="fg-page-header">
+        <p className="fg-eyebrow">
+          <LuTrees aria-hidden="true" /> ForestGuard / Observación territorial
+        </p>
+        <h1 className="text-3xl font-semibold">{title}</h1>
+        <p>
+          {descriptions[title] ||
+            "Explora tus imágenes y resultados de Sentinel-2 en un solo espacio."}
+        </p>
+      </header>
+      {children}
+    </div>
   );
 }
 export function Panel({ children }) {
