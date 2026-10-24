@@ -53,7 +53,7 @@ export const ProfileDropdown = ({
         }}
         aria-label="Abrir perfil"
         aria-expanded={isOpen}
-        className={`flex h-12 w-full items-center gap-3 rounded-xl px-2 py-2 transition-all duration-200 hover:bg-white/6 ${sidebar ? "overflow-hidden" : ""}`}
+        className={`flex h-12 w-full items-center rounded-xl py-2 transition-all duration-200 hover:bg-white/6 ${sidebar ? (expanded ? "justify-start gap-3 overflow-hidden px-2" : "justify-center gap-0 overflow-hidden px-0") : "gap-3 px-2"}`}
       >
         {/* Avatar */}
         <div

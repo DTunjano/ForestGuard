@@ -879,14 +879,19 @@ aside.peer {
 }
 .fg-sidebar-brand {
   min-height: 44px;
-  padding-inline: 5px;
 }
 .fg-sidebar-nav {
-  padding-right: 4px;
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
-  scrollbar-gutter: stable;
   transition: scrollbar-color 180ms ease;
+}
+aside[data-expanded="true"] .fg-sidebar-nav {
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+}
+aside[data-expanded="false"] .fg-sidebar-nav {
+  padding-right: 0;
+  scrollbar-gutter: auto;
 }
 .fg-sidebar-nav.is-scrolling {
   scrollbar-color: #405348 transparent;

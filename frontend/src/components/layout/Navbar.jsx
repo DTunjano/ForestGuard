@@ -163,7 +163,9 @@ export const NavBar = () => {
       onMouseEnter={expandSidebar}
       onMouseLeave={collapseSidebar}
     >
-      <div className="fg-sidebar-brand flex shrink-0 items-center gap-3 overflow-hidden">
+      <div
+        className={`fg-sidebar-brand flex shrink-0 items-center overflow-hidden ${isExpanded ? "gap-3 px-[5px]" : "justify-center px-0"}`}
+      >
         <button
           type="button"
           aria-label={isExpanded ? "Navegación abierta" : "Abrir navegación"}
@@ -174,7 +176,7 @@ export const NavBar = () => {
           <LuTrees size={22} strokeWidth={2.2} />
         </button>
         <div
-          className={`min-w-0 whitespace-nowrap transition-opacity duration-200 ${isExpanded ? "opacity-100" : "opacity-0"}`}
+          className={`min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ${isExpanded ? "max-w-44 opacity-100" : "max-w-0 opacity-0"}`}
         >
           <h1 className="text-base font-bold tracking-tight text-white">
             ForestGuard
@@ -205,7 +207,9 @@ export const NavBar = () => {
                 onClick={() => toggleSection(id)}
                 className={sectionClass(isOpen)}
               >
-                <span className="flex min-w-0 items-center gap-3">
+                <span
+                  className={`flex min-w-0 items-center ${isExpanded ? "gap-3" : "justify-center gap-0"}`}
+                >
                   <SectionIcon className="size-5 shrink-0" />
                   <span
                     className={`overflow-hidden whitespace-nowrap transition-[max-width,margin,opacity] duration-200 ${isExpanded ? "ml-1 max-w-40 opacity-100" : "ml-0 max-w-0 opacity-0"}`}
