@@ -75,7 +75,8 @@ export function Profile() {
     }
   }
 
-  const initials = `${user?.first_name?.[0] || ""}${user?.last_name?.[0] || user?.username?.[0] || ""}`.toUpperCase();
+  const initials =
+    `${user?.first_name?.[0] || ""}${user?.last_name?.[0] || user?.username?.[0] || ""}`.toUpperCase();
   const joinedDate = user?.date_joined
     ? new Date(user.date_joined).toLocaleDateString("es-CO", {
         day: "2-digit",

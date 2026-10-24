@@ -33,6 +33,7 @@ import { AreaForm } from "../../study-areas/components/AreaForm";
 import { UploadImages } from "../../images/components/UploadImages";
 import { deleteImage } from "../../images/api/images";
 import { createAnalysis } from "../api/analyses";
+import { SatelliteProcessingCard } from "../components/SatelliteProcessingCard";
 
 export function NewAnalysis() {
   const areas = useCollection("study-areas/?ordering=name");
@@ -185,9 +186,7 @@ export function NewAnalysis() {
           {isCreatingArea ? (
             <div className="fg-inline-creator">
               <AreaForm
-                onCancel={
-                  hasNoAreas ? undefined : () => setShowAreaForm(false)
-                }
+                onCancel={hasNoAreas ? undefined : () => setShowAreaForm(false)}
                 onCreated={(item) => {
                   areas.reload();
                   setArea(String(item.id));
@@ -304,7 +303,6 @@ function AreaAnalysis({
   const [selected, setSelected] = useState([]);
   const [imageToDelete, setImageToDelete] = useState(null);
   const [hasPendingUploads, setHasPendingUploads] = useState(false);
-  const [selectedModelId, setSelectedModelId] = useState("");
   const images = useResource(
     `images/?study_area=${area}&page=${page}&ordering=-acquisition_date`,
   );
@@ -317,9 +315,7 @@ function AreaAnalysis({
   const navigate = useNavigate();
 
   function computeHasDuplicates(rows) {
-    return (
-      new Set(rows.map((i) => i.acquisition_date)).size !== rows.length
-    );
+    return new Set(rows.map((i) => i.acquisition_date)).size !== rows.length;
   }
 
   function updateSelected(updater) {
@@ -367,23 +363,14 @@ function AreaAnalysis({
     const days = Math.round(
       Math.abs(end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
     );
-    const v9Compatible =
-      days >= 35 &&
-      days <= 330 &&
-      Boolean(scene.scl_factor) &&
-      Boolean(nextScene.scl_factor);
     return {
       from: scene.acquisition_date,
       to: nextScene.acquisition_date,
       days,
-      v9Compatible,
     };
   });
-  const compatibleIntervalsCount = intervals.filter(
-    (item) => item.v9Compatible,
-  ).length;
-  const mlActive =
-    selected.length > 1 && allHaveScl && Boolean(selectedModelId);
+  const activeModel =
+    models.data?.find((m) => m.active) || models.data?.[0] || null;
   const existingDates = Array.from(
     new Set(
       [
@@ -414,11 +401,13 @@ function AreaAnalysis({
         description: values.description,
         study_area: Number(area),
         image_ids: selected.map((i) => i.id),
-        ...(selected.length > 1 && values.model_id
-          ? { model_id: Number(values.model_id) }
+        ...(selected.length > 1 && allHaveScl && activeModel?.id
+          ? { model_id: Number(activeModel.id) }
           : {}),
       });
-      navigate(`/dashboard/results/${analysis.id}`);
+      navigate(`/dashboard/results/${analysis.id}`, {
+        state: { fromCreate: true },
+      });
     } catch (err) {
       setError(err);
     } finally {
@@ -619,8 +608,8 @@ function AreaAnalysis({
                   : selected.length === 1
                     ? "Cálculo de NDVI, NDMI, NBR y NDRE"
                     : allHaveScl
-                      ? "Compatible con modelo exploratorio v9"
-                      : "Diferencias espectrales sin modelo v9"}
+                      ? "Compatible con el modelo de ML activo"
+                      : "Diferencias espectrales multitemporales"}
               </small>
             </div>
           </div>
@@ -674,9 +663,7 @@ function AreaAnalysis({
                       <input
                         type="checkbox"
                         checked={isChecked}
-                        disabled={
-                          busy || (selected.length >= 32 && !isChecked)
-                        }
+                        disabled={busy || (selected.length >= 32 && !isChecked)}
                         onChange={() => toggle(image)}
                       />
                       <div className="min-w-0 flex-1 space-y-2">
@@ -761,8 +748,11 @@ function AreaAnalysis({
               {/* Paginación sutil y clara */}
               <div className="fg-subtle-pagination">
                 <span className="fg-subtle-pagination-range">
-                  Mostrando <strong>{rangeStart}–{rangeEnd}</strong> de{" "}
-                  <strong>{totalImagesInArea}</strong>{" "}
+                  Mostrando{" "}
+                  <strong>
+                    {rangeStart}–{rangeEnd}
+                  </strong>{" "}
+                  de <strong>{totalImagesInArea}</strong>{" "}
                   {totalImagesInArea === 1
                     ? "imagen en el área"
                     : "imágenes en el área"}
@@ -853,9 +843,7 @@ function AreaAnalysis({
                       {interval && (
                         <div className="fg-chronology-connector">
                           <div className="fg-chronology-line" />
-                          <span
-                            className={`fg-chronology-delta ${interval.v9Compatible ? "is-v9" : ""}`}
-                          >
+                          <span className="fg-chronology-delta is-v9">
                             +{interval.days} d
                           </span>
                           <div className="fg-chronology-line" />
@@ -940,8 +928,9 @@ function AreaAnalysis({
               </p>
               <h2 className="text-xl">4. Solicitar análisis</h2>
               <p>
-                Revisa la configuración final, asigna un nombre identificativo y
-                envía el estudio al motor de procesamiento e inferencia ML.
+                Revisa el resumen del estudio, asigna un nombre identificativo y
+                ejecuta el procesamiento con el modelo de Machine Learning
+                activo.
               </p>
             </div>
           </div>
@@ -982,25 +971,21 @@ function AreaAnalysis({
               </small>
             </div>
             <div className="fg-step4-summary-item is-highlight">
-              <dt>Motor ML y pipeline</dt>
+              <dt>Modelo de Machine Learning</dt>
               <dd>
-                {selected.length <= 1
-                  ? "Índices descriptivos"
-                  : mlActive
-                    ? "Pipeline v7 + Modelo v9"
-                    : "Comparación espectral v7"}
+                {activeModel
+                  ? `${activeModel.name} · ${activeModel.version}`
+                  : "Modelo ML activo"}
               </dd>
               <small>
                 {selected.length <= 1
-                  ? "NDVI · NDMI · NBR · NDRE"
-                  : mlActive
-                    ? `${compatibleIntervalsCount} de ${intervals.length} intervalos con ML`
-                    : "Diferencias multitemporales"}
+                  ? "Índices NDVI · NDMI · NBR · NDRE"
+                  : "Clasificación multitemporal activa"}
               </small>
             </div>
           </dl>
 
-          <form onSubmit={submit} className="space-y-5">
+          <form onSubmit={submit} className="space-y-6">
             <div className="fg-step4-grid">
               {/* Columna izquierda: Identificación y escenas */}
               <div className="fg-step4-card">
@@ -1021,15 +1006,18 @@ function AreaAnalysis({
                   required
                   maxLength={160}
                 />
-                <Field
-                  label="Descripción"
-                  name="description"
-                  placeholder="Notas opcionales sobre el periodo, sector o propósito del estudio"
-                />
+                <Field label="Descripción">
+                  <textarea
+                    name="description"
+                    rows={4}
+                    className="fg-step4-description-textarea"
+                    placeholder="Notas opcionales sobre el periodo, sector o propósito del estudio"
+                  />
+                </Field>
 
                 <div className="fg-step4-scenes-preview">
                   <div className="fg-step4-scenes-preview-top">
-                    <span>Escenas confirmadas para el pipeline</span>
+                    <span>Escenas confirmadas para el análisis</span>
                     <small>{sortedScenes.length} en secuencia</small>
                   </div>
                   <div className="fg-step4-scenes-tags">
@@ -1043,147 +1031,93 @@ function AreaAnalysis({
                 </div>
               </div>
 
-              {/* Columna derecha: Configuración del modelo ML y barra de carga */}
+              {/* Columna derecha: Información sencilla del modelo ML activo (solo lectura) */}
               <div className="fg-step4-card">
                 <div className="fg-step4-card-header">
                   <div className="fg-step4-card-icon" aria-hidden="true">
                     <LuBrainCircuit size={18} />
                   </div>
                   <div>
-                    <p className="fg-eyebrow">Inferencia y procesamiento</p>
-                    <h3>Configuración del modelo ML</h3>
+                    <p className="fg-eyebrow">Motor inteligente del sistema</p>
+                    <h3>Modelo de Machine Learning</h3>
                   </div>
                 </div>
 
-                {selected.length > 1 ? (
-                  <div className="space-y-3">
-                    <Field label="Clasificación opcional">
-                      <Select
-                        name="model_id"
-                        value={selectedModelId}
-                        onChange={(e) => setSelectedModelId(e.target.value)}
-                        disabled={!allHaveScl || busy}
-                      >
-                        <option value="">
-                          Solo índices y comparación espectral
-                        </option>
-                        {models.data?.map((model) => (
-                          <option key={model.id} value={String(model.id)}>
-                            {model.name} · {model.version}
-                          </option>
-                        ))}
-                      </Select>
-                    </Field>
-                    <p className="fg-model-note">
-                      <LuBrainCircuit aria-hidden="true" />
-                      <span>
-                        El modelo exploratorio <strong>v9</strong> requiere
-                        banda SCL en todas las escenas y se aplica sobre
-                        intervalos compatibles de <strong>35 a 330 días</strong>
-                        .
-                      </span>
-                    </p>
-                    <Notice error={models.error} />
-                  </div>
-                ) : (
-                  <div className="fg-model-config-box">
-                    <p className="fg-model-note">
-                      <LuSparkles aria-hidden="true" />
-                      <span>
-                        Con una sola fecha seleccionada se calculan los índices
-                        espectrales <strong>NDVI, NDMI, NBR y NDRE</strong> sin
-                        ejecutar el clasificador multitemporal v9.
-                      </span>
-                    </p>
-                  </div>
-                )}
-
-                {/* Barra de carga según el procesamiento del ML */}
-                <div
-                  className={`fg-ml-progress-card ${busy ? "is-running" : ""}`}
-                  aria-live="polite"
-                >
-                  <div className="fg-ml-progress-header">
-                    <div>
-                      <strong>
-                        {busy
-                          ? "Iniciando procesamiento del pipeline ML…"
-                          : mlActive
-                            ? "Carga de trabajo: Pipeline v7 + Clasificador ML v9"
-                            : "Carga de trabajo: Pipeline espectral descriptivo"}
-                      </strong>
-                      <small>
-                        {busy
-                          ? "Validando solicitud y enviando escenas a la cola del worker"
-                          : mlActive
-                            ? `4 etapas activas · Inferencia Random Forest en ${compatibleIntervalsCount} ${compatibleIntervalsCount === 1 ? "intervalo" : "intervalos"}`
-                            : "3 etapas espectrales · Índices y reportes automáticos"}
-                      </small>
+                <div className="fg-active-model-banner">
+                  <div className="fg-active-model-top">
+                    <div className="fg-active-model-title">
+                      <span
+                        className="fg-active-model-dot"
+                        aria-hidden="true"
+                      />
+                      <div>
+                        <strong>
+                          {activeModel
+                            ? `${activeModel.name} (${activeModel.version})`
+                            : "ForestGuard · Modelo ML v9"}
+                        </strong>
+                        <span>
+                          {activeModel?.algorithm
+                            ? `Algoritmo ${activeModel.algorithm} · Selección automática`
+                            : "Clasificador Random Forest · Selección automática"}
+                        </span>
+                      </div>
                     </div>
-                    <span className="fg-ml-progress-badge">
-                      {busy
-                        ? "Procesando…"
-                        : mlActive
-                          ? "ML v9 activo"
-                          : "Modo espectral"}
+                    <span className="fg-active-model-badge">
+                      <LuCheck size={13} aria-hidden="true" />
+                      Modelo activo
                     </span>
                   </div>
 
-                  <div
-                    className="fg-ml-progress-track"
-                    role="progressbar"
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={busy ? 65 : mlActive ? 100 : 75}
-                    aria-label="Progreso de etapas del procesamiento ML"
-                  >
-                    <div
-                      className={`fg-ml-progress-fill ${busy ? "is-animating" : ""}`}
-                      style={{
-                        width: busy ? "100%" : mlActive ? "100%" : "75%",
-                      }}
-                    />
-                  </div>
+                  <p className="fg-active-model-desc">
+                    El sistema emplea automáticamente el modelo de Machine
+                    Learning activo para procesar tus imágenes satelitales, sin
+                    que tengas que configurar parámetros manuales.
+                  </p>
 
-                  <ul className="fg-ml-stages">
-                    <li className="is-active">
-                      <span className="fg-ml-stage-dot" />
-                      <div>
-                        <strong>1. Normalización y máscara SCL</strong>
-                        <small>Escalado radiométrico y filtrado de nubes</small>
-                      </div>
+                  <ul className="fg-active-model-points">
+                    <li>
+                      <LuCheck size={14} aria-hidden="true" />
+                      <span>
+                        <strong>Índices de vegetación:</strong> calcula
+                        automáticamente NDVI, NDMI, NBR y NDRE en cada escena.
+                      </span>
                     </li>
-                    <li className="is-active">
-                      <span className="fg-ml-stage-dot" />
-                      <div>
-                        <strong>2. Índices espectrales</strong>
-                        <small>Cálculo de NDVI, NDMI, NBR y NDRE</small>
-                      </div>
+                    <li>
+                      <LuCheck size={14} aria-hidden="true" />
+                      <span>
+                        <strong>
+                          {selected.length > 1
+                            ? "Comparación con modelo ML activo:"
+                            : "Evaluación de escena individual:"}
+                        </strong>{" "}
+                        {selected.length > 1
+                          ? "analiza los cambios de cobertura entre las fechas seleccionadas mediante el modelo activo."
+                          : "genera el diagnóstico espectral completo para la fecha seleccionada."}
+                      </span>
                     </li>
-                    <li className={mlActive ? "is-active" : "is-muted"}>
-                      <span className="fg-ml-stage-dot" />
-                      <div>
-                        <strong>3. Clasificación exploratoria ML (v9)</strong>
-                        <small>
-                          {mlActive
-                            ? `Activa con Random Forest (${compatibleIntervalsCount}/${intervals.length} intervalos compatibles)`
-                            : selected.length <= 1
-                              ? "Omitida automáticamente (análisis de 1 fecha)"
-                              : "Opcional (selecciona el modelo v9 arriba para activarla)"}
-                        </small>
-                      </div>
-                    </li>
-                    <li className="is-active">
-                      <span className="fg-ml-stage-dot" />
-                      <div>
-                        <strong>4. Láminas PNG y reporte PDF</strong>
-                        <small>Generación de artefactos descargables</small>
-                      </div>
+                    <li>
+                      <LuCheck size={14} aria-hidden="true" />
+                      <span>
+                        <strong>Resultados listos para consulta:</strong> genera
+                        mapas comparativos en PNG, métricas de superficie y
+                        reporte en PDF.
+                      </span>
                     </li>
                   </ul>
                 </div>
+
+                <Notice error={models.error} />
               </div>
             </div>
+
+            {/* Pantalla / barra de carga profesional del procesamiento satelital (solo al ejecutar Crear análisis) */}
+            {busy && (
+              <SatelliteProcessingCard
+                status="submitting"
+                scenesCount={selected.length || 1}
+              />
+            )}
 
             <Notice error={error} />
 

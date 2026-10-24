@@ -15,7 +15,7 @@ export function useResource(path, { poll = false } = {}) {
         if (controller.signal.aborted) return;
         setState({ path, revision, data });
         if (poll && ["queued", "running"].includes(data.status))
-          timer = setTimeout(load, 5000);
+          timer = setTimeout(load, 2000);
       } catch (error) {
         if (!controller.signal.aborted) setState({ path, revision, error });
       }

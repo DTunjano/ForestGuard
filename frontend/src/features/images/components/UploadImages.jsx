@@ -17,7 +17,9 @@ function formatBytes(bytes) {
 }
 
 function canonicalBand(description) {
-  const text = String(description || "").trim().toUpperCase();
+  const text = String(description || "")
+    .trim()
+    .toUpperCase();
   const match = text.match(/^(B0?[2-5]|B0?8|B11|B12)(?=$|\W)/);
   if (match) {
     return "B" + String(Number.parseInt(match[1].slice(1), 10));
@@ -158,8 +160,7 @@ export function UploadImages({
   const mounted = useRef(true);
   const enforceUniqueDates = Array.isArray(existingDates);
   const hasUnuploadedItems =
-    busy ||
-    items.some((i) => i.state === "pending" || i.state === "uploading");
+    busy || items.some((i) => i.state === "pending" || i.state === "uploading");
 
   useEffect(() => {
     mounted.current = true;
@@ -492,7 +493,9 @@ export function UploadImages({
                       <div className="fg-upload-file-submeta">
                         <span className="fg-upload-filesize">
                           Tamaño:{" "}
-                          {formatBytes(item.image?.size_bytes ?? item.file.size)}
+                          {formatBytes(
+                            item.image?.size_bytes ?? item.file.size,
+                          )}
                         </span>
                         <span className="fg-upload-filesize">
                           Formato: GeoTIFF
@@ -500,9 +503,9 @@ export function UploadImages({
                         {item.file.lastModified && (
                           <span className="fg-upload-filesize">
                             Modificado:{" "}
-                            {new Date(item.file.lastModified).toLocaleDateString(
-                              "es-CO",
-                            )}
+                            {new Date(
+                              item.file.lastModified,
+                            ).toLocaleDateString("es-CO")}
                           </span>
                         )}
                       </div>
@@ -622,11 +625,7 @@ export function UploadImages({
               onClick={upload}
             >
               <LuUpload aria-hidden="true" />
-              <span>
-                {busy
-                  ? "Cargando…"
-                  : "Cargar pendientes"}
-              </span>
+              <span>{busy ? "Cargando…" : "Cargar pendientes"}</span>
             </Button>
           </div>
         </div>

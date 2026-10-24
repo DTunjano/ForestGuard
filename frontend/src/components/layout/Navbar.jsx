@@ -35,10 +35,7 @@ export const NavBar = () => {
 
   const setSidebarExpanded = (expanded) => {
     setIsExpanded(expanded);
-    sessionStorage.setItem(
-      SIDEBAR_EXPANDED_STORAGE_KEY,
-      String(expanded),
-    );
+    sessionStorage.setItem(SIDEBAR_EXPANDED_STORAGE_KEY, String(expanded));
   };
 
   const expandSidebar = () => {
@@ -53,7 +50,11 @@ export const NavBar = () => {
     const savedScrollTop = Number(
       sessionStorage.getItem(SIDEBAR_SCROLL_STORAGE_KEY) || 0,
     );
-    if (navRef.current && Number.isFinite(savedScrollTop) && savedScrollTop > 0) {
+    if (
+      navRef.current &&
+      Number.isFinite(savedScrollTop) &&
+      savedScrollTop > 0
+    ) {
       navRef.current.scrollTop = savedScrollTop;
     }
   }, []);
