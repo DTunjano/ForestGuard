@@ -419,44 +419,203 @@ function CompletedResults({ id, summary }) {
             </div>
           </div>
 
-          <div className="fg-res-filter-grid">
-            <Field label="Sección">
-              <Select
-                value={section}
-                onChange={(e) => setSection(e.target.value)}
+          <div className="fg-filter-center">
+            <div className="fg-filter-center-header">
+              <div className="fg-filter-center-title">
+                <span className="fg-filter-center-icon" aria-hidden="true">
+                  <LuFilter size={17} />
+                </span>
+                <div>
+                  <h3>Filtrar mapas, capas e informes</h3>
+                  <p>
+                    Elige una categoría rápida o combina sección, periodo e
+                    índice espectral para encontrar el archivo exacto.
+                  </p>
+                </div>
+              </div>
+
+              <div className="fg-filter-center-meta">
+                <span className="fg-filter-results-pill" role="status">
+                  {query.loading
+                    ? "Cargando archivos…"
+                    : `${visible.length} archivos disponibles con estos filtros`}
+                </span>
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    className="fg-filter-reset-btn"
+                    onClick={() => {
+                      setSection("all");
+                      setGroup("");
+                      setIndex("");
+                    }}
+                  >
+                    <LuRotateCcw size={13} aria-hidden="true" />
+                    <span>Limpiar filtros</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Pestañas rápidas por tipo de archivo */}
+            <div className="fg-filter-quick-bars">
+              <div className="fg-filter-pill-group">
+                <span className="fg-filter-group-label">
+                  Acceso rápido por categoría:
+                </span>
+                <div
+                  className="fg-filter-pills"
+                  role="group"
+                  aria-label="Categorías rápidas de archivos"
+                >
+                  {[
+                    {
+                      id: "all",
+                      label: "Todos los archivos",
+                      count: groups.length,
+                    },
+                    {
+                      id: "reports",
+                      label: "Informes PDF / JSON",
+                      count: query.data?.reports?.length ?? 0,
+                    },
+                    {
+                      id: "individual",
+                      label: "Escenas por fecha",
+                      count: query.data?.individual?.length ?? 0,
+                    },
+                    {
+                      id: "comparisons",
+                      label: "Comparaciones entre fechas",
+                      count: query.data?.comparisons?.length ?? 0,
+                    },
+                  ].map((tab) => {
+                    const isActive = section === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        aria-pressed={isActive}
+                        onClick={() => setSection(tab.id)}
+                        className={`fg-filter-pill ${isActive ? "is-active" : ""}`}
+                      >
+                        <span>{tab.label}</span>
+                        <small>{tab.count}</small>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="fg-res-filter-grid">
+              <div>
+                <Field label="Sección">
+                  <Select
+                    value={section}
+                    onChange={(e) => setSection(e.target.value)}
+                  >
+                    <option value="all">Todas</option>
+                    <option value="reports">Informes PDF / JSON</option>
+                    <option value="individual">Individuales</option>
+                    <option value="comparisons">Comparaciones</option>
+                    <option value="other">Otros</option>
+                  </Select>
+                </Field>
+                <small className="fg-filter-field-hint">
+                  Filtra por reportes, mapas individuales o comparativos.
+                </small>
+              </div>
+
+              <div>
+                <Field label="Fecha o intervalo">
+                  <Select
+                    value={group}
+                    onChange={(e) => setGroup(e.target.value)}
+                  >
+                    <option value="">Todos, incluidas láminas generales</option>
+                    {choices.map((value) => (
+                      <option key={value}>{value}</option>
+                    ))}
+                  </Select>
+                </Field>
+                <small className="fg-filter-field-hint">
+                  Acota los resultados a una toma o par de fechas específico.
+                </small>
+              </div>
+
+              <div>
+                <Field label="Índice / lámina">
+                  <Select
+                    value={index}
+                    onChange={(e) => setIndex(e.target.value)}
+                  >
+                    <option value="">Todos</option>
+                    {["NDVI", "NDMI", "NBR", "NDRE"].map((value) => (
+                      <option key={value}>{value}</option>
+                    ))}
+                    <option value="resumen">
+                      Láminas por fecha / intervalo
+                    </option>
+                    <option value="visualizacion">Láminas generales</option>
+                  </Select>
+                </Field>
+                <small className="fg-filter-field-hint">
+                  Muestra solo un índice espectral (NDVI, NDMI, NBR, NDRE) o
+                  lámina.
+                </small>
+              </div>
+            </div>
+
+            {hasActiveFilters && (
+              <div
+                className="fg-filter-active-bar"
+                aria-label="Filtros de resultados activos"
               >
-                <option value="all">Todas</option>
-                <option value="reports">Informes PDF / JSON</option>
-                <option value="individual">Individuales</option>
-                <option value="comparisons">Comparaciones</option>
-                <option value="other">Otros</option>
-              </Select>
-            </Field>
-            <Field label="Fecha o intervalo">
-              <Select value={group} onChange={(e) => setGroup(e.target.value)}>
-                <option value="">Todos, incluidas láminas generales</option>
-                {choices.map((value) => (
-                  <option key={value}>{value}</option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="Índice / lámina">
-              <Select value={index} onChange={(e) => setIndex(e.target.value)}>
-                <option value="">Todos</option>
-                {["NDVI", "NDMI", "NBR", "NDRE"].map((value) => (
-                  <option key={value}>{value}</option>
-                ))}
-                <option value="resumen">Láminas por fecha / intervalo</option>
-                <option value="visualizacion">Láminas generales</option>
-              </Select>
-            </Field>
+                <span className="fg-filter-active-label">Filtros activos:</span>
+                <div className="fg-filter-active-chips">
+                  {section !== "all" && (
+                    <span className="fg-filter-active-chip">
+                      Sección: <strong>{section}</strong>
+                      <button
+                        type="button"
+                        aria-label="Quitar filtro de sección"
+                        onClick={() => setSection("all")}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  {group && (
+                    <span className="fg-filter-active-chip">
+                      Periodo: <strong>{group}</strong>
+                      <button
+                        type="button"
+                        aria-label="Quitar filtro de fecha o intervalo"
+                        onClick={() => setGroup("")}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  {index && (
+                    <span className="fg-filter-active-chip">
+                      Índice / lámina: <strong>{index}</strong>
+                      <button
+                        type="button"
+                        aria-label="Quitar filtro de índice"
+                        onClick={() => setIndex("")}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
-          <Notice error={query.error}>
-            {query.loading
-              ? "Cargando archivos…"
-              : `${visible.length} archivos disponibles con estos filtros`}
-          </Notice>
+          <Notice error={query.error} />
           {query.error && <Button onClick={query.reload}>Reintentar</Button>}
         </Panel>
 
