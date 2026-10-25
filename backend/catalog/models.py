@@ -39,6 +39,8 @@ class SatelliteImage(models.Model):
     crs = models.CharField(max_length=100)
     width = models.PositiveIntegerField()
     height = models.PositiveIntegerField()
+    valid_pixel_count = models.PositiveBigIntegerField(null=True, editable=False)
+    quality_check_version = models.CharField(max_length=40, blank=True, editable=False)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

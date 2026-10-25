@@ -8,7 +8,6 @@ import numpy as np
 from rasterio.windows import Window
 from rest_framework import serializers
 
-
 DATE_TAGS = ("acquisition_date", "date_acquired", "sensing_time", "sensing_date",
              "datatake_sensing_start", "acquisition_time")
 SPECTRAL_BANDS = ("B2", "B3", "B4", "B5", "B8", "B11", "B12")

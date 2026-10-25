@@ -7,22 +7,23 @@ salida es exploratoria y su puntaje no está calibrado como riesgo futuro.
 from __future__ import annotations
 
 import argparse
-from datetime import date
 import json
+from datetime import date
 from pathlib import Path
 
 import joblib
 import numpy as np
 import rasterio
-from rasterio.enums import Resampling
-from rasterio.vrt import WarpedVRT
-from rasterio.windows import Window
-
 from construir_dataset_ml_ideam import FEATURES
 from contrato_inferencia_ideam import VERSION, construir_predictores
 from dominio_territorial_ideam import evaluar_escena
 from esquema_bandas_forestguard import HISTORICAL_BANDS
 from inferir_par_ideam import validar_entrada, validar_fecha_nombre
+from raster_quality import normalized_coverage, normalized_pair_coverage
+from rasterio.enums import Resampling
+from rasterio.vrt import WarpedVRT
+from rasterio.windows import Window
+from temporal_policy import require_interval, temporal_policy
 
 
 def read_window(src, indexes, window):
@@ -44,7 +45,7 @@ def main() -> None:
     parser.add_argument("--ventana", type=int, default=512,
                         help="Lado de ventana cuadrada en píxeles (64 a 1024)")
     parser.add_argument("--permitir-intervalo-fuera-de-entrenamiento", action="store_true",
-                        help="Ejecutar experimentalmente fuera del intervalo temporal entrenado")
+                        help="Compatibilidad: ahora se permiten intervalos desde 35 días sin máximo")
     args = parser.parse_args()
     if not 64 <= args.ventana <= 1024:
         parser.error("--ventana debe estar entre 64 y 1024")
@@ -67,10 +68,12 @@ def main() -> None:
     days = (last_date - first_date).days
     low, high = contract["intervalo_entrenamiento_dias"]
     outside_training_interval = not low <= days <= high
-    if outside_training_interval and not args.permitir_intervalo_fuera_de_entrenamiento:
-        raise ValueError(f"Intervalo de {days} días fuera del contrato {low}-{high}")
+    require_interval(days)
     profile = validar_entrada(args.imagen_inicial, HISTORICAL_BANDS, max_pixeles=None)
     validar_entrada(args.imagen_final, HISTORICAL_BANDS, max_pixeles=None)
+    normalized_coverage(args.imagen_inicial)
+    normalized_coverage(args.imagen_final)
+    normalized_pair_coverage(args.imagen_inicial, args.imagen_final)
     model = bundle["modelo"]
     if list(model.classes_) != [0, 1] or model.n_features_in_ != len(FEATURES):
         raise ValueError("Clasificador incompatible")
@@ -137,6 +140,7 @@ def main() -> None:
         "umbral": threshold,
         "intervalo_dias": days,
         "intervalo_entrenamiento_dias": [low, high],
+        "politica_temporal": temporal_policy(),
         "fuera_intervalo_entrenamiento": outside_training_interval,
         "ejecucion_experimental": outside_training_interval,
         "ventana_pixeles": args.ventana,

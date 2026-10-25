@@ -7,20 +7,21 @@ representa riesgo futuro ni confirma por sí sola deforestación.
 from __future__ import annotations
 
 import argparse
-from datetime import date
 import json
-from pathlib import Path
 import re
+from datetime import date
+from pathlib import Path
 
 import joblib
 import numpy as np
 import rasterio
-
 from calcular_indices_cambios_scl import align_final_to_initial
-from contrato_inferencia_ideam import VERSION, construir_predictores
 from construir_dataset_ml_ideam import FEATURES
+from contrato_inferencia_ideam import VERSION, construir_predictores
 from dominio_territorial_ideam import evaluar_escena
 from esquema_bandas_forestguard import ACCEPTED_ORDERS, HISTORICAL_BANDS, load_compatible_stack
+from raster_quality import normalized_coverage, normalized_pair_coverage
+from temporal_policy import require_interval, temporal_policy
 
 
 def validar_entrada(path, bandas, requiere_scl=True, max_pixeles=5_000_000):
@@ -89,8 +90,10 @@ def main():
         raise ValueError("El contrato no corresponde al dataset del modelo")
     days = (last_date - first_date).days
     low, high = contract["intervalo_entrenamiento_dias"]
-    if not low <= days <= high:
-        raise ValueError(f"El intervalo de {days} días queda fuera de los {low}-{high} días del piloto")
+    require_interval(days)
+    normalized_coverage(args.imagen_inicial)
+    normalized_coverage(args.imagen_final)
+    normalized_pair_coverage(args.imagen_inicial, args.imagen_final)
     profile = validar_entrada(args.imagen_inicial, contract["bandas_raster_en_orden"])
     validar_entrada(args.imagen_final, contract["bandas_raster_en_orden"])
     initial, valid_initial, meta_initial = load_compatible_stack(args.imagen_inicial)
@@ -137,6 +140,9 @@ def main():
         "pixeles_clase_0": int((class_map == 0).sum()),
         "pixeles_clase_1": int((class_map == 1).sum()),
         "umbral": threshold,
+        "intervalo_entrenamiento_dias": [low, high], "politica_temporal": temporal_policy(),
+        "fuera_intervalo_entrenamiento": not low <= days <= high,
+        "ejecucion_experimental": not low <= days <= high,
         "puntaje": "salida RandomForest no calibrada; no equivale a probabilidad de riesgo futuro",
         "limitacion": "Modelo piloto validado solo en tres zonas y con eventos repetidos entre pares",
         "dominio_territorial": evaluar_escena(

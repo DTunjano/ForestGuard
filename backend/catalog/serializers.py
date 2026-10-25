@@ -2,12 +2,12 @@ import re
 from contextlib import ExitStack
 from pathlib import Path
 
-import numpy as np
 import rasterio
 from django.conf import settings
 from rasterio.io import MemoryFile
-from rasterio.windows import Window
 from rest_framework import serializers
+
+from pipeline.src.raster_quality import require_coverage, scan_coverage, valid_mask, windows
 
 from .models import PipelineModel, SatelliteImage, StudyArea
 from .raster_detection import acquisition_date, raster_scales
@@ -27,32 +27,10 @@ def canonical_band(description):
 
 
 def contains_valid_pixel(src, descriptions, reflectance_scale, scl_factor):
-    """Apply the normalizer's pixel mask in bounded windows before saving an upload."""
-    band_numbers = {name: index for index, name in enumerate(descriptions, 1) if name}
-    for row in range(0, src.height, 512):
-        for col in range(0, src.width, 512):
-            window = Window(col, row, min(512, src.width - col), min(512, src.height - row))
-            if _window_has_valid_pixel(src, band_numbers, window, reflectance_scale, scl_factor):
-                return True
-    return False
-
-
-def _window_has_valid_pixel(src, band_numbers, window, reflectance_scale, scl_factor):
-    raw = src.read([band_numbers[name] for name in SPECTRAL_BANDS], window=window,
-                   masked=True, out_dtype="float32")
-    cube = raw.filled(np.nan)
-    if reflectance_scale == "divide_10000":
-        cube /= 10000.0
-    valid = np.all(~np.ma.getmaskarray(raw), axis=0)
-    valid &= np.all(np.isfinite(cube) & (cube >= 0) & (cube <= 1), axis=0)
-    if "SCL" in band_numbers:
-        scl_raw = src.read(band_numbers["SCL"], window=window, masked=True, out_dtype="float32")
-        scl_values = scl_raw.filled(np.nan) * scl_factor
-        rounded = np.rint(np.nan_to_num(scl_values, nan=0)).astype(np.int16)
-        valid_scl = (~np.ma.getmaskarray(scl_raw)) & np.isfinite(scl_values)
-        valid_scl &= np.abs(scl_values - rounded) <= 0.05
-        valid &= valid_scl & np.isin(rounded, (4, 5))
-    return bool(np.any(valid))
+    """Compatibility helper using the same quality mask as uploads and analysis."""
+    mapping = {name: index for index, name in enumerate(descriptions, 1) if name}
+    return any(valid_mask(src, mapping, window, reflectance_scale, scl_factor).any()
+               for window in windows(src))
 
 
 class StudyAreaSerializer(serializers.ModelSerializer):
@@ -63,6 +41,10 @@ class StudyAreaSerializer(serializers.ModelSerializer):
 
 
 class SatelliteImageSerializer(serializers.ModelSerializer):
+    valid_coverage_percent = serializers.SerializerMethodField(help_text="Porcentaje exacto de píxeles utilizables; mínimo requerido: 60 %. Null en cargas antiguas aún no verificadas.")
+
+    def get_valid_coverage_percent(self, obj) -> float | None:
+        return obj.valid_pixel_count / (obj.width * obj.height) * 100 if obj.valid_pixel_count is not None else None
     name = serializers.CharField(required=False, allow_blank=True, help_text="Nombre opcional; si se omite, se usa el nombre del archivo.")
     file = serializers.FileField(
         write_only=True, help_text="GeoTIFF multibanda .tif o .tiff georreferenciado (B2, B3, B4, B5, B8, B11, B12; SCL opcional).",
@@ -73,10 +55,11 @@ class SatelliteImageSerializer(serializers.ModelSerializer):
         fields = (
             "id", "study_area", "name", "file", "acquisition_date", "size_bytes",
             "reflectance_scale", "scl_factor", "band_descriptions", "crs", "width", "height", "uploaded_at",
+            "valid_pixel_count", "valid_coverage_percent", "quality_check_version",
         )
         read_only_fields = (
             "id", "acquisition_date", "reflectance_scale", "scl_factor", "size_bytes",
-            "band_descriptions", "crs", "width", "height", "uploaded_at",
+            "band_descriptions", "crs", "width", "height", "uploaded_at", "valid_pixel_count", "quality_check_version",
         )
 
     def validate_study_area(self, value):
@@ -129,12 +112,12 @@ class SatelliteImageSerializer(serializers.ModelSerializer):
                 else:
                     memory_file = stack.enter_context(MemoryFile(value.read()))
                     src = stack.enter_context(memory_file.open())
-                if not contains_valid_pixel(src, descriptions,
-                                            self._raster_metadata["reflectance_scale"],
-                                            self._raster_metadata["scl_factor"]):
-                    raise serializers.ValidationError({
-                        "file": "No hay píxeles válidos tras aplicar la escala y la máscara SCL detectadas."
-                    })
+                quality = scan_coverage(src, descriptions, self._raster_metadata["reflectance_scale"], self._raster_metadata["scl_factor"])
+                try:
+                    require_coverage(quality)
+                except ValueError as exc:
+                    raise serializers.ValidationError({"file": str(exc)}) from exc
+                self._raster_metadata.update(valid_pixel_count=quality["valid_pixels"], quality_check_version=quality["version"])
         except rasterio.errors.RasterioError as exc:
             raise serializers.ValidationError({"file": "El GeoTIFF no se pudo leer completamente."}) from exc
         finally:

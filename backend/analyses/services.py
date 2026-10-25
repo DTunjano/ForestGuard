@@ -13,6 +13,8 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from catalog.quality import check_image_quality
+
 from .models import Analysis, ResultArtifact
 from .reports import write_report
 from .visualizations import write_visualizations
@@ -78,6 +80,9 @@ def process_analysis(analysis_id):
     normalized = Path(settings.MEDIA_ROOT) / "normalized" / str(analysis.pk)
     scenes = []
     try:
+        # Validate every input before creating normalized copies or launching subprocesses.
+        for link in analysis.scene_links.all():
+            check_image_quality(link.image, refresh=True)
         normalized.mkdir(parents=True, exist_ok=True)
         for link in analysis.scene_links.all():
             image = link.image
@@ -124,6 +129,10 @@ def process_analysis(analysis_id):
             analysis.save(update_fields=("summary", "status", "finished_at"))
     except Exception as exc:
         detail = (exc.stderr[-1500:] if isinstance(exc, subprocess.CalledProcessError) and exc.stderr else str(exc))
+        if isinstance(exc, subprocess.CalledProcessError) and exc.stderr:
+            last_line = exc.stderr.strip().splitlines()[-1]
+            if last_line.startswith("ValueError: "):
+                detail = last_line.removeprefix("ValueError: ")
         Analysis.objects.filter(pk=analysis_id, status=Analysis.Status.RUNNING).update(
             status=Analysis.Status.FAILED, error_message=detail[:2000], finished_at=timezone.now(),
         )

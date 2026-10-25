@@ -23,9 +23,11 @@ from esquema_bandas_forestguard import HISTORICAL_BANDS
 from forest_condition import classify, condition_summary
 from inferir_par_ideam import validar_entrada, validar_fecha_nombre
 from inferir_par_ideam_ventanas import read_window
+from raster_quality import normalized_coverage, normalized_pair_coverage
 from rasterio.enums import Resampling
 from rasterio.vrt import WarpedVRT
 from rasterio.windows import Window
+from temporal_policy import require_interval, temporal_policy
 
 
 class HistogramSummary:
@@ -300,7 +302,7 @@ def describe_trend(scenes, output, side):
                 "interpretacion": "Tendencia espectral descriptiva; no es riesgo futuro"}
 
 
-def run_model(first, second, folder, model, side, allow_outside_training=False):
+def run_model(first, second, folder, model, side):
     d1, p1 = first
     d2, p2 = second
     target = folder / "clasificacion_piloto"
@@ -309,8 +311,6 @@ def run_model(first, second, folder, model, side, allow_outside_training=False):
                "--imagen-final", str(p2), "--fecha-inicial", str(d1),
                "--fecha-final", str(d2), "--salida", str(target),
                "--ventana", str(side)]
-    if allow_outside_training:
-        command.append("--permitir-intervalo-fuera-de-entrenamiento")
     subprocess.run(command, check=True)
     subprocess.run([sys.executable,
                     str(Path(__file__).with_name("resumir_salida_cambio_historico.py")),
@@ -327,7 +327,7 @@ def main():
                         help="Modelo v9 para cambio histórico; omitir para solo índices")
     parser.add_argument("--ventana", type=int, default=512)
     parser.add_argument("--permitir-intervalos-fuera-de-entrenamiento", action="store_true",
-                        help="Clasificación v9 experimental fuera del intervalo temporal entrenado")
+                        help="Compatibilidad: ahora se permiten intervalos desde 35 días sin máximo")
     args = parser.parse_args()
     if not 64 <= args.ventana <= 1024:
         parser.error("--ventana debe estar entre 64 y 1024")
@@ -339,6 +339,10 @@ def main():
     for acquisition, path in scenes:
         validar_fecha_nombre(path, acquisition)
         validar_entrada(path, HISTORICAL_BANDS, requiere_scl=False, max_pixeles=None)
+        normalized_coverage(path)
+    for first, second in zip(scenes, scenes[1:]):
+        require_interval((second[0] - first[0]).days)
+        normalized_pair_coverage(first[1], second[1])
     contract = None
     if args.modelo:
         if len(scenes) < 2:
@@ -356,7 +360,8 @@ def main():
             parser.error("La excepción temporal requiere --modelo")
         quality = None
     args.salida.mkdir(parents=True)
-    report = {"version_pipeline": "forestguard_historico_v3",
+    report = {"version_pipeline": "forestguard_historico_v4",
+              "politica_temporal": temporal_policy(), "cobertura_valida_minima_porcentaje": 60,
               "modalidad": "indices_una_fecha" if len(scenes) == 1 else "serie_multifecha",
               "alcance": "índices, indicios de degradación y cambio histórico; sin riesgo futuro",
               "escenas": [], "intervalos": [],
@@ -365,7 +370,7 @@ def main():
               "deforestacion_una_fecha": ("no_evaluable_sin_comparacion_temporal"
                                             if len(scenes) == 1 else None),
               "modelo_temporal": str(args.modelo.resolve()) if args.modelo else None,
-              "excepcion_temporal_experimental": args.permitir_intervalos_fuera_de_entrenamiento,
+              "excepcion_temporal_experimental": bool(contract and any(not contract["intervalo_entrenamiento_dias"][0] <= (last[0] - first[0]).days <= contract["intervalo_entrenamiento_dias"][1] for first, last in zip(scenes, scenes[1:]))),
               "calidad_modelo": quality,
               "ventana_pixeles": args.ventana}
     for acquisition, path in scenes:
@@ -377,9 +382,7 @@ def main():
             days = item["dias"]
             low, high = contract["intervalo_entrenamiento_dias"]
             outside_training_interval = not low <= days <= high
-            if outside_training_interval and not args.permitir_intervalos_fuera_de_entrenamiento:
-                reason = f"Intervalo fuera del contrato de {low} a {high} días"
-            elif item["pixeles_comunes"] == 0:
+            if item["pixeles_comunes"] == 0:
                 reason = "Sin píxeles comunes válidos"
             else:
                 try:
@@ -396,8 +399,7 @@ def main():
                             deforestacion_observada={"estado": "no_evaluable",
                                                      "motivo": reason})
             else:
-                area = run_model(first, second, folder, args.modelo, args.ventana,
-                                 allow_outside_training=outside_training_interval)
+                area = run_model(first, second, folder, args.modelo, args.ventana)
                 positive = area.get("pixeles_clase_1", 0)
                 item.update(estado_clasificacion="ejecutada",
                             fuera_intervalo_entrenamiento=outside_training_interval,

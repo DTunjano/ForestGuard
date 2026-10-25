@@ -56,7 +56,8 @@ class StudyAreaViewSet(viewsets.ModelViewSet):
             "El servidor detecta `reflectance_scale` y `scl_factor` y los devuelve como campos de solo lectura. "
             "El GeoTIFF debe estar georreferenciado "
             "y describir las bandas B2, B3, B4, B5, B8, B11 y B12; SCL es opcional. "
-            "La carga exige una fecha inequívoca, escala detectable y al menos un píxel válido."
+            "La carga exige una fecha inequívoca, escala detectable y al menos 60 % de píxeles válidos. "
+            "La cobertura se comprueba antes de guardar el archivo y se devuelve como valid_coverage_percent."
         ),
         request={"multipart/form-data": SatelliteImageSerializer},
     ),

@@ -253,6 +253,7 @@ class ArtifactMetadataView(APIView):
         tags=["Análisis"], summary="Analizar una imagen o comparar varias",
         description=(
             "Crea un trabajo en estado `queued`; el worker local debe estar en ejecución para procesarlo. "
+            "Cada imagen requiere cobertura válida ≥ 60 %; las comparaciones exigen al menos 35 días sin máximo y 60 % de cobertura común. "
             "Elige un área de `GET /api/v1/study-areas/` y los IDs de las escenas de `GET /api/v1/images/`. "
             "`image_ids` admite de 1 a 32 imágenes distintas de la misma área y con fechas diferentes; "
             "se ordenan por fecha. Una imagen produce índices descriptivos automáticamente y no usa v9, "
