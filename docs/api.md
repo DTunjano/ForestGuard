@@ -76,3 +76,10 @@ Consulte [Cobertura y roles](cobertura-y-roles.md) para el contrato de
 las láminas original/resultado y los endpoints `/api/v1/admin/roles/` y
 `/api/v1/admin/permissions/`. `role_ids` asigna múltiples roles; los permisos de
 Django son la autoridad efectiva. Se conserva `role` para clientes anteriores.
+
+## Calidad y política temporal
+
+Las imágenes requieren cobertura válida ≥ 60 % antes de guardarse. La respuesta
+incluye `valid_coverage_percent`. Las comparaciones requieren intervalos consecutivos
+de al menos 35 días, sin máximo, y cobertura común ≥ 60 %. Ver
+[calidad y comparaciones](calidad-y-comparaciones.md).

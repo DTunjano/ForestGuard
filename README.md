@@ -1,5 +1,10 @@
 # ForestGuard
 
+Actualización: [calidad de entrada y comparaciones](docs/calidad-y-comparaciones.md).
+Se requiere cobertura válida ≥ 60 % y las comparaciones admiten desde 35 días,
+sin límite máximo. El PDF conserva resultados e interpretación sin la sección
+de método y trazabilidad.
+
 API Django y frontend React para registrar escenas Sentinel-2 y ejecutar el pipeline histórico v7. La integración local permite cargar imágenes, crear análisis y consultar/descargar resultados desde `frontend/`. El sistema **no predice riesgo futuro**. La clase ML expresa un patrón exploratorio de cambio entre fechas; los indicios espectrales requieren revisión.
 
 La [guía de integración local](docs/integracion-local.md) incluye arquitectura, sesión, ramas, pruebas y comandos de las tres consolas. El frontend continúa iniciándose con `pnpm dev`.
@@ -62,7 +67,7 @@ Antes de iniciar Django o el worker, abra Docker Desktop y, desde la raíz del r
 1. Registrar usuario en `POST /api/v1/auth/register/`; obtener JWT con `POST /api/v1/auth/token/` y renovar con `POST /api/v1/auth/token/refresh/`.
 2. Crear área en `POST /api/v1/study-areas/`.
 3. Cargar cada GeoTIFF multibanda en `POST /api/v1/images/` con `multipart/form-data`: `study_area` y `file`; `name` es opcional. El servidor extrae la fecha de adquisición de los metadatos o del nombre del archivo (por ejemplo, `2025_01_19`), detecta la escala de reflectancia y el factor SCL, y devuelve esos valores como campos de solo lectura. `uploaded_at` registra por separado la fecha de carga. Si no puede inferir algún dato de forma segura, la API explica el motivo y rechaza el archivo.
-4. Crear análisis con `POST /api/v1/analyses/`: `name`, `study_area`, `image_ids` (uno o varios) y `model_id` opcional. Con una imagen se calculan automáticamente NDVI, NDMI, NBR y NDRE sin v9; con varias fechas hay diferencias e indicios de degradación. El modelo v9 requiere al menos dos escenas con SCL y solo se ejecuta en intervalos que cumplen su contrato.
+4. Crear análisis con `POST /api/v1/analyses/`: `name`, `study_area`, `image_ids` (uno o varios) y `model_id` opcional. Con una imagen se calculan automáticamente NDVI, NDMI, NBR y NDRE sin v9; con varias fechas hay diferencias e indicios de degradación. El modelo v9 requiere al menos dos escenas con SCL y se ejecuta desde 35 días, sin máximo, respetando sus demás requisitos de entrada.
 5. Consultar estado y resumen en `GET /api/v1/analyses/{id}/`. El worker guarda mapas PNG de los raster y las láminas `visualizacion_individual.png` y, si hay varias fechas, `visualizacion_comparativa.png`. Usar el `download_url` de estos artefactos para obtenerlos. Los GeoTIFF originales siguen disponibles; `preview_url` genera una miniatura de cada raster. Cada ruta de **Resultados** pide un único `artifact_id` y comprueba que el archivo pertenece al usuario. Las rutas antiguas con ID del análisis siguen funcionando para clientes existentes.
 
 Para registrar PNG en análisis completados antes de esta función, desde `backend/` ejecute `py manage.py backfill_analysis_visualizations --analysis-id 15`. Puede repetir `--analysis-id` para varios análisis; el comando es idempotente y requiere conservar resultados y escenas normalizadas.

@@ -294,42 +294,6 @@ def write_report(analysis, summary, destination):
                     f"{item['alto_pixeles']} píxeles | Área de píxel: {number(item['area_pixel_m2'], ' m²')}"
                 ),
             ]
-    story += [
-        PageBreak(),
-        Paragraph("Método y trazabilidad", styles["Heading1"]),
-        paragraph(
-            "Método: forestguard_spectral_rules_v1. La pérdida temporal usa índice inicial menos final. "
-            "Los mapas de diferencias técnicos conservan la convención final menos inicial."
-        ),
-        Spacer(1, 10),
-        paragraph(
-            "En una fecha: NDVI >= 0,5 indica vigor alto; 0,2 <= NDVI < 0,5 indica vigor bajo; NDVI < 0,2 se separa "
-            "como otra cobertura. El seguimiento con otra fecha permite distinguir condición y pérdida."
-        ),
-        Spacer(1, 10),
-        paragraph(
-            "Entre fechas: se considera bosque de referencia el proxy NDVI inicial >= 0,5. Se asigna posible deforestación "
-            "cuando NDVI final < 0,5 o la pérdida NDVI > 0,3. Después se asigna degradación cuando la pérdida NBR "
-            "está entre 0,1 y 0,4, inclusive. La cobertura restante del proxy se clasifica como estable. "
-            "Las demás coberturas se presentan por separado."
-        ),
-        Spacer(1, 10),
-        paragraph(
-            "Los umbrales son reglas operativas del proyecto. La identificación de bosque utiliza un proxy espectral; "
-            "su interpretación se completa con cobertura de referencia, contexto estacional y revisión visual."
-        ),
-        Spacer(1, 10),
-        paragraph(
-            "Archivos complementarios: GeoTIFF georreferenciado de categorías; PNG del original, del resultado y de las "
-            "láminas de índices; JSON con conteos, superficies, porcentajes y versión del método."
-        ),
-        Spacer(1, 14),
-        Paragraph("Referencias metodológicas", styles["Heading2"]),
-        paragraph(
-            "USGS: burnseverity.cr.usgs.gov/glossary (diferencias inicial menos final). "
-            "NASA: science.nasa.gov/earth/earth-observatory/measuring-vegetation-ndvi-evi/ (interpretación del NDVI)."
-        ),
-    ]
     SimpleDocTemplate(
         str(destination), pagesize=A4, leftMargin=40, rightMargin=40, topMargin=78, bottomMargin=48
     ).build(story, onFirstPage=_page, onLaterPages=_page)

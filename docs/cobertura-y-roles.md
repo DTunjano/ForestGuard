@@ -33,9 +33,12 @@ pnpm dev
 Reinicie el worker después de actualizar el código: los trabajos nuevos usan la
 versión instalada en ese proceso. Esta fase no incluye despliegue.
 
+Consulte [calidad y comparaciones](calidad-y-comparaciones.md) para el mínimo de cobertura
+del 60 %, la política temporal y los cambios del selector y PDF.
+
 ## Método confirmado para las categorías
 
-Versión: `forestguard_spectral_rules_v1`, pipeline histórico `v3`. Las reglas son
+Versión: `forestguard_spectral_rules_v1`, pipeline histórico `v4`. Las reglas son
 operativas del proyecto y se calculan independientemente del clasificador v9.
 Los índices conservan sus unidades matemáticas; un NDVI de 0,7 **no equivale** a
 70 % de bosque. El porcentaje de una categoría es:
@@ -78,8 +81,8 @@ límites de la pérdida temporal.
 NDMI y NDRE se conservan como información complementaria sobre humedad y
 vegetación. No se les atribuye un umbral de degradación individual que no haya
 sido definido. dNBR requiere dos fechas; su interpretación depende del contexto
-de cobertura y estación. El v9 conserva su contrato temporal y no modifica las
-categorías de estas reglas.
+de cobertura y estación. El v9 se ejecuta desde 35 días, sin máximo, conservando el intervalo de entrenamiento
+como metadato. No modifica las categorías de estas reglas.
 
 Las categorías son excluyentes. En una escena se usa su área válida; en un
 intervalo, la intersección válida de ambas escenas. NoData es transparente y
@@ -138,7 +141,7 @@ Todos los archivos requieren autenticación y propiedad del análisis.
 
 El PDF incluye identidad del análisis, cobertura válida, resumen del último
 periodo (no una suma), secciones por fecha e intervalo con mapas, porcentajes,
-interpretación, media/mediana/p10/p90, reglas y trazabilidad. Usa colores y
+interpretación y media/mediana/p10/p90. La sección de método y trazabilidad se retiró del PDF; sus datos permanecen en JSON. Usa colores y
 cabecera ForestGuard. La interpretación se redacta a partir de las métricas
 calculadas, sin inventar exactitud, confianza ni probabilidades.
 
