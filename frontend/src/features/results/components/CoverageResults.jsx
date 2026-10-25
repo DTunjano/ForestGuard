@@ -137,19 +137,6 @@ export function CoverageResults({ summary, artifacts }) {
             : " de la escena"}
           . Sin datos: transparente.
         </p>
-        <p className="text-sm text-slate-400">{condition.nota}</p>
-        <details className="rounded-lg border border-white/10 p-3">
-          <summary className="cursor-pointer font-medium">
-            Reglas y trazabilidad
-          </summary>
-          <p className="mt-3 text-sm">
-            Método {condition.version}. En comparaciones, la pérdida es inicial
-            menos final. Prioridad: posible deforestación (NDVI final &lt; 0,5 o
-            pérdida NDVI &gt; 0,3 sobre el proxy de bosque inicial), degradación
-            (pérdida NBR entre 0,1 y 0,4), estable y otra cobertura. NDVI y
-            demás índices conservan su escala técnica.
-          </p>
-        </details>
       </Panel>
     </section>
   );
