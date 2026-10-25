@@ -110,17 +110,15 @@ export function Dashboard() {
   ];
 
   return (
-    <Page title="ForestGuard · Panel de trabajo">
-      {/* Saludo en texto claro fuera del recuadro */}
-      <div className="fg-dash-user-greeting">
-        <p className="fg-dash-user-greeting-name">
+    <Page
+      title="ForestGuard · Panel de trabajo"
+      greeting={
+        <>
           Hola, <strong>{displayName}</strong>
-        </p>
-        <span className="fg-dash-user-greeting-sub">
-          Panel de monitoreo e interpretación multitemporal Sentinel-2
-        </span>
-      </div>
-
+        </>
+      }
+      description="Panel de monitoreo e interpretación multitemporal Sentinel-2. Explora tus imágenes, áreas de estudio y resultados en un solo espacio."
+    >
       {/* Banner principal de acciones rápidas */}
       <section className="fg-dash-hero">
         <div className="fg-dash-hero-copy">
@@ -258,15 +256,24 @@ export function Dashboard() {
             <p className="fg-eyebrow">Actividad reciente</p>
             <h2>Análisis recientes</h2>
           </div>
-          <Link
-            to="/dashboard/history"
-            aria-disabled={hasNoAnalyses || undefined}
-            className={`fg-dash-history-btn ${hasNoAnalyses ? "is-empty" : ""}`}
-          >
-            <LuFolderClock size={16} aria-hidden="true" />
-            <span>Ver historial completo</span>
-            <LuArrowRight size={15} aria-hidden="true" />
-          </Link>
+          {hasNoAnalyses ? (
+            <button
+              type="button"
+              disabled
+              aria-disabled="true"
+              className="fg-dash-history-btn is-empty"
+            >
+              <LuFolderClock size={16} aria-hidden="true" />
+              <span>Ver historial completo</span>
+              <LuArrowRight size={15} aria-hidden="true" />
+            </button>
+          ) : (
+            <Link to="/dashboard/history" className="fg-dash-history-btn">
+              <LuFolderClock size={16} aria-hidden="true" />
+              <span>Ver historial completo</span>
+              <LuArrowRight size={15} aria-hidden="true" />
+            </Link>
+          )}
         </div>
 
         <Notice error={analyses.error} />
@@ -367,19 +374,19 @@ export function Dashboard() {
         )}
 
         {hasNoAnalyses && (
-          <div className="fg-dash-empty-box">
-            <EmptyState title="Tu próximo descubrimiento empieza aquí">
-              Tu cuenta aún no tiene análisis. Empieza creando un área de
-              estudio, cargando tus escenas Sentinel-2 GeoTIFF y ejecutando tu
-              primer diagnóstico espectral o multitemporal.
-            </EmptyState>
-            <div className="fg-dash-empty-action">
+          <EmptyState
+            title="Tu próximo descubrimiento empieza aquí"
+            action={
               <Link className="fg-dash-primary-cta" to="/dashboard/new">
                 <LuPlus size={18} aria-hidden="true" />
                 <span>Crear nuevo análisis</span>
               </Link>
-            </div>
-          </div>
+            }
+          >
+            Tu cuenta aún no tiene análisis. Empieza creando un área de estudio,
+            cargando tus escenas Sentinel-2 GeoTIFF y ejecutando tu primer
+            diagnóstico espectral o multitemporal.
+          </EmptyState>
         )}
       </section>
 

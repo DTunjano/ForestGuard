@@ -2,7 +2,13 @@ import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { LuX } from "react-icons/lu";
 
-export function Modal({ title, children, onClose, busy = false }) {
+export function Modal({
+  title,
+  children,
+  onClose,
+  busy = false,
+  size = "default",
+}) {
   const id = useId();
   const content = useRef(null);
   useEffect(() => {
@@ -63,7 +69,7 @@ export function Modal({ title, children, onClose, busy = false }) {
       }}
     >
       <section
-        className="fg-modal"
+        className={`fg-modal ${size === "wide" ? "fg-modal-wide" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={id}

@@ -5,7 +5,9 @@ const descriptions = {
   "Nuevo análisis":
     "De una escena a una nueva perspectiva del territorio. Selecciona el área, carga tus imágenes y compara fechas.",
   "Historial de análisis":
-    "Tu archivo de observación. Consulta, compara y retoma cada estudio.",
+    "Archivo y gestión de estudios satelitales. Consulta los análisis realizados sobre tus áreas de estudio, abre sus láminas y reportes o depura trabajos finalizados.",
+  "Imágenes satelitales":
+    "Explora el catálogo de escenas Sentinel-2 GeoTIFF vinculadas a tus áreas de estudio, ordena su cronología y consulta los metadatos técnicos de cada captura.",
   "Mi perfil": "Gestiona tu identidad y la seguridad de tu cuenta.",
   Usuarios: "Administra el acceso y los permisos de tu equipo.",
   "Áreas de estudio": "Organiza los territorios que quieres observar.",
@@ -13,18 +15,23 @@ const descriptions = {
     "Conoce las herramientas de clasificación disponibles para tus estudios.",
   Ayuda: "Todo lo que necesitas para empezar a observar el territorio.",
 };
-export function Page({ title, children }) {
+export function Page({ title, greeting, description, action, children }) {
   return (
     <div data-page={title} className="fg-page mx-auto max-w-6xl space-y-6">
-      <header className="fg-page-header">
-        <p className="fg-eyebrow">
-          <LuTrees aria-hidden="true" /> ForestGuard / Observación territorial
-        </p>
-        <h1 className="text-3xl font-semibold">{title}</h1>
-        <p>
-          {descriptions[title] ||
-            "Explora tus imágenes y resultados de Sentinel-2 en un solo espacio."}
-        </p>
+      <header className={`fg-page-header ${action ? "has-action" : ""}`}>
+        <div className="fg-page-header-main">
+          <p className="fg-eyebrow">
+            <LuTrees aria-hidden="true" /> ForestGuard / Observación territorial
+          </p>
+          <h1>{title}</h1>
+          {greeting && <p className="fg-page-header-greeting">{greeting}</p>}
+          <p className="fg-page-header-desc">
+            {description ||
+              descriptions[title] ||
+              "Explora tus imágenes y resultados de Sentinel-2 en un solo espacio."}
+          </p>
+        </div>
+        {action && <div className="fg-page-header-side">{action}</div>}
       </header>
       {children}
     </div>
@@ -87,12 +94,13 @@ export function StatusBadge({ status, children }) {
     </span>
   );
 }
-export function EmptyState({ title, children }) {
+export function EmptyState({ title, action, children }) {
   return (
     <div className="fg-empty">
       <LuTrees size={32} aria-hidden="true" />
       <h3>{title}</h3>
       <p>{children}</p>
+      {action && <div className="fg-empty-action">{action}</div>}
     </div>
   );
 }
