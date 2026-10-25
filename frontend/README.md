@@ -1,18 +1,48 @@
-# React + Vite
+# ForestGuard · Frontend integrado
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite + Tailwind + React Router. Se mantienen pnpm y pnpm-lock.yaml.
 
-Currently, two official plugins are available:
+```powershell
+pnpm install --frozen-lockfile
+pnpm dev
+```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Vite muestra la dirección local (habitualmente http://localhost:5173). El proxy
+/api apunta a Django en http://127.0.0.1:8000. Backend y worker se ejecutan por
+separado, con su entorno virtual. Solo PostgreSQL requiere Docker.
 
-## React Compiler
+## Verificación
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+```powershell
+pnpm lint
+pnpm test
+pnpm build
+```
 
-Note: This will impact Vite dev & build performances.
+La prueba de navegador completa se inicia desde backend con
+FORESTGUARD_BROWSER_TEST=1; consulta [la guía local](../docs/integracion-local.md).
+Usa PostgreSQL de pruebas, GeoTIFF sintéticos y Edge headless. No usa cuentas
+personales ni escribe resultados en backend/media.
 
-## Expanding the ESLint configuration
+## Estructura
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- src/app: proveedores de sesión y rutas protegidas.
+- src/features: autenticación, perfil, usuarios, modelos, áreas, imágenes,
+  análisis y resultados. Las páginas consumen APIs y hooks.
+- src/shared/api: HTTP, renovación única, consultas cancelables y descargas.
+- src/shared/components: formularios y estados comunes.
+- src/components/layout: layout visual conservado del frontend original.
+
+No hay administrador predeterminado ni resultados simulados. Registra una cuenta
+analista o utiliza una existente. El registro público no asigna rol admin.
+
+## Configuración
+
+VITE_API_URL=/api/v1/ es el valor predeterminado (ver .env.example). Es una
+variable pública: nunca incluyas contraseñas ni JWT. FORESTGUARD_API_TARGET
+configura el destino del proxy de Vite; por defecto http://127.0.0.1:8000.
+Si se usa una API en otro origen sin proxy, Django debe permitir explícitamente
+el origen local de la web. No habilites CORS indiscriminadamente.
+
+La sesión conserva el refresh en sessionStorage y el access en memoria; revisa
+la decisión y sus límites en la guía. No se ha desplegado la app.

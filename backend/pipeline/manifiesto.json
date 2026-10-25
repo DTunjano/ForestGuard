@@ -1,0 +1,40 @@
+{
+  "version": "forestguard_historico_v7",
+  "python_creacion": "3.13.7",
+  "dependencias": {
+    "numpy": "2.5.3",
+    "rasterio": "1.5.1",
+    "pandas": "3.0.5",
+    "scikit-learn": "1.9.0",
+    "joblib": "1.6.0"
+  },
+  "archivos_sha256": {
+    "model/contrato_inferencia.json": "5a03052e0eadf8bf7973a882d8140ba1e1ae9d90ee6ce6b119abf8f7ab933df2",
+    "model/dominio_territorial.json": "746543c1e95687e92ff8081b2289f69392e4ae16164c9190ae882aee7bee8203",
+    "model/modelo_exploratorio.joblib": "df0f951bc5c1e1014420a23e6d11b7c9fd271a534ce4c7b2db9fabf2df5bdafc",
+    "model/perfil_desempeno.json": "b210825307f0a24bac52fb66619b3673061e93aff8b5b3cf2444818ca260fc28",
+    "src/calcular_indices_cambios_scl.py": "7b6e7faa94b95264bc3fcd25635746153e26347aa50e19717949c1e14ac422ab",
+    "src/construir_dataset_ml_ideam.py": "d620a5d7d13641af3705faa5fcd13487fa9c33aeae3143e13d6158de3fc426ac",
+    "src/contrato_inferencia_ideam.py": "97dbe0e21f34977191708c5b4cd5aef9d892e1656c3873ff8134fdbccf406535",
+    "src/dominio_territorial_ideam.py": "635aaebfeddc426383646bf33c4a5f2a6479488d26b5a80b7c3e98c032ad560f",
+    "src/esquema_bandas_forestguard.py": "c0ce86f8dcc8b45adc62db32819466fd1161f30a465ce85c8407a837fb3df873",
+    "src/forest_condition.py": "f7754e96c83f412a91155f724fb6c8d39030770bd4d065fca358e81460a585b8",
+    "src/forestguard_pipeline.py": "112a7b1868e577be06bfae4677bf1733473a66f5e63c2642700480f6c41efc33",
+    "src/inferir_par_ideam.py": "5008027b03e9195bebef0e5113e27d5dfa064536ccf4e78cc737170543a0f08a",
+    "src/inferir_par_ideam_ventanas.py": "35bc65f73943deb745c5c2fc0812e0962ca9f51931af1ccda9e5a25e59e7987c",
+    "src/normalizar_entrada_forestguard.py": "10ab3e3035aed46e160553a3483de8aa4077acf95bc9343562438fe11be3bbfe",
+    "src/normalizar_producto_safe_l2a.py": "49d3cffefcd9c859eb7e1677d8652e1ed4329afc822e66d229e9ab32eefad71c",
+    "src/normalizar_safe_l2a_ventanas.py": "65f8204044abad34067127ea3bd3b399e9fbc92b14e81cea6d22ea84d600e40b",
+    "src/normalizar_stac_cog_ventanas.py": "59227cf1e6f6607453dfafc7844b6c6fa6903282c488ac46eea6cd02b7915974",
+    "src/raster_quality.py": "ab12f66526c4a89edd13a9cb5b5a6dc50725a915ecaaa8965a760b7f0e55365e",
+    "src/resumir_salida_cambio_historico.py": "fc585f82e597780c4293ee640511b1bec4e6a179c08cf52b683dcec4ce473576",
+    "src/temporal_policy.py": "8730b904943bfb282f01b97bea025e3b86fd2bc22525fe5d2d00e26fb0f1b6f6"
+  },
+  "alcance": "índices, indicios de degradación y cambio histórico exploratorio; sin riesgo futuro",
+  "normalizacion_texto_sha256": "LF en .py/.json; binarios sin normalizar",
+  "politica_ejecucion": {
+    "minimo_intervalo_dias": 35,
+    "maximo_intervalo_dias": null,
+    "cobertura_valida_minima_porcentaje": 60
+  }
+}
