@@ -479,6 +479,12 @@ export function Images() {
               {[
                 ["Fecha de adquisición", dialog.image.acquisition_date],
                 [
+                  "Cobertura válida",
+                  dialog.image.valid_coverage_percent == null
+                    ? "Se verificará antes del análisis"
+                    : `${dialog.image.valid_coverage_percent.toLocaleString("es-CO", { maximumFractionDigits: 2 })} %`,
+                ],
+                [
                   "Dimensiones",
                   `${dialog.image.width} × ${dialog.image.height} px`,
                 ],

@@ -159,7 +159,14 @@ try {
     .setInputFiles([
       join(process.env.FG_TEST_FILES, "scene_2024_01_01.tif"),
       join(process.env.FG_TEST_FILES, "invalid_2024_02_01.tif"),
+      join(process.env.FG_TEST_FILES, "cloudy_2024_02_02.tif"),
     ]);
+  await expect(page.locator(".fg-upload-dropzone")).toContainText(
+    "3 archivos seleccionados",
+  );
+  await expect(page.locator(".fg-upload-dropzone")).toContainText(
+    "scene_2024_01_01.tif",
+  );
   await page
     .getByRole("button", { name: "Cargar pendientes", exact: true })
     .first()
@@ -176,6 +183,25 @@ try {
       .filter({ hasText: "scene_2024_01_01.tif" })
       .getByText("Cargada", { exact: true }),
   ).toBeVisible();
+  await expect(
+    page
+      .locator(".fg-upload-item")
+      .filter({ hasText: "cloudy_2024_02_02.tif" }),
+  ).toContainText("59.00 %");
+  await expect(
+    page.locator(".fg-upload-item").filter({ hasText: "scene_2024_01_01.tif" }),
+  ).toContainText("Cobertura válida: 100 %");
+  await page
+    .locator(".fg-upload-item")
+    .filter({ hasText: "cloudy_2024_02_02.tif" })
+    .getByRole("button", { name: "Quitar de la selección", exact: true })
+    .click();
+  await expect(page.locator(".fg-upload-dropzone")).toContainText(
+    "2 archivos seleccionados",
+  );
+  await expect(page.locator(".fg-upload-dropzone")).not.toContainText(
+    "cloudy_2024_02_02.tif",
+  );
   await page
     .getByRole("button", {
       name: "Siguiente: Revisar escenas seleccionadas",

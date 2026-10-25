@@ -389,6 +389,10 @@ function AreaAnalysis({
     setError(null);
     const values = Object.fromEntries(new FormData(event.currentTarget));
     try {
+      if (intervals.some((interval) => interval.days < 35))
+        throw new Error(
+          "Las comparaciones requieren al menos 35 días entre fechas consecutivas. No hay límite máximo. Puedes analizar cada imagen individualmente.",
+        );
       if (
         new Set(selected.map((i) => i.acquisition_date)).size !==
         selected.length
@@ -885,7 +889,8 @@ function AreaAnalysis({
               disabled={
                 selected.length === 0 ||
                 selected.length > 32 ||
-                hasDuplicateDates
+                hasDuplicateDates ||
+                intervals.some((interval) => interval.days < 35)
               }
               onClick={() => setActiveStep(4)}
             >
@@ -893,6 +898,9 @@ function AreaAnalysis({
               <LuArrowRight aria-hidden="true" />
             </Button>
           </div>
+          {intervals.some((interval) => interval.days < 35) && (
+            <Notice error="Selecciona fechas separadas al menos 35 días. No hay límite máximo para la comparación." />
+          )}
         </Panel>
 
         {imageToDelete && (

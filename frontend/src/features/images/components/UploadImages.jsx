@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   LuCheck,
   LuCircleAlert,
@@ -8,7 +8,7 @@ import {
   LuUpload,
 } from "react-icons/lu";
 import { deleteImage, uploadImage } from "../api/images";
-import { Button, Field, Notice } from "../../../shared/components/UI";
+import { Button, Notice } from "../../../shared/components/UI";
 
 function formatBytes(bytes) {
   if (!Number.isFinite(bytes) || bytes <= 0) return "";
@@ -154,6 +154,8 @@ export function UploadImages({
   onRemoved,
   onPendingChange,
 }) {
+  const pickerId = useId();
+  const picker = useRef(null);
   const [items, setItems] = useState([]);
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
@@ -401,13 +403,51 @@ export function UploadImages({
               extraen automáticamente al subir.
             </p>
           </div>
+          <div className="fg-upload-spec-card">
+            <strong>Cobertura válida mínima: 60 %</strong>
+            <p>
+              Se valida al cargar, antes del análisis. Se excluyen píxeles sin
+              datos y nubes según SCL. Las comparaciones también requieren 60 %
+              de cobertura común.
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Selector de archivos a ancho completo */}
       <div className="fg-upload-dropzone">
-        <Field
-          label="Archivos Sentinel-2 GeoTIFF"
+        <label className="mb-3 block font-semibold" htmlFor={pickerId}>
+          Archivos Sentinel-2 GeoTIFF
+        </label>
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-white/20 p-3">
+          <Button
+            type="button"
+            disabled={busy || !area}
+            onClick={() => picker.current?.click()}
+            aria-describedby={`${pickerId}-selection`}
+          >
+            Elegir archivos
+          </Button>
+          <span
+            id={`${pickerId}-selection`}
+            role="status"
+            className="min-w-0 flex-1 break-all"
+          >
+            {items.length
+              ? `${items.length} ${items.length === 1 ? "archivo seleccionado" : "archivos seleccionados"}`
+              : "Ningún archivo seleccionado"}
+          </span>
+          {items.length > 0 && (
+            <p className="max-h-28 w-full overflow-y-auto break-all text-sm text-slate-300">
+              {items.map((item) => item.file.name).join(", ")}
+            </p>
+          )}
+        </div>
+        <input
+          id={pickerId}
+          ref={picker}
+          className="sr-only"
+          tabIndex={-1}
           type="file"
           accept=".tif,.tiff"
           multiple
@@ -551,6 +591,16 @@ export function UploadImages({
                   <div className="fg-upload-image-details">
                     <div className="fg-upload-meta">
                       {dateText && <span>Fecha: {dateText}</span>}
+                      {item.image?.valid_coverage_percent != null && (
+                        <span>
+                          Cobertura válida:{" "}
+                          {item.image.valid_coverage_percent.toLocaleString(
+                            "es-CO",
+                            { maximumFractionDigits: 2 },
+                          )}{" "}
+                          %
+                        </span>
+                      )}
                       {width && height && (
                         <span>
                           Dimensiones: {width} × {height} px
