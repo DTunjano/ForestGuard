@@ -8,7 +8,7 @@ def test_openapi_groups_modules_and_documents_uploads_and_results():
 
     expected_tags = {
         "Autenticación", "Mi cuenta", "Administración de usuarios", "Áreas de estudio",
-        "Imágenes satelitales", "Modelos", "Análisis", "Resultados",
+        "Imágenes satelitales", "Modelos", "Análisis", "Resultados", "Roles y permisos",
     }
     assert expected_tags == {tag["name"] for tag in schema["tags"]}
     operations = [operation for methods in schema["paths"].values()

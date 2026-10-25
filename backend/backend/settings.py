@@ -64,7 +64,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
-    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated", "accounts.rbac.ProjectPermission"),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination", "PAGE_SIZE": 20,
     "DEFAULT_THROTTLE_CLASSES": (
@@ -95,7 +95,8 @@ SPECTACULAR_SETTINGS = {
     "TAGS": [
         {"name": "Autenticación", "description": "Registro, JWT, sesión y contraseña."},
         {"name": "Mi cuenta", "description": "Perfil del usuario autenticado."},
-        {"name": "Administración de usuarios", "description": "Cuentas y roles; requiere administrador del proyecto."},
+        {"name": "Administración de usuarios", "description": "Cuentas y asignación de roles; requiere los permisos de usuarios y, para asignar roles, auth.change_group."},
+        {"name": "Roles y permisos", "description": "Roles múltiples y permisos por módulo. Roles base protegidos."},
         {"name": "Áreas de estudio", "description": "Áreas privadas que agrupan imágenes y análisis."},
         {"name": "Imágenes satelitales", "description": "Carga y consulta de GeoTIFF Sentinel-2."},
         {"name": "Modelos", "description": "Modelos de clasificación activos disponibles."},

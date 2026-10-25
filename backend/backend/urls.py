@@ -6,7 +6,7 @@ from django.views.generic import RedirectView
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from rest_framework.routers import DefaultRouter
 
-from accounts.views import UserAdminViewSet
+from accounts.views import PermissionCatalogView, RoleViewSet, UserAdminViewSet
 
 
 def health(_request):
@@ -24,6 +24,7 @@ def favicon(_request):
 
 admin_router = DefaultRouter()
 admin_router.register("users", UserAdminViewSet, basename="admin-user")
+admin_router.register("roles", RoleViewSet, basename="admin-role")
 
 urlpatterns = [
     path("", RedirectView.as_view(pattern_name="swagger-ui", permanent=False)),
@@ -37,4 +38,5 @@ urlpatterns = [
     path("api/v1/", include("catalog.urls")),
     path("api/v1/", include("analyses.urls")),
     path("api/v1/admin/", include(admin_router.urls)),
+    path("api/v1/admin/permissions/", PermissionCatalogView.as_view(), name="admin-permissions"),
 ]
