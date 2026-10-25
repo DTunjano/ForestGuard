@@ -10,6 +10,7 @@ import { History } from "../../features/analyses/pages/History";
 import { Help } from "../../features/analyses/pages/Help";
 import { Profile } from "../../features/profile/pages/Profile";
 import { Users } from "../../features/users/pages/Users";
+import { Roles } from "../../features/users/pages/Roles";
 import { Images } from "../../features/images/pages/Images";
 import { Models } from "../../features/models/pages/Models";
 import { StudyAreas } from "../../features/study-areas/pages/StudyAreas";
@@ -34,22 +35,39 @@ export const AppRoutes = () => {
 
       <Route element={<PrivateRoute />}>
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/dashboard/new" element={<NewAnalysis />} />
-        <Route path="/dashboard/history" element={<History />} />
+        <Route element={<AdminRoute permission="analyses.add_analysis" />}>
+          <Route path="/dashboard/new" element={<NewAnalysis />} />
+        </Route>
+        <Route element={<AdminRoute permission="analyses.view_analysis" />}>
+          <Route path="/dashboard/history" element={<History />} />
+          <Route path="/dashboard/results/:id" element={<Results />} />
+        </Route>
         <Route
           path="/dashboard/results"
           element={<Navigate to="/dashboard/history" replace />}
         />
-        <Route path="/dashboard/results/:id" element={<Results />} />
         <Route path="/help" element={<Help />} />
 
-        <Route path="/images" element={<Images />} />
-        <Route path="/study-areas" element={<StudyAreas />} />
-        <Route path="/models" element={<Models />} />
+        <Route
+          element={<AdminRoute permission="catalog.view_satelliteimage" />}
+        >
+          <Route path="/images" element={<Images />} />
+        </Route>
+        <Route element={<AdminRoute permission="catalog.view_studyarea" />}>
+          <Route path="/study-areas" element={<StudyAreas />} />
+        </Route>
+        <Route element={<AdminRoute permission="catalog.view_pipelinemodel" />}>
+          <Route path="/models" element={<Models />} />
+        </Route>
         <Route path="/profile" element={<Profile />} />
 
-        <Route element={<AdminRoute />}>
+        <Route element={<AdminRoute permission="accounts.view_user" />}>
           <Route path="/admin/users" element={<Users />} />
+        </Route>
+        <Route element={<AdminRoute permission="auth.view_group" />}>
+          <Route path="/admin/roles" element={<Roles />} />
+        </Route>
+        <Route element={<AdminRoute />}>
           <Route path="/admin/models" element={<Models />} />
         </Route>
       </Route>

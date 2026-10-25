@@ -68,3 +68,11 @@ Para un artefacto `kind=raster`, el detalle del análisis incluye `preview_url` 
 La API usa errores DRF estándar: `400` para validación, `401` para autenticación ausente o inválida, `403` para acciones de administrador, `404` para recursos ajenos o inexistentes y `429` para exceso de solicitudes. Los fallos del pipeline se almacenan en el análisis con `status=failed`. El cliente no debe traducir una omisión de clasificación en ausencia de deforestación: el resumen indica `estado_clasificacion=omitida` y el motivo.
 
 Las listas de áreas, imágenes, modelos y análisis aceptan `?search=texto` y `?ordering=campo` o `?ordering=-campo`. Solo se buscan recursos visibles para el usuario; los campos permitidos de ordenamiento se publican en OpenAPI.
+
+## Actualización: cobertura y permisos
+
+Consulte [Cobertura y roles](cobertura-y-roles.md) para el contrato de
+`summary.escenas[].condicion` y `summary.intervalos[].condicion`, el informe PDF,
+las láminas original/resultado y los endpoints `/api/v1/admin/roles/` y
+`/api/v1/admin/permissions/`. `role_ids` asigna múltiples roles; los permisos de
+Django son la autoridad efectiva. Se conserva `role` para clientes anteriores.

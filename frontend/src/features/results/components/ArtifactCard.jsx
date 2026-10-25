@@ -18,7 +18,7 @@ function formatSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
-function PrivateImage({ url, label }) {
+export function PrivateImage({ url, label }) {
   const [state, setState] = useState({});
   useEffect(() => {
     const controller = new AbortController();

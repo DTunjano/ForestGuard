@@ -31,7 +31,7 @@ export const NavBar = () => {
     support: sessionStorage.getItem("forestguard-section-support") === "true",
     admin: sessionStorage.getItem("forestguard-section-admin") !== "false",
   }));
-  const { isAdmin } = useAuth();
+  const { isAdmin, can } = useAuth();
 
   const setSidebarExpanded = (expanded) => {
     setIsExpanded(expanded);
@@ -83,6 +83,14 @@ export const NavBar = () => {
     }, 700);
   };
 
+  const modulePermissions = {
+    "/dashboard/new": "analyses.add_analysis",
+    "/dashboard/history": "analyses.view_analysis",
+    "/images": "catalog.view_satelliteimage",
+    "/study-areas": "catalog.view_studyarea",
+    "/models": "catalog.view_pipelinemodel",
+    "/admin/models": "catalog.view_pipelinemodel",
+  };
   const navigationSections = [
     {
       id: "images",
@@ -117,7 +125,18 @@ export const NavBar = () => {
             label: "Administración",
             icon: LuUserRound,
             items: [
-              { to: "/admin/users", label: "Usuarios", icon: LuUserRound },
+              ...(can("accounts.view_user")
+                ? [{ to: "/admin/users", label: "Usuarios", icon: LuUserRound }]
+                : []),
+              ...(can("auth.view_group")
+                ? [
+                    {
+                      to: "/admin/roles",
+                      label: "Roles y permisos",
+                      icon: LuUserRound,
+                    },
+                  ]
+                : []),
               {
                 to: "/admin/models",
                 label: "Modelos ML",
@@ -127,7 +146,15 @@ export const NavBar = () => {
           },
         ]
       : []),
-  ];
+  ]
+    .map((section) => ({
+      ...section,
+      items: section.items.filter(
+        (item) =>
+          !modulePermissions[item.to] || can(modulePermissions[item.to]),
+      ),
+    }))
+    .filter((section) => section.items.length);
 
   const toggleSection = (sectionId) => {
     expandSidebar();
@@ -163,6 +190,18 @@ export const NavBar = () => {
       className={`peer fixed inset-y-0 left-0 z-50 flex flex-col overflow-visible border-r border-white/10 bg-[#0b1728] px-3 py-5 transition-[width] duration-300 ease-out ${isExpanded ? "w-64" : "w-19"}`}
       onMouseEnter={expandSidebar}
       onMouseLeave={collapseSidebar}
+      onFocusCapture={expandSidebar}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget))
+          collapseSidebar();
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.target.blur();
+          collapseSidebar();
+          event.stopPropagation();
+        }
+      }}
     >
       <div
         className={`fg-sidebar-brand flex shrink-0 items-center overflow-hidden ${isExpanded ? "gap-3 px-[5px]" : "justify-center px-0"}`}

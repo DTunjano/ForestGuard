@@ -109,15 +109,28 @@ try {
   await page.keyboard.press("Escape");
   await expect(rail).toHaveAttribute("data-expanded", "false");
   await page.goto("/profile");
+  await page
+    .getByRole("button", { name: "Editar información", exact: true })
+    .click();
   await page.getByLabel("Nombre", { exact: true }).fill("Analista prueba");
   await capture("profile");
-  await page.getByRole("button", { name: "Guardar perfil" }).click();
-  await expect(page.getByText("Perfil actualizado.")).toBeVisible();
+  await page.getByRole("button", { name: "Guardar cambios" }).click();
+  await expect(
+    page.getByText("Tus datos básicos fueron actualizados."),
+  ).toBeVisible();
   await page.goto("/dashboard/new");
-  await page.getByText("Crear un área de estudio", { exact: true }).click();
+  if (
+    await page
+      .getByRole("button", { name: "Crear un área de estudio", exact: true })
+      .isVisible()
+  )
+    await page
+      .getByRole("button", { name: "Crear un área de estudio", exact: true })
+      .click();
   await capture("upload");
   await page.getByLabel("Nombre del área").fill("Área controlada");
   await page.getByRole("button", { name: "Crear área", exact: true }).click();
+  await page.locator(".fg-wizard-step").first().click();
   await expect(
     page.getByLabel("Área de estudio", { exact: true }),
   ).toContainText("Área controlada");
@@ -139,17 +152,42 @@ try {
   await page.keyboard.press("Enter");
   await expect(areaPicker).toContainText("Área controlada");
   await page
+    .getByRole("button", { name: "Siguiente: Cargar imágenes", exact: true })
+    .click();
+  await page
     .getByLabel("Archivos Sentinel-2 GeoTIFF")
     .setInputFiles([
       join(process.env.FG_TEST_FILES, "scene_2024_01_01.tif"),
       join(process.env.FG_TEST_FILES, "invalid_2024_02_01.tif"),
     ]);
   await page
-    .getByRole("button", { name: "Cargar pendientes / reintentar fallidas" })
+    .getByRole("button", { name: "Cargar pendientes", exact: true })
+    .first()
     .click();
-  await expect(page.getByText(/invalid_2024_02_01.tif — Falló/)).toBeVisible();
-  await expect(page.getByText(/scene_2024_01_01.tif — Cargada/)).toBeVisible();
-  await expect(page.getByText(/Seleccionadas: 1 \/ 32/)).toBeVisible();
+  await expect(
+    page
+      .locator(".fg-upload-item")
+      .filter({ hasText: "invalid_2024_02_01.tif" })
+      .getByText("Falló", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator(".fg-upload-item")
+      .filter({ hasText: "scene_2024_01_01.tif" })
+      .getByText("Cargada", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", {
+      name: "Siguiente: Revisar escenas seleccionadas",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("button", {
+      name: "Siguiente: Configurar análisis",
+      exact: true,
+    })
+    .click();
   await create("Individual controlado");
   const individualUrl = page.url();
   await capture("individual");
@@ -192,15 +230,29 @@ try {
   ).toBeVisible();
   await page.goto("/dashboard/new");
   await pick("Área de estudio", { label: "Área controlada" });
-  await page.getByRole("checkbox").first().check();
+  await page
+    .getByRole("button", { name: "Siguiente: Cargar imágenes", exact: true })
+    .click();
   await page
     .getByLabel("Archivos Sentinel-2 GeoTIFF")
     .setInputFiles(join(process.env.FG_TEST_FILES, "scene_2024_03_01.tif"));
   await page
-    .getByRole("button", { name: "Cargar pendientes / reintentar fallidas" })
+    .getByRole("button", { name: "Cargar pendientes", exact: true })
+    .first()
     .click();
-  await expect(page.getByText(/Seleccionadas: 2 \/ 32/)).toBeVisible();
-  await pick("Clasificación opcional", { label: "ForestGuard · v9" });
+  await page
+    .getByRole("button", {
+      name: "Siguiente: Revisar escenas seleccionadas",
+      exact: true,
+    })
+    .click();
+  for (const box of await page.getByRole("checkbox").all()) await box.check();
+  await page
+    .getByRole("button", {
+      name: "Siguiente: Configurar análisis",
+      exact: true,
+    })
+    .click();
   await create("Comparación controlada");
   await expect(page.getByText(/Clasificación: ejecutada/)).toBeVisible();
   await mkdir("test-results", { recursive: true });
@@ -228,7 +280,22 @@ try {
   expect(page.url()).toBe(individualUrl);
   await page.goto("/dashboard/new");
   await pick("Área de estudio", { label: "Área controlada" });
+  await page
+    .getByRole("button", { name: "Siguiente: Cargar imágenes", exact: true })
+    .click();
+  await page
+    .getByRole("button", {
+      name: "Siguiente: Seleccionar escenas del área",
+      exact: true,
+    })
+    .click();
   await page.getByRole("checkbox").first().check();
+  await page
+    .getByRole("button", {
+      name: "Siguiente: Configurar análisis",
+      exact: true,
+    })
+    .click();
   await page.getByLabel("Nombre del análisis").fill("Controlled failure");
   await page
     .getByRole("button", { name: "Crear análisis", exact: true })
@@ -273,7 +340,12 @@ try {
   ).toBeVisible();
   await capture("areas-crud");
   await page.goto("/images");
-  await pick("Filtrar por área", { label: "Área controlada" });
+  await page
+    .getByRole("button", { name: "Filtrar por área", exact: true })
+    .click();
+  await page
+    .getByRole("option", { name: "Área controlada", exact: true })
+    .click();
   await page.getByRole("button", { name: "Ver metadatos" }).first().click();
   await expect(page.getByRole("dialog")).toContainText("Dimensiones");
   await page.keyboard.press("Escape");
@@ -287,24 +359,38 @@ try {
   );
   await page.getByRole("button", { name: "Cancelar", exact: true }).click();
   await capture("images-module");
+  await page.goto("/dashboard/new");
+  await pick("Área de estudio", { label: "Área controlada" });
   await page
-    .getByRole("button", { name: "Cargar imágenes", exact: true })
+    .getByRole("button", { name: "Siguiente: Cargar imágenes", exact: true })
     .click();
   await page.getByLabel("Archivos Sentinel-2 GeoTIFF").setInputFiles({
-    name: "unused_2024_01_01.tif",
+    name: "unused_2024_02_01.tif",
     mimeType: "image/tiff",
     buffer: await readFile(
       join(process.env.FG_TEST_FILES, "scene_2024_01_01.tif"),
     ),
   });
   await page
-    .getByRole("button", { name: "Cargar pendientes / reintentar fallidas" })
+    .getByRole("button", { name: "Cargar pendientes", exact: true })
+    .first()
     .click();
-  await expect(page.getByText(/unused_2024_01_01.tif — Cargada/)).toBeVisible();
-  await page.getByRole("button", { name: "Cerrar ventana" }).click();
+  await expect(
+    page
+      .locator(".fg-upload-item")
+      .filter({ hasText: "unused_2024_02_01.tif" })
+      .getByText("Cargada", { exact: true }),
+  ).toBeVisible();
+  await page.goto("/images");
+  await page
+    .getByRole("button", { name: "Filtrar por área", exact: true })
+    .click();
+  await page
+    .getByRole("option", { name: "Área controlada", exact: true })
+    .click();
   const unusedRow = page
     .getByRole("row")
-    .filter({ hasText: "unused_2024_01_01" });
+    .filter({ hasText: "unused_2024_02_01" });
   await unusedRow
     .getByRole("button", { name: "Eliminar", exact: true })
     .click();
@@ -369,16 +455,71 @@ try {
   await expect(
     page.getByRole("button", { name: "Editar created_by_admin" }),
   ).toBeVisible();
+  await page.goto("/admin/roles");
+  await page.getByRole("button", { name: "Crear rol", exact: true }).click();
+  await page.getByLabel("Nombre del rol", { exact: true }).fill("reviewer");
+  await page
+    .getByRole("group", { name: "Áreas de estudio", exact: true })
+    .getByRole("checkbox", { name: "Consultar", exact: true })
+    .check();
+  await page.getByRole("button", { name: "Guardar rol", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.goto("/admin/users");
+  await page
+    .getByRole("button", { name: "Editar created_by_admin", exact: true })
+    .click();
+  await page.getByRole("checkbox", { name: "analyst", exact: true }).uncheck();
+  await page.getByRole("checkbox", { name: "reviewer", exact: true }).check();
+  await page
+    .getByRole("button", { name: "Guardar usuario", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await logout();
+  await login("created_by_admin");
+  await page.goto("/study-areas");
+  await expect(
+    page.getByRole("button", { name: "Nueva área", exact: true }),
+  ).toBeDisabled();
+  await page.goto("/dashboard/new");
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.goto("/admin/roles");
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await logout();
+  await login("integration_admin");
+  await page.goto("/admin/users");
+  await page
+    .getByRole("button", { name: "Editar created_by_admin", exact: true })
+    .click();
+  await page.getByRole("checkbox", { name: "reviewer", exact: true }).uncheck();
+  await page.getByRole("checkbox", { name: "analyst", exact: true }).check();
+  await page
+    .getByRole("button", { name: "Guardar usuario", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.goto("/admin/roles");
+  await page
+    .getByRole("button", { name: "Ver / editar reviewer", exact: true })
+    .click();
+  await expect(
+    page.getByRole("checkbox", { name: "Consultar", exact: true }).first(),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Eliminar rol reviewer", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Ver / editar reviewer", exact: true }),
+  ).toHaveCount(0);
   await page.goto("/models");
   await expect(
     page.getByRole("heading", { name: "ForestGuard · v9" }),
   ).toBeVisible();
   await capture("models");
   await page.goto("/profile");
+  await page.getByRole("button", { name: "Configurar", exact: true }).click();
   await page.getByLabel("Contraseña actual").fill(password);
   await page.getByLabel("Nueva contraseña").fill("ChangedBrowser123!");
   await page
-    .getByRole("button", { name: "Cambiar contraseña", exact: true })
+    .getByRole("button", { name: "Actualizar contraseña", exact: true })
     .click();
   await expect(page).toHaveURL(/auth\/login/);
   await login("integration_admin", "ChangedBrowser123!");

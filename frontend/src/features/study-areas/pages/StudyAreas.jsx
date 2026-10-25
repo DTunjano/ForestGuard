@@ -1,3 +1,4 @@
+import { useAuth } from "../../auth/hooks/useAuth";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import {
@@ -35,6 +36,7 @@ import {
 const PAGE_LIMIT = 10;
 
 export function StudyAreas() {
+  const { can } = useAuth();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
@@ -109,6 +111,7 @@ export function StudyAreas() {
           type="button"
           className="fg-dash-primary-cta"
           onClick={() => setDialog({ type: "form" })}
+          disabled={!can("catalog.add_studyarea")}
         >
           <LuPlus size={17} aria-hidden="true" />
           <span>Nueva área</span>
@@ -377,6 +380,7 @@ export function StudyAreas() {
                             type="button"
                             className="fg-img-subtle-action"
                             onClick={() => setDialog({ type: "form", area })}
+                            disabled={!can("catalog.change_studyarea")}
                           >
                             <LuPencil size={14} aria-hidden="true" />
                             <span>Editar</span>
@@ -385,6 +389,7 @@ export function StudyAreas() {
                             type="button"
                             className="fg-img-subtle-action is-danger"
                             onClick={() => setDialog({ type: "delete", area })}
+                            disabled={!can("catalog.delete_studyarea")}
                           >
                             <LuTrash2 size={14} aria-hidden="true" />
                             <span>Eliminar</span>

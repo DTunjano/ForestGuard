@@ -1,3 +1,4 @@
+import { useAuth } from "../../auth/hooks/useAuth";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams, Link } from "react-router";
 import {
@@ -48,9 +49,12 @@ function formatScale(scale) {
 }
 
 export function Images() {
+  const { can } = useAuth();
   const [params, setParams] = useSearchParams();
   const area = params.get("area") || "";
-  const areas = useCollection("study-areas/?ordering=name");
+  const areas = useCollection(
+    can("catalog.view_studyarea") ? "study-areas/?ordering=name" : null,
+  );
 
   const [page, setPage] = useState(1);
   const [ordering, setOrdering] = useState("-acquisition_date");
@@ -121,10 +125,12 @@ export function Images() {
     <Page
       title="Imágenes satelitales"
       action={
-        <Link className="fg-dash-primary-cta" to="/dashboard/new">
-          <LuPlus size={17} aria-hidden="true" />
-          <span>Crear análisis</span>
-        </Link>
+        can("analyses.add_analysis") && (
+          <Link className="fg-dash-primary-cta" to="/dashboard/new">
+            <LuPlus size={17} aria-hidden="true" />
+            <span>Crear análisis</span>
+          </Link>
+        )
       }
     >
       <Notice error={areas.error} />
@@ -373,6 +379,7 @@ export function Images() {
                             type="button"
                             className="fg-img-subtle-action is-danger"
                             onClick={() => setDialog({ type: "delete", image })}
+                            disabled={!can("catalog.delete_satelliteimage")}
                           >
                             <LuTrash2 size={14} aria-hidden="true" />
                             <span>Eliminar</span>

@@ -1,4 +1,5 @@
 import { Modal } from "../../../shared/components/Modal";
+import { useAuth } from "../../auth/hooks/useAuth";
 import { useState } from "react";
 import { useResource } from "../../../shared/api/useResource";
 import { saveUser } from "../api/users";
@@ -11,6 +12,9 @@ import {
   Select,
 } from "../../../shared/components/UI";
 export function Users() {
+  const { can } = useAuth();
+  const canAssignRoles = can("auth.change_group") && can("auth.view_group");
+  const roles = useResource(canAssignRoles ? "admin/roles/" : null);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [edit, setEdit] = useState(null);
@@ -28,6 +32,9 @@ export function Users() {
     setMessage("");
     const form = e.currentTarget;
     const body = Object.fromEntries(new FormData(form));
+    delete body.role_ids;
+    if (canAssignRoles)
+      body.role_ids = new FormData(form).getAll("role_ids").map(Number);
     body.is_active = body.is_active === "true";
     try {
       await saveUser(body, edit?.id);
@@ -50,6 +57,7 @@ export function Users() {
           conservar sus estudios.
         </p>
         <Button
+          disabled={!can("accounts.add_user")}
           onClick={() => {
             setEdit(null);
             setShowForm(true);
@@ -95,7 +103,8 @@ export function Users() {
                     <small className="block text-slate-400">{user.email}</small>
                   </td>
                   <td>
-                    {user.role === "admin" ? "Administrador" : "Analista"}
+                    {user.roles?.map((role) => role.name).join(", ") ||
+                      "Sin roles"}
                   </td>
                   <td>
                     <span
@@ -106,7 +115,7 @@ export function Users() {
                   </td>
                   <td>
                     <Button
-                      disabled={busy}
+                      disabled={busy || !can("accounts.change_user")}
                       onClick={() => {
                         setEdit(user);
                         setShowForm(true);
@@ -178,12 +187,38 @@ export function Users() {
                   autoComplete="new-password"
                 />
               )}
-              <Field label="Rol">
-                <Select name="role" defaultValue={edit?.role || "analyst"}>
-                  <option value="analyst">Analista</option>
-                  <option value="admin">Administrador</option>
-                </Select>
-              </Field>
+              {canAssignRoles && (
+                <fieldset className="space-y-3 rounded-lg border border-white/15 p-3 md:col-span-2">
+                  <legend className="px-2 font-semibold">
+                    Roles asignados
+                  </legend>
+                  <Notice error={roles.error}>
+                    {roles.loading
+                      ? "Consultando roles…"
+                      : "Los permisos de los roles seleccionados se combinan."}
+                  </Notice>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {roles.data?.map((role) => (
+                      <label
+                        className="flex items-center gap-3 p-2"
+                        key={role.id}
+                      >
+                        <input
+                          type="checkbox"
+                          name="role_ids"
+                          value={role.id}
+                          defaultChecked={
+                            edit
+                              ? edit.roles?.some((item) => item.id === role.id)
+                              : role.name === "analyst"
+                          }
+                        />
+                        {role.name}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              )}
               <Field label="Estado">
                 <Select
                   name="is_active"
@@ -193,7 +228,14 @@ export function Users() {
                   <option value="false">Inactivo</option>
                 </Select>
               </Field>
-              <Button disabled={busy}>Guardar usuario</Button>
+              <Button
+                disabled={
+                  busy ||
+                  (canAssignRoles && (roles.loading || Boolean(roles.error)))
+                }
+              >
+                Guardar usuario
+              </Button>
               {edit && (
                 <Button
                   type="button"

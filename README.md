@@ -4,6 +4,8 @@ API Django y frontend React para registrar escenas Sentinel-2 y ejecutar el pipe
 
 La [guía de integración local](docs/integracion-local.md) incluye arquitectura, sesión, ramas, pruebas y comandos de las tres consolas. El frontend continúa iniciándose con `pnpm dev`.
 
+La [guía de cobertura y roles](docs/cobertura-y-roles.md) describe los mapas de original/resultado, categorías y porcentajes, PDF y gestión de roles con permisos. Tras actualizar esta fase, ejecute `py manage.py migrate` y reinicie el worker. Los análisis nuevos incorporan el método `forestguard_spectral_rules_v1`; los anteriores conservan su versión.
+
 ## Requisitos
 
 - Python 3.13 y Docker Desktop con Docker Compose. Docker ejecuta solo PostgreSQL.
@@ -45,7 +47,7 @@ API: `http://localhost:8000/api/v1/`. La raíz `http://localhost:8000/` redirige
 ### Documentación interactiva de la API
 
 - Swagger UI: `http://localhost:8000/api/docs/`; ReDoc: `http://localhost:8000/api/redoc/`; esquema OpenAPI: `http://localhost:8000/api/schema/` (agregue `?format=json` para JSON).
-- Las operaciones están agrupadas en **Autenticación**, **Mi cuenta**, **Administración de usuarios**, **Áreas de estudio**, **Imágenes satelitales**, **Modelos**, **Análisis** y **Resultados**. Swagger permite filtrar por nombre o ruta.
+- Las operaciones están agrupadas en **Autenticación**, **Mi cuenta**, **Administración de usuarios**, **Roles y permisos**, **Áreas de estudio**, **Imágenes satelitales**, **Modelos**, **Análisis** y **Resultados**. Swagger permite filtrar por nombre o ruta.
 - Para probar una operación protegida, ejecute `POST /api/v1/auth/token/` con `username` y `password`. Pulse **Authorize** e introduzca el valor de `access` (sin el prefijo `Bearer`); Swagger enviará el encabezado `Authorization: Bearer <access>`. Al caducar, use `POST /api/v1/auth/token/refresh/` con `refresh` e introduzca el nuevo access token.
 - En la carga de imágenes seleccione `multipart/form-data`, complete los campos y elija un archivo `.tif` o `.tiff` en `file`. En `POST /api/v1/analyses/`, seleccione `study_area`; el ejemplo **Análisis de una imagen** usa un solo `image_ids` y omite `model_id`. El backend omite v9 automáticamente cuando recibe una sola imagen. Consulte `GET /api/v1/analyses/{id}/` hasta `completed` o `failed`. Cada resultado expone sus enlaces `preview_url`, `download_url` y, si es raster, `metadata_url`. En Swagger las tres operaciones de **Resultados** solo piden `artifact_id`.
 - Los IDs son creados por el servidor. Para seleccionar una imagen, modelo o recurso existente en Swagger, obtenga su ID en el listado correspondiente; Swagger UI no vincula automáticamente una respuesta con el formulario de otra operación. La futura interfaz de usuario hará esa selección sin mostrar IDs.

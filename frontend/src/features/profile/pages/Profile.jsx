@@ -84,7 +84,16 @@ export function Profile() {
         year: "numeric",
       })
     : "No disponible";
-  const roleLabel = user?.role === "admin" ? "Administrador" : "Analista";
+  const roleLabel =
+    user?.roles
+      ?.map((role) =>
+        role.name === "admin"
+          ? "Administrador"
+          : role.name === "analyst"
+            ? "Analista"
+            : role.name,
+      )
+      .join(", ") || "Sin roles asignados";
 
   return (
     <Page title="Mi perfil">
