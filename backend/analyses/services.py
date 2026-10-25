@@ -102,8 +102,8 @@ def process_analysis(analysis_id):
             command += ["--modelo", str(model_path)]
         subprocess.run(command, check=True, capture_output=True, text=True, timeout=7200)
         summary = json.loads((result_root / "resumen_serie.json").read_text(encoding="utf-8"))
-        write_report(analysis, summary, result_root / "reporte.pdf")
         write_visualizations(summary, result_root, [Path(scene.split("=", 1)[1]) for scene in scenes])
+        write_report(analysis, summary, result_root / "reporte.pdf")
         artifacts = []
         for path in result_root.rglob("*"):
             if path.is_file() and path.suffix.lower() in {".tif", ".json", ".pdf", ".png"}:

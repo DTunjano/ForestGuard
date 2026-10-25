@@ -70,6 +70,7 @@ class BinaryResponseContentNegotiation(DefaultContentNegotiation):
 
 
 class ArtifactPreviewView(APIView):
+    permission_model = Analysis
     content_negotiation_class = BinaryResponseContentNegotiation
 
     @extend_schema(
@@ -87,6 +88,7 @@ class ArtifactPreviewView(APIView):
 
 
 class ArtifactDownloadView(APIView):
+    permission_model = Analysis
     content_negotiation_class = BinaryResponseContentNegotiation
 
     @extend_schema(
@@ -123,6 +125,7 @@ class ArtifactDownloadView(APIView):
 
 
 class AnalysisResultsView(APIView):
+    permission_model = Analysis
     @extend_schema(
         tags=["Resultados"], summary="Ver todos los resultados de un análisis",
         description=("Devuelve métricas, informe, láminas PNG y mapas de cada fecha e intervalo "
@@ -153,6 +156,7 @@ class AnalysisResultsView(APIView):
 
 
 class AnalysisExportView(APIView):
+    permission_model = Analysis
     content_negotiation_class = BinaryResponseContentNegotiation
 
     @extend_schema(
@@ -195,8 +199,11 @@ class AnalysisExportView(APIView):
                     "En esa lámina, rojo indica valor bajo del índice, no pérdida entre fechas.\n"
                     "Abra visualizacion_comparativa.png para ver cambios y métricas entre fechas.\n"
                     "Las carpetas png/ y tiff/ contienen los mapas individuales.\n"
+                    "Cada fecha/intervalo incluye resumen_condicion.png (original, categorías y porcentajes),\n"
+                    "mapas_original_resultado.png (dos mapas separados) y condicion_bosque.tif/png.\n"
+                    "Los porcentajes de categorías usan el área válida; otra cobertura se muestra en gris.\n"
                     "resumen_serie.json guarda todas las métricas; reporte.pdf es el informe.\n"
-                    "Los mapas y clases son exploratorios; requieren revisión humana.\n"
+                    "El método y su interpretación se detallan en reporte.pdf y en summary.condicion por fecha/intervalo.\n"
                 ))
                 for item in chosen:
                     path = artifact_file(item)
@@ -227,6 +234,7 @@ class AnalysisExportView(APIView):
 
 
 class ArtifactMetadataView(APIView):
+    permission_model = Analysis
     @extend_schema(
         tags=["Resultados"], summary="Consultar metadatos por ID de artefacto",
         description="Solo admite artefactos raster del usuario autenticado.",

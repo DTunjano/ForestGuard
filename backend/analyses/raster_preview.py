@@ -9,6 +9,10 @@ from rasterio.enums import Resampling
 from rasterio.warp import transform_bounds
 
 CLASS_STYLES = {
+    "condicion_bosque.tif": {
+        "0": (135, 147, 159, 255), "1": (54, 155, 97, 255),
+        "2": (234, 185, 73, 255), "3": (220, 80, 76, 255),
+    },
     "clasificacion_cambio_exploratoria.tif": {
         "0": (56, 161, 105, 255), "1": (231, 76, 60, 255),
     },
@@ -18,6 +22,10 @@ CLASS_STYLES = {
     },
 }
 CLASS_LABELS = {
+    "condicion_bosque.tif": {
+        "0": "Otra cobertura", "1": "Vigor alto / bosque estable (proxy)",
+        "2": "Degradación temporal", "3": "Vigor bajo / posible pérdida",
+    },
     "clasificacion_cambio_exploratoria.tif": {
         "0": "Sin cambio según modelo", "1": "Cambio histórico exploratorio",
     },

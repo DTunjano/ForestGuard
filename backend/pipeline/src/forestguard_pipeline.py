@@ -7,25 +7,25 @@ acotado; el modelo opcional solo clasifica intervalos compatibles de dos fechas.
 from __future__ import annotations
 
 import argparse
-from contextlib import ExitStack
-from datetime import date
 import json
-from pathlib import Path
 import subprocess
 import sys
+from contextlib import ExitStack
+from datetime import date
+from pathlib import Path
 
 import joblib
 import numpy as np
 import rasterio
-from rasterio.enums import Resampling
-from rasterio.vrt import WarpedVRT
-from rasterio.windows import Window
-
 from calcular_indices_cambios_scl import INDEX_NAMES, calculate_indices
 from contrato_inferencia_ideam import VERSION
 from esquema_bandas_forestguard import HISTORICAL_BANDS
+from forest_condition import classify, condition_summary
 from inferir_par_ideam import validar_entrada, validar_fecha_nombre
 from inferir_par_ideam_ventanas import read_window
+from rasterio.enums import Resampling
+from rasterio.vrt import WarpedVRT
+from rasterio.windows import Window
 
 
 class HistogramSummary:
@@ -126,8 +126,13 @@ def describe_scene(acquisition, path, output, side):
         rasters = create_rasters(stack, output / "fechas" / str(acquisition),
                                  INDEX_NAMES, profile)
         stats = {name: HistogramSummary(-1, 1) for name in INDEX_NAMES}
+        condition = create_condition_raster(stack, output / "fechas" / str(acquisition), source)
+        condition_counts = np.zeros(4, dtype=np.int64)
         for window in windows(source, side):
             indices, valid = indices_from(source, indexes, window)
+            classes = classify(indices["NDVI"], valid)
+            condition.write(classes, 1, window=window)
+            condition_counts += np.bincount(classes[valid], minlength=4)
             for name in INDEX_NAMES:
                 arr = indices[name]
                 arr[~valid] = np.nan
@@ -136,13 +141,28 @@ def describe_scene(acquisition, path, output, side):
         count = stats["NDVI"].total
         pixel_area = area_pixel_m2(source)
         return {"fecha": str(acquisition), "imagen": str(path),
+                "crs": str(source.crs), "ancho_pixeles": source.width, "alto_pixeles": source.height,
+                "area_pixel_m2": pixel_area,
                 "pixeles_validos": count,
                 "pixeles_totales": source.width * source.height,
                 "fraccion_valida": count / (source.width * source.height),
                 "area_observada_ha_aprox": (count * pixel_area / 10_000
                                             if pixel_area else None),
+                "condicion": condition_summary(condition_counts, source.width * source.height, pixel_area),
                 "indices": {name: item.result() for name, item in stats.items()},
                 "procesamiento_entrada": source.tags().get("processing")}
+
+
+def create_condition_raster(stack, folder, source):
+    profile = source.profile.copy()
+    profile.update(driver="GTiff", count=1, dtype="uint8", nodata=255, compress="deflate")
+    target = stack.enter_context(rasterio.open(folder / "condicion_bosque.tif", "w", **profile))
+    target.set_band_description(1, "Condición espectral ForestGuard v1")
+    target.update_tags(method="forestguard_spectral_rules_v1", nodata="255",
+                       classes="0=otra_cobertura;1=vigor_alto_o_estable;2=degradacion_temporal;3=posible_perdida")
+    target.write_colormap(1, {0: (135, 147, 159, 255), 1: (54, 155, 97, 255),
+                             2: (234, 185, 73, 255), 3: (220, 80, 76, 255), 255: (0, 0, 0, 0)})
+    return target
 
 
 def describe_interval(first, second, output, side):
@@ -157,6 +177,8 @@ def describe_interval(first, second, output, side):
         folder = output / "intervalos" / f"{d1}_{d2}"
         rasters = create_rasters(stack, folder, names, output_profile(initial))
         stats = {name: HistogramSummary(-2, 2) for name in names}
+        condition = create_condition_raster(stack, folder, initial)
+        condition_counts = np.zeros(4, dtype=np.int64)
         scl_quality = all("tras máscara SCL" in src.tags().get("processing", "")
                           for src in (initial, final))
         degradation_counts = np.zeros(4, dtype=np.int64)
@@ -176,6 +198,9 @@ def describe_interval(first, second, output, side):
             after, valid_after = indices_from(bilinear, after_indexes, window)
             _, valid_nearest = read_window(nearest, after_indexes, window)
             valid = valid_before & valid_after & valid_nearest
+            classes = classify(after["NDVI"], valid, before["NDVI"], before["NBR"], after["NBR"])
+            condition.write(classes, 1, window=window)
+            condition_counts += np.bincount(classes[valid], minlength=4)
             differences = {}
             for name in INDEX_NAMES:
                 difference = (after[name] - before[name]).astype(np.float32)
@@ -184,17 +209,13 @@ def describe_interval(first, second, output, side):
                 stats[f"d{name}"].add(difference)
                 differences[name] = difference
             if scl_quality:
-                # NDVI alto al inicio y vegetación remanente al final son solo
-                # proxies espectrales; no prueban cobertura de bosque.
-                eligible = valid & (before["NDVI"] >= .60) & (after["NDVI"] >= .40)
-                signal = eligible & (differences["NDVI"] <= -.10)
-                signal &= (differences["NDMI"] <= -.05) & (differences["NBR"] <= -.08)
-                classes = np.full(valid.shape, 255, dtype=np.uint8)
-                classes[valid] = 2
-                classes[eligible] = 0
-                classes[signal] = 1
-                degradation.write(classes, 1, window=window)
-                degradation_counts += np.bincount(classes.ravel(), minlength=256)[[0, 1, 2, 255]]
+                # Preserve the legacy raster contract while using the current rules.
+                legacy_classes = np.full(valid.shape, 255, dtype=np.uint8)
+                legacy_classes[valid] = 2
+                legacy_classes[classes == 1] = 0
+                legacy_classes[classes == 2] = 1
+                degradation.write(legacy_classes, 1, window=window)
+                degradation_counts += np.bincount(legacy_classes.ravel(), minlength=256)[[0, 1, 2, 255]]
         common_count = stats["dNDVI"].total
         pixel_area = area_pixel_m2(initial)
         degradation_summary = {
@@ -202,11 +223,11 @@ def describe_interval(first, second, output, side):
             "conclusion": ("indicios_espectrales_detectados" if degradation_counts[1]
                            else "sin_indicios_segun_regla") if scl_quality else "no_evaluable",
             "confirmacion_degradacion_forestal": False,
-            "interpretacion": "La señal requiere revisión visual y referencia de bosque; su ausencia no descarta degradación.",
+            "interpretacion": "Señal temporal de degradación según forestguard_spectral_rules_v1, con prioridad de posible deforestación.",
             "regla_exploratoria": {
-                "ndvi_inicial_minimo": .60, "ndvi_final_minimo": .40,
-                "dndvi_maximo": -.10, "dndmi_maximo": -.05, "dnbr_maximo": -.08,
-                "condicion": "Todas las condiciones deben cumplirse; umbrales no calibrados con verdad de terreno."},
+                "ndvi_inicial_minimo": .5, "perdida_nbr_minima": .1, "perdida_nbr_maxima": .4,
+                "convencion_perdida": "inicial_menos_final",
+                "condicion": "Excluye primero la posible deforestación; umbrales operativos del proyecto."},
             "raster": str(folder / "indicios_degradacion_observada.tif") if scl_quality else None,
             "leyenda": {"0": "sin indicios según regla", "1": "indicios espectrales",
                         "2": "fuera de vegetación remanente", "255": "sin datos"},
@@ -229,6 +250,7 @@ def describe_interval(first, second, output, side):
                 "fraccion_comun": common_count / (initial.width * initial.height),
                 "area_comun_ha_aprox": (common_count * pixel_area / 10_000
                                          if pixel_area else None),
+                "condicion": condition_summary(condition_counts, initial.width * initial.height, pixel_area, temporal=True),
                 "diferencias": {name: item.result() for name, item in stats.items()},
                 "degradacion_observada": degradation_summary}, folder
 
@@ -334,7 +356,7 @@ def main():
             parser.error("La excepción temporal requiere --modelo")
         quality = None
     args.salida.mkdir(parents=True)
-    report = {"version_pipeline": "forestguard_historico_v2",
+    report = {"version_pipeline": "forestguard_historico_v3",
               "modalidad": "indices_una_fecha" if len(scenes) == 1 else "serie_multifecha",
               "alcance": "índices, indicios de degradación y cambio histórico; sin riesgo futuro",
               "escenas": [], "intervalos": [],
