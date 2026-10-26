@@ -95,11 +95,11 @@ SPECTACULAR_SETTINGS = {
     "TAGS": [
         {"name": "Autenticación", "description": "Registro, JWT, sesión y contraseña."},
         {"name": "Mi cuenta", "description": "Perfil del usuario autenticado."},
-        {"name": "Administración de usuarios", "description": "Cuentas y asignación de roles; requiere los permisos de usuarios y, para asignar roles, auth.change_group."},
+        {"name": "Administración de usuarios", "description": "Cuentas, creación de administradores y asignación de roles. Solo un superusuario puede crear otro superusuario."},
         {"name": "Roles y permisos", "description": "Roles múltiples y permisos por módulo. Roles base protegidos."},
         {"name": "Áreas de estudio", "description": "Áreas privadas que agrupan imágenes y análisis."},
         {"name": "Imágenes satelitales", "description": "Carga y consulta de GeoTIFF Sentinel-2."},
-        {"name": "Modelos", "description": "Modelos de clasificación activos disponibles."},
+        {"name": "Modelos", "description": "Catálogo activo y administración de paquetes confiables instalados; registro, edición, disponibilidad y eliminación protegida."},
         {"name": "Análisis", "description": "Creación, estado y eliminación de análisis históricos."},
         {"name": "Resultados", "description": "Descarga y visualización privada de artefactos."},
     ],

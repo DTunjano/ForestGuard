@@ -13,7 +13,7 @@ def test_roles_crud_assignment_effective_permissions_and_owner_scope():
     client.force_authenticate(admin)
     catalog = client.get("/api/v1/admin/permissions/")
     assert catalog.status_code == 200
-    assert len(catalog.data) == 18
+    assert len(catalog.data) == 21
     view_area = next(
         item["id"] for item in catalog.data if item["code"] == "catalog.view_studyarea"
     )

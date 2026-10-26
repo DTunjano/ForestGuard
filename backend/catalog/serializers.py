@@ -138,3 +138,53 @@ class PipelineModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = PipelineModel
         fields = ("id", "name", "version", "algorithm", "description", "performance_profile", "active")
+
+
+class AdminPipelineModelSerializer(PipelineModelSerializer):
+    analysis_count = serializers.IntegerField(read_only=True, default=0)
+
+    class Meta(PipelineModelSerializer.Meta):
+        fields = PipelineModelSerializer.Meta.fields + ("analysis_count", "created_at")
+        read_only_fields = ("id", "version", "algorithm", "performance_profile", "analysis_count", "created_at")
+
+    def validate(self, attrs):
+        if any(field in self.initial_data for field in ("relative_path", "file", "version", "algorithm", "performance_profile", "package_key")):
+            raise serializers.ValidationError("Solo puede modificar nombre, descripción y disponibilidad; el paquete y sus métricas son de solo lectura.")
+        if attrs.get("active") is True:
+            from .model_registry import PACKAGES, installed_package
+
+            package = PACKAGES.get(self.instance.version)
+            if not package or self.instance.relative_path != package["relative_path"]:
+                raise serializers.ValidationError({"active": "Este registro no corresponde a un paquete admitido por el servidor."})
+            installed_package(self.instance.version)
+        return attrs
+
+
+class PipelineModelRegistrationSerializer(serializers.Serializer):
+    package_key = serializers.ChoiceField(choices=["v9"], default="v9", help_text="Paquete confiable instalado en el servidor. No se reciben archivos joblib ni rutas.")
+    name = serializers.CharField(max_length=120, required=False)
+    description = serializers.CharField(required=False, allow_blank=True)
+    active = serializers.BooleanField(default=True)
+
+    def validate(self, attrs):
+        if any(field in self.initial_data for field in ("relative_path", "file", "version", "algorithm", "performance_profile")):
+            raise serializers.ValidationError("Seleccione un paquete instalado; no se admiten archivos, rutas ni métricas proporcionadas por el cliente.")
+        from .model_registry import installed_package
+
+        self.package = installed_package(attrs["package_key"])
+        if PipelineModel.objects.filter(version=self.package["version"]).exists():
+            raise serializers.ValidationError({"package_key": "Esta versión ya está registrada. Modifique su disponibilidad o sus datos."})
+        return attrs
+
+    def create(self, validated_data):
+        validated_data.pop("package_key")
+        return PipelineModel.objects.create(**(self.package | validated_data))
+
+
+class ModelPackageSerializer(serializers.Serializer):
+    key = serializers.CharField()
+    name = serializers.CharField()
+    version = serializers.CharField()
+    registered_id = serializers.IntegerField(allow_null=True)
+    available = serializers.BooleanField()
+    message = serializers.CharField(allow_blank=True)

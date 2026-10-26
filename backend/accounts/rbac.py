@@ -15,7 +15,7 @@ SUPPORTED_ACTIONS = {
     "group": ("view", "add", "change", "delete"),
     "studyarea": ("view", "add", "change", "delete"),
     "satelliteimage": ("view", "add", "delete"),
-    "pipelinemodel": ("view",),
+    "pipelinemodel": ("view", "add", "change", "delete"),
     "analysis": ("view", "add", "delete"),
 }
 
@@ -99,6 +99,29 @@ class UserManagementPermission(BasePermission):
         }.get(request.method)
         return request.user.is_authenticated and bool(
             action and request.user.has_perm(f"accounts.{action}_user")
+        )
+
+
+class AdministratorCreationPermission(BasePermission):
+    message = "Solo un administrador con permisos de creación de usuarios y asignación de roles puede crear administradores."
+
+    def has_permission(self, request, view):
+        return (request.user.is_authenticated and request.user.is_project_admin
+                and request.user.has_perms(("accounts.add_user", "auth.change_group")))
+
+
+class ModelManagementPermission(BasePermission):
+    message = "Se requieren permisos de administración de modelos."
+
+    def has_permission(self, request, view):
+        if not request.user.is_authenticated:
+            return False
+        action = {"GET": "view", "HEAD": "view", "OPTIONS": "view", "POST": "add",
+                  "PATCH": "change", "DELETE": "delete"}.get(request.method)
+        if not action or not request.user.has_perm(f"catalog.{action}_pipelinemodel"):
+            return False
+        return action != "view" or request.user.is_project_admin or any(
+            request.user.has_perm(f"catalog.{name}_pipelinemodel") for name in ("add", "change", "delete")
         )
 
 

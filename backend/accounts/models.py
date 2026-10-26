@@ -17,6 +17,8 @@ class User(AbstractUser):
     @transaction.atomic
     def save(self, *args, **kwargs):
         adding = self._state.adding
+        if adding and self.is_superuser:
+            self.role = self.Role.ADMIN
         old_role = (
             None
             if adding

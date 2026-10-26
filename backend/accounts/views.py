@@ -1,7 +1,10 @@
 from django.contrib.auth.models import Group
 from django.db import transaction
+from django.db.models import Q
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiExample, extend_schema, extend_schema_view
 from rest_framework import filters, generics, permissions, serializers, status, throttling, viewsets
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
@@ -9,8 +12,14 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .models import User
-from .rbac import RoleManagementPermission, UserManagementPermission, project_permissions
+from .rbac import (
+    AdministratorCreationPermission,
+    RoleManagementPermission,
+    UserManagementPermission,
+    project_permissions,
+)
 from .serializers import (
+    AdministratorCreateSerializer,
     AdminUserCreateSerializer,
     AdminUserSerializer,
     LogoutSerializer,
@@ -165,6 +174,8 @@ class UserAdminViewSet(viewsets.ModelViewSet):
         return AdminUserSerializer
 
     def perform_update(self, serializer):
+        if serializer.instance.is_superuser and not self.request.user.is_superuser:
+            raise PermissionDenied("Solo un superusuario puede modificar otra cuenta de superusuario.")
         self._check_role_assignment(serializer)
         if serializer.instance.pk == self.request.user.pk:
             if serializer.validated_data.get("is_active") is False:
@@ -176,12 +187,23 @@ class UserAdminViewSet(viewsets.ModelViewSet):
                     {"role": "No puede quitarse su propio rol administrador."}
                 )
         with transaction.atomic():
-            # Serialize changes to administrators to preserve at least one active administrator.
-            admins = list(
-                User.objects.select_for_update().filter(groups__name="admin", is_active=True)
-            )
+            # Lock before taking the membership snapshot, including concurrent demotions.
+            Group.objects.select_for_update().get(name=User.Role.ADMIN)
+            admin_ids = User.objects.filter(groups__name="admin").values("pk")
+            admins = list(User.objects.select_for_update().filter(
+                Q(pk__in=admin_ids) | Q(is_superuser=True), is_active=True,
+            ).order_by("pk"))
             target = serializer.instance
             groups = serializer.validated_data.get("groups")
+            if (target.is_superuser and target.pk in [user.pk for user in admins]
+                    and serializer.validated_data.get("is_active") is False
+                    and sum(user.is_superuser for user in admins) == 1):
+                raise serializers.ValidationError("Debe conservar al menos un superusuario activo.")
+            if target.is_superuser and (
+                serializer.validated_data.get("role") == User.Role.ANALYST or
+                (groups is not None and not any(group.name == "admin" for group in groups))
+            ):
+                raise serializers.ValidationError("Un superusuario debe conservar el rol administrador.")
             removes_admin = (
                 serializer.validated_data.get("is_active") is False
                 or serializer.validated_data.get("role") == User.Role.ANALYST
@@ -209,6 +231,36 @@ class UserAdminViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         self._check_role_assignment(serializer)
         serializer.save()
+
+
+class AdministratorCreateView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = AdministratorCreateSerializer
+    permission_classes = [AdministratorCreationPermission]
+    throttle_scope = "auth"
+    throttle_classes = [throttling.ScopedRateThrottle]
+
+    @extend_schema(
+        tags=["Administración de usuarios"], summary="Crear administrador o superusuario",
+        description=("Requiere JWT de un administrador con accounts.add_user y auth.change_group. "
+                     "Por defecto crea un administrador activo con el rol admin y todos los permisos de ForestGuard. "
+                     "account_type=superuser requiere un superusuario y habilita también el administrador de Django. "
+                     "Los privilegios se asignan en el servidor; no se solicitan IDs de roles. "
+                     "Para la primera cuenta de superusuario use py manage.py createsuperuser desde consola."),
+        request=AdministratorCreateSerializer,
+        responses={201: AdminUserSerializer, 400: OpenApiTypes.OBJECT, 401: OpenApiTypes.OBJECT, 403: OpenApiTypes.OBJECT},
+        examples=[
+            OpenApiExample("Administrador de ForestGuard", value={"username": "nuevo_admin", "email": "admin@example.com",
+                           "password": "UnaContraseñaSegura123!", "account_type": "administrator"}, request_only=True),
+            OpenApiExample("Superusuario (solo superusuarios)", value={"username": "nuevo_superuser", "email": "super@example.com",
+                           "password": "UnaContraseñaSegura123!", "account_type": "superuser"}, request_only=True),
+        ],
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        account = serializer.save()
+        return Response(AdminUserSerializer(account, context=self.get_serializer_context()).data, status=status.HTTP_201_CREATED)
 
 
 @extend_schema_view(

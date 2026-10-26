@@ -1,3 +1,5 @@
+from django.db import IntegrityError, transaction
+from django.db.models import Count
 from django.db.models.deletion import ProtectedError
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -5,10 +7,20 @@ from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,
 )
-from rest_framework import filters, parsers, serializers, viewsets
+from rest_framework import decorators, filters, parsers, serializers, status, viewsets
+from rest_framework.response import Response
+
+from accounts.rbac import ModelManagementPermission
 
 from .models import PipelineModel, SatelliteImage, StudyArea
-from .serializers import PipelineModelSerializer, SatelliteImageSerializer, StudyAreaSerializer
+from .serializers import (
+    AdminPipelineModelSerializer,
+    ModelPackageSerializer,
+    PipelineModelRegistrationSerializer,
+    PipelineModelSerializer,
+    SatelliteImageSerializer,
+    StudyAreaSerializer,
+)
 
 
 @extend_schema_view(
@@ -102,3 +114,68 @@ class PipelineModelViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (filters.SearchFilter, filters.OrderingFilter)
     search_fields = ("name", "version")
     ordering_fields = ("name", "version")
+
+
+@extend_schema_view(
+    list=extend_schema(tags=["Modelos"], summary="Administrar modelos activos e inactivos",
+                       parameters=[OpenApiParameter("active", str, enum=["true", "false"], description="Omitir para todas las disponibilidades.")]),
+    retrieve=extend_schema(tags=["Modelos"], summary="Consultar registro de un modelo"),
+    create=extend_schema(tags=["Modelos"], summary="Registrar paquete de modelo instalado",
+        description="Solo registra paquetes confiables instalados y verificados en el servidor. No recibe archivos, rutas ni métricas del cliente. Una versión solo se registra una vez.",
+        request=PipelineModelRegistrationSerializer, responses={201: AdminPipelineModelSerializer},
+        examples=[OpenApiExample("ForestGuard v9", value={"package_key": "v9", "name": "ForestGuard cambio histórico", "active": True}, request_only=True)]),
+    partial_update=extend_schema(tags=["Modelos"], summary="Editar nombre, descripción o disponibilidad",
+        description="Desactivar impide elegir el modelo en nuevos análisis. Los trabajos existentes y sus resultados se conservan. La versión, algoritmo, paquete y métricas no se modifican."),
+    destroy=extend_schema(tags=["Modelos"], summary="Eliminar modelo sin análisis asociados",
+        description="Solo elimina el registro del catálogo, sin borrar el paquete instalado. Si tiene análisis, desactívelo para conservar la historia."),
+)
+class AdminPipelineModelViewSet(viewsets.ModelViewSet):
+    queryset = PipelineModel.objects.all()
+    serializer_class = AdminPipelineModelSerializer
+    permission_classes = [ModelManagementPermission]
+    http_method_names = ("get", "post", "patch", "delete", "head", "options")
+    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
+    search_fields = ("name", "version")
+    ordering_fields = ("name", "version", "created_at", "active")
+
+    def get_queryset(self):
+        queryset = PipelineModel.objects.annotate(analysis_count=Count("analysis")).order_by("-created_at")
+        active = self.request.query_params.get("active")
+        if active is not None:
+            if active not in ("true", "false"):
+                raise serializers.ValidationError({"active": "Elija true o false."})
+            queryset = queryset.filter(active=active == "true")
+        return queryset
+
+    def create(self, request, *args, **kwargs):
+        serializer = PipelineModelRegistrationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            with transaction.atomic():
+                instance = serializer.save()
+        except IntegrityError as exc:
+            raise serializers.ValidationError({"package_key": "Esta versión ya está registrada."}) from exc
+        return Response(AdminPipelineModelSerializer(instance).data, status=status.HTTP_201_CREATED)
+
+    def perform_destroy(self, instance):
+        try:
+            instance.delete()
+        except ProtectedError as exc:
+            raise serializers.ValidationError("El modelo tiene análisis asociados. Puede desactivarlo para conservar sus resultados.") from exc
+
+    @extend_schema(tags=["Modelos"], summary="Consultar paquetes instalados para registrar", responses={200: ModelPackageSerializer(many=True)})
+    @decorators.action(detail=False, methods=["get"], url_path="packages")
+    def packages(self, request):
+        from .model_registry import PACKAGES, installed_package
+
+        result = []
+        for key, package in PACKAGES.items():
+            error = ""
+            try:
+                installed_package(key)
+            except serializers.ValidationError:
+                error = "El paquete no está disponible o requiere revisar su integridad en el servidor."
+            result.append({"key": key, "name": package["name"], "version": package["version"],
+                           "registered_id": PipelineModel.objects.filter(version=package["version"]).values_list("pk", flat=True).first(),
+                           "available": not bool(error), "message": error})
+        return Response(result)

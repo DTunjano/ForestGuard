@@ -3,6 +3,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 from django.db.models.functions import Lower
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 
 from .models import RoleProfile, User
 from .rbac import project_permissions
@@ -86,9 +87,11 @@ class UserSerializer(serializers.ModelSerializer):
             "roles",
             "permissions",
             "is_active",
+            "is_staff",
+            "is_superuser",
             "date_joined",
         )
-        read_only_fields = ("id", "role", "is_active", "date_joined")
+        read_only_fields = ("id", "role", "is_active", "is_staff", "is_superuser", "date_joined")
         extra_kwargs = {
             "role": {
                 "help_text": "Campo de compatibilidad; use roles y permissions para consultar capacidades."
@@ -137,9 +140,11 @@ class AdminUserSerializer(UserSerializer):
 
     class Meta(UserSerializer.Meta):
         fields = UserSerializer.Meta.fields + ("role_ids",)
-        read_only_fields = ("id", "date_joined")
+        read_only_fields = ("id", "is_staff", "is_superuser", "date_joined")
 
     def validate(self, attrs):
+        if any(field in self.initial_data for field in ("is_staff", "is_superuser")):
+            raise serializers.ValidationError("Use el endpoint de creación de administradores para crear cuentas privilegiadas.")
         if "groups" in attrs and "role" in attrs:
             raise serializers.ValidationError("Envíe role_ids o el campo heredado role, no ambos.")
         return attrs
@@ -173,6 +178,8 @@ class AdminUserCreateSerializer(RegistrationSerializer):
         fields = RegistrationSerializer.Meta.fields + ("role", "role_ids", "is_active")
 
     def validate(self, attrs):
+        if any(field in self.initial_data for field in ("is_staff", "is_superuser")):
+            raise serializers.ValidationError("Use el endpoint de creación de administradores para crear cuentas privilegiadas.")
         if "role_ids" in self.initial_data and "role" in self.initial_data:
             raise serializers.ValidationError("Envíe role_ids o el campo heredado role, no ambos.")
         return super().validate(attrs)
@@ -189,6 +196,30 @@ class AdminUserCreateSerializer(RegistrationSerializer):
         if groups is not None:
             instance.groups.set(groups)
         return instance
+
+
+class AdministratorCreateSerializer(RegistrationSerializer):
+    account_type = serializers.ChoiceField(
+        choices=[("administrator", "Administrador de ForestGuard"), ("superuser", "Superusuario de Django")],
+        default="administrator", write_only=True,
+        help_text="administrator recibe el rol admin con todos los permisos del proyecto. Solo un superusuario puede crear otro superuser.",
+    )
+
+    class Meta(RegistrationSerializer.Meta):
+        fields = RegistrationSerializer.Meta.fields + ("account_type",)
+
+    def validate(self, attrs):
+        if any(field in self.initial_data for field in ("role", "role_ids", "is_staff", "is_superuser", "is_active")):
+            raise serializers.ValidationError("El tipo de cuenta determina los privilegios automáticamente; no envíe roles ni banderas internas.")
+        if attrs["account_type"] == "superuser" and not self.context["request"].user.is_superuser:
+            raise PermissionDenied("Solo un superusuario puede crear otro superusuario.")
+        return super().validate(attrs)
+
+    @transaction.atomic
+    def create(self, validated_data):
+        superuser = validated_data.pop("account_type") == "superuser"
+        validated_data.update(role=User.Role.ADMIN, is_active=True, is_staff=superuser, is_superuser=superuser)
+        return super().create(validated_data)
 
 
 class PasswordChangeSerializer(serializers.Serializer):
