@@ -12,6 +12,15 @@ from pipeline.src.temporal_policy import require_interval
 from .models import Analysis, AnalysisImage, ResultArtifact
 
 
+class CategoryMaskSerializer(serializers.Serializer):
+    width = serializers.IntegerField(min_value=1, max_value=768)
+    height = serializers.IntegerField(min_value=1, max_value=768)
+    grid = serializers.JSONField(help_text="Geometría de origen: width, height, crs y transform afín de seis valores.")
+    encoding = serializers.ChoiceField(choices=["uint8-base64"])
+    nodata = serializers.IntegerField(default=255)
+    values = serializers.CharField(help_text="Un byte por píxel, por filas, codificado en base64.")
+
+
 class ResultArtifactSerializer(serializers.ModelSerializer):
     label = serializers.SerializerMethodField(help_text="Nombre legible del resultado y su fecha o intervalo.")
     png_artifact_id = serializers.SerializerMethodField(help_text="ID de la versión PNG del raster, cuando existe.")
@@ -19,11 +28,18 @@ class ResultArtifactSerializer(serializers.ModelSerializer):
     preview_url = serializers.SerializerMethodField(help_text="Ruta privada de la vista PNG; solo para raster.")
     download_url = serializers.SerializerMethodField(help_text="Ruta privada de descarga del archivo.")
     metadata_url = serializers.SerializerMethodField(help_text="Ruta privada de metadatos; solo para raster.")
+    category_mask_url = serializers.SerializerMethodField(help_text="Clases para filtros interactivos; solo para condición de cobertura.")
 
     class Meta:
         model = ResultArtifact
         fields = ("id", "kind", "label", "relative_path", "size_bytes", "preview_url", "download_url",
-                  "png_artifact_id", "png_download_url", "metadata_url", "created_at")
+                  "png_artifact_id", "png_download_url", "metadata_url", "category_mask_url", "created_at")
+
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_category_mask_url(self, obj):
+        if obj.kind != "raster" or PurePosixPath(obj.relative_path).name != "condicion_bosque.tif":
+            return None
+        return self._absolute_url("artifact-category-mask", obj.pk)
 
     @extend_schema_field(serializers.CharField())
     def get_label(self, obj):

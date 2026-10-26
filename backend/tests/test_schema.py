@@ -33,11 +33,13 @@ def test_openapi_groups_modules_and_documents_uploads_and_results():
     preview = schema["paths"]["/api/v1/artifacts/{artifact_id}/preview/"]["get"]
     assert preview["tags"] == ["Resultados"]
     assert "image/png" in preview["responses"]["200"]["content"]
-    assert [parameter["name"] for parameter in preview["parameters"]] == ["artifact_id"]
-    for operation in ("download", "metadata", "preview"):
+    assert [parameter["name"] for parameter in preview["parameters"]] == ["artifact_id", "palette"]
+    assert not preview["parameters"][1].get("required", False)
+    for operation in ("download", "metadata", "preview", "category-mask"):
         path = f"/api/v1/artifacts/{{artifact_id}}/{operation}/"
         names = [parameter["name"] for parameter in schema["paths"][path]["get"]["parameters"]]
-        assert names == (["artifact_id", "format"] if operation == "download" else ["artifact_id"])
+        assert names == (["artifact_id", "format"] if operation == "download" else
+                         ["artifact_id", "palette"] if operation in ("metadata", "preview") else ["artifact_id"])
         assert f"/api/v1/analyses/{{id}}/artifacts/{{artifact_id}}/{operation}/" not in schema["paths"]
     results = schema["paths"]["/api/v1/analyses/{analysis_id}/results/"]["get"]
     export = schema["paths"]["/api/v1/analyses/{analysis_id}/export/"]["get"]

@@ -20,11 +20,20 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Analysis, ResultArtifact
-from .raster_preview import raster_metadata, render_preview
-from .serializers import AnalysisResultsSerializer, AnalysisSerializer, ResultArtifactSerializer
+from .raster_preview import category_mask, raster_metadata, render_preview
+from .serializers import (
+    AnalysisResultsSerializer,
+    AnalysisSerializer,
+    CategoryMaskSerializer,
+    ResultArtifactSerializer,
+)
 
 RESULT_SECTIONS = ("all", "summary", "individual", "comparison")
 EXPORT_FORMATS = ("png", "tiff", "both")
+PALETTE_PARAMETER = OpenApiParameter(
+    "palette", str, OpenApiParameter.QUERY, enum=["default", "contrast"],
+    description="contrast usa rojo–neutro–azul y las escalas fijas de las láminas para NDVI, NDMI, NBR y NDRE.",
+)
 
 
 def _query_choice(request, name, choices, default):
@@ -78,13 +87,37 @@ class ArtifactPreviewView(APIView):
         description=("Solo se necesita el ID del artefacto, disponible en `artifacts` del análisis. "
                      "El servidor elige automáticamente el tamaño de la miniatura. "
                      "El PNG es privado y requiere autenticación."),
+        parameters=[PALETTE_PARAMETER],
         responses={(200, "image/png"): OpenApiTypes.BINARY},
     )
     def get(self, request, artifact_id):
         artifact = get_object_or_404(
             ResultArtifact, pk=artifact_id, analysis__owner=request.user, kind="raster",
         )
-        return HttpResponse(render_preview(artifact_file(artifact)), content_type="image/png")
+        palette = _query_choice(request, "palette", ("default", "contrast"), "default")
+        return HttpResponse(render_preview(artifact_file(artifact), palette=palette), content_type="image/png",
+                            headers={"Cache-Control": "private, no-store"})
+
+
+class ArtifactCategoryMaskView(APIView):
+    permission_model = Analysis
+
+    @extend_schema(
+        tags=["Resultados"], summary="Obtener categorías para el mapa interactivo",
+        description=("Máscara privada de condicion_bosque.tif. Valores uint8 en base64, por filas: "
+                     "0 otra cobertura, 1 bosque estable/vigor alto, 2 degradación, 3 posible pérdida; "
+                     "255 sin datos. Máximo 768 píxeles por lado y muestreo de vecino más cercano. "
+                     "Permite resaltar categorías sin recalcular ni modificar porcentajes originales. "
+                     "grid identifica la geometría original para comprobar la alineación con los índices."),
+        responses={200: CategoryMaskSerializer},
+    )
+    def get(self, request, artifact_id):
+        artifact = get_object_or_404(
+            ResultArtifact, pk=artifact_id, analysis__owner=request.user, kind="raster",
+        )
+        if Path(artifact.relative_path).name != "condicion_bosque.tif":
+            raise Http404
+        return Response(category_mask(artifact_file(artifact)), headers={"Cache-Control": "private, no-store"})
 
 
 class ArtifactDownloadView(APIView):
@@ -238,13 +271,15 @@ class ArtifactMetadataView(APIView):
     @extend_schema(
         tags=["Resultados"], summary="Consultar metadatos por ID de artefacto",
         description="Solo admite artefactos raster del usuario autenticado.",
+        parameters=[PALETTE_PARAMETER],
         responses={200: OpenApiTypes.OBJECT},
     )
     def get(self, request, artifact_id):
         artifact = get_object_or_404(
             ResultArtifact, pk=artifact_id, analysis__owner=request.user, kind="raster",
         )
-        return Response(raster_metadata(artifact_file(artifact)))
+        palette = _query_choice(request, "palette", ("default", "contrast"), "default")
+        return Response(raster_metadata(artifact_file(artifact), palette=palette))
 
 
 @extend_schema_view(

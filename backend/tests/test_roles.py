@@ -38,6 +38,7 @@ def test_roles_crud_assignment_effective_permissions_and_owner_scope():
     assert client.post("/api/v1/study-areas/", {"name": "No autorizado"}).status_code == 403
     assert client.get("/api/v1/analyses/").status_code == 403
     assert client.get("/api/v1/artifacts/999/preview/").status_code == 403
+    assert client.get("/api/v1/artifacts/999/category-mask/").status_code == 403
     assert client.get("/api/v1/admin/roles/").status_code == 403
     assert (
         client.patch(

@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 from rasterio.enums import Resampling
 from rasterio.vrt import WarpedVRT
 
-from .raster_preview import render_preview
+from .raster_preview import INDEX_SCALES, render_preview
 
 PANEL = (320, 170)
 BACKGROUND = "#f8faf9"
@@ -168,9 +168,6 @@ def _area(value):
 WIDTH = 1080
 BLOCK = 575
 TILE_X = (20, 370, 720)
-INDEX_SCALES = {
-    "NDVI": (.2, .9), "NDMI": (-.2, .6), "NBR": (-.2, .8), "NDRE": (0, .7),
-}
 
 
 def _board(title, note, count):

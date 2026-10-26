@@ -2,12 +2,13 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
-                    AnalysisExportView,
-                    AnalysisResultsView,
-                    AnalysisViewSet,
-                    ArtifactDownloadView,
-                    ArtifactMetadataView,
-                    ArtifactPreviewView,
+    AnalysisExportView,
+    AnalysisResultsView,
+    AnalysisViewSet,
+    ArtifactCategoryMaskView,
+    ArtifactDownloadView,
+    ArtifactMetadataView,
+    ArtifactPreviewView,
 )
 
 router = DefaultRouter()
@@ -18,5 +19,6 @@ urlpatterns = [
     path("artifacts/<int:artifact_id>/preview/", ArtifactPreviewView.as_view(), name="artifact-preview"),
     path("artifacts/<int:artifact_id>/download/", ArtifactDownloadView.as_view(), name="artifact-download"),
     path("artifacts/<int:artifact_id>/metadata/", ArtifactMetadataView.as_view(), name="artifact-metadata"),
+    path("artifacts/<int:artifact_id>/category-mask/", ArtifactCategoryMaskView.as_view(), name="artifact-category-mask"),
     path("", include(router.urls)),
 ]

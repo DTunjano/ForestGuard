@@ -1,5 +1,6 @@
 """Small, bounded PNG previews of completed analysis rasters."""
 
+from base64 import b64encode
 from io import BytesIO
 
 import numpy as np
@@ -35,13 +36,43 @@ CLASS_LABELS = {
     },
 }
 
+# The interactive layers use the same fixed scales as the downloadable boards.
+INDEX_SCALES = {"NDVI": (.2, .9), "NDMI": (-.2, .6), "NBR": (-.2, .8), "NDRE": (0., .7)}
 
-def raster_style(filename):
+
+def _grid(source):
+    return {"width": source.width, "height": source.height, "crs": str(source.crs),
+            "transform": list(source.transform)[:6]}
+
+
+def category_mask(path, max_size=768):
+    """Bounded nearest-neighbour class IDs, independent of PNG palettes/colors."""
+    with rasterio.open(path) as source:
+        factor = min(1., max_size / max(source.width, source.height))
+        width, height = max(1, round(source.width * factor)), max(1, round(source.height * factor))
+        band = source.read(1, out_shape=(height, width), masked=True, resampling=Resampling.nearest)
+        values = band.filled(255).astype("uint8")
+        values[~np.isin(values, (0, 1, 2, 3))] = 255
+        return {"width": width, "height": height, "grid": _grid(source),
+                "encoding": "uint8-base64", "nodata": 255,
+                "values": b64encode(values.tobytes()).decode("ascii")}
+
+
+def raster_style(filename, palette="default"):
     if filename in CLASS_STYLES:
         return {"type": "classes", "legend": [
             {"value": int(value), "label": CLASS_LABELS[filename][value], "color": _hex(color)}
             for value, color in CLASS_STYLES[filename].items()
         ]}
+    index = filename.removesuffix(".tif")
+    if palette == "contrast" and (index in INDEX_SCALES or index.removeprefix("d") in INDEX_SCALES):
+        temporal = index.startswith("d")
+        minimum, maximum = (-.2, .2) if temporal else INDEX_SCALES[index]
+        return {"type": "continuous", "minimum": minimum, "maximum": maximum,
+                "label": "Cambio: fecha final menos inicial" if temporal else "Valor del índice en esta fecha",
+                "colors": ["#bc2e2e", "#f5f4ee", "#286eb4"],
+                "low_label": "Descenso" if temporal else "Valor bajo",
+                "high_label": "Aumento" if temporal else "Valor alto"}
     if filename == "puntaje_cambio_exploratorio.tif":
         minimum, maximum, label = 0.0, 1.0, "Puntaje exploratorio sin calibración"
     elif filename.startswith("d") or filename == "tendencia_ndvi_por_anio.tif":
@@ -56,22 +87,22 @@ def _hex(color):
     return "#" + "".join(f"{channel:02x}" for channel in color[:3])
 
 
-def raster_metadata(path):
+def raster_metadata(path, palette="default"):
     with rasterio.open(path) as source:
         return {
             "width": source.width, "height": source.height, "crs": str(source.crs),
             "bounds_wgs84": list(transform_bounds(source.crs, "EPSG:4326", *source.bounds)),
             "band_description": source.descriptions[0],
-            "style": raster_style(path.name),
+            "style": raster_style(path.name, palette), "grid": _grid(source),
         }
 
 
-def render_preview(path, max_size=768):
+def render_preview(path, max_size=768, palette="default"):
     with rasterio.open(path) as source:
         scale = min(1.0, max_size / max(source.width, source.height))
         width = max(1, round(source.width * scale))
         height = max(1, round(source.height * scale))
-        style = raster_style(path.name)
+        style = raster_style(path.name, palette)
         method = Resampling.nearest if style["type"] == "classes" else Resampling.bilinear
         values = source.read(1, out_shape=(height, width), masked=True, resampling=method)
     data = values.astype("float32").filled(np.nan)
@@ -83,9 +114,8 @@ def render_preview(path, max_size=768):
     else:
         normalized = np.clip((data - style["minimum"]) /
                              (style["maximum"] - style["minimum"]), 0, 1)
-        low = np.array((217, 83, 79), dtype=np.float32)
-        middle = np.array((244, 211, 94), dtype=np.float32)
-        high = np.array((44, 162, 95), dtype=np.float32)
+        low, middle, high = (np.array(tuple(bytes.fromhex(color[1:])), dtype=np.float32)
+                             for color in style["colors"])
         lower = normalized <= 0.5
         factor = np.where(lower, normalized * 2, (normalized - 0.5) * 2)
         rgb = np.where(lower[..., None],
