@@ -7,13 +7,19 @@ En un análisis completado, **Imagen original y resultado** permite explorar cad
 1. Seleccionar **Fecha o comparación**.
 2. Pulsar una o varias tarjetas de cobertura para resaltar sus zonas. Volver a pulsar una tarjeta la deselecciona; sin selecciones se muestran todas.
 3. Ajustar **Visibilidad del resto**: 0 % oculta las categorías no seleccionadas; el valor inicial de 20 % conserva su contexto atenuado.
-4. Cambiar **Capa del mapa** entre categorías, NDVI, NDMI, NBR y NDRE. La selección de categorías se conserva y permite observar el índice únicamente en esas zonas. Cada índice identifica sus bandas y tiene una escala visible.
+4. En **¿Qué quieres observar?**, elegir el resumen de cobertura o un indicador: vigor y cobertura vegetal (NDVI, B8/B4), humedad (NDMI, B8/B11), condición de cobertura y señales de degradación (NBR, B8/B12), o clorofila y vigor (NDRE, B8/B5). La selección de categorías se conserva y permite observar el indicador únicamente en esas zonas.
 5. **Mostrar todo** restablece categorías, selección y visibilidad. Cambiar de fecha o intervalo también restablece la exploración para ese periodo.
 6. **Descargar vista PNG** exporta el mapa tal como se está viendo, con sus transparencias. Es una imagen de visualización, sin georreferenciación ni lámina de métricas. Las descargas originales de PNG, GeoTIFF, PDF y ZIP siguen disponibles y contienen los resultados completos.
 
 El original permanece como referencia. Los porcentajes y hectáreas siempre proceden del resumen original, con el mismo denominador de área válida; seleccionar categorías no modifica esos valores ni envía otro trabajo al worker. Los estados de selección tienen texto y `aria-pressed`, funcionan con teclado y no dependen únicamente del color. Los controles se distribuyen en una sola columna en pantallas pequeñas.
 
 Una fecha muestra condición de vegetación y no permite seleccionar degradación sin otra fecha. Una categoría con cero píxeles se puede seleccionar: se informa que no está presente. Las comparaciones muestran categorías temporales y diferencias de índices **final menos inicial**. Los índices conservan su escala técnica, distinta de los porcentajes de superficie.
+
+Las leyendas principales usan descripciones como **Menor humedad / Mayor humedad** o **Disminuye el vigor / Sin cambio / Aumenta el vigor**. Se eliminó el párrafo técnico permanente bajo la leyenda. **Ver escala numérica**, cerrado inicialmente, permite consultar los valores originales cuando se necesiten. Las superficies y la cobertura válida se presentan en porcentaje; los índices no se multiplican por 100 ni se presentan como porcentajes de deforestación. Por ejemplo, una diferencia NDVI de −0,2 no representa 20 % de pérdida de bosque.
+
+El resumen por categorías es la vista que muestra bosque estable, degradación y posible deforestación. Las capas de cada índice ayudan a interpretar esas señales; sus nombres descriptivos no añaden otra clasificación ni cambian los criterios del análisis.
+
+La mejora de nombres y leyendas se verificó con las ocho pruebas del cliente/composición, lint, compilación y el recorrido completo de navegador. Este último comprueba los textos de cada indicador en una fecha y en comparaciones, la apertura y cierre de la escala numérica, la selección, descarga y distribución móvil. No se modifican los valores del backend ni las reglas de clasificación.
 
 ## Datos y API
 

@@ -57,6 +57,8 @@ function useIndexLayer(artifact) {
 export function InteractiveCoverageMap({
   result,
   layer,
+  indicator,
+  temporal,
   categories,
   selected,
   contextOpacity,
@@ -163,26 +165,38 @@ export function InteractiveCoverageMap({
         </Button>
       )}
       {ready && layer && (
-        <div className="fg-map-legend" aria-label="Escala del índice">
+        <div
+          className="fg-map-legend"
+          role="group"
+          aria-label="Cómo interpretar los colores"
+        >
           <div
             style={{
               background: `linear-gradient(to right, ${indexQuery.details.style.colors.join(",")})`,
             }}
           />
-          <div className="flex justify-between gap-3 text-sm">
+          <div className="fg-map-legend-labels text-sm">
             <span>
-              {indexQuery.details.style.minimum.toLocaleString("es-CO")} ·{" "}
-              {indexQuery.details.style.low_label}
+              {temporal ? indicator.changeLowLabel : indicator.lowLabel}
             </span>
+            <span>{temporal ? "Sin cambio" : "Intermedio"}</span>
             <span>
-              {indexQuery.details.style.maximum.toLocaleString("es-CO")} ·{" "}
-              {indexQuery.details.style.high_label}
+              {temporal ? indicator.changeHighLabel : indicator.highLabel}
             </span>
           </div>
-          <p className="text-sm text-slate-300">
-            {indexQuery.details.style.label}. Los valores fuera de escala
-            conservan el color del extremo.
-          </p>
+          <details className="fg-map-numeric-scale">
+            <summary>Ver escala numérica</summary>
+            <p>
+              Escala de color de {indicator.id}:{" "}
+              {indexQuery.details.style.minimum.toLocaleString("es-CO")} a{" "}
+              {indexQuery.details.style.maximum.toLocaleString("es-CO")}
+              {temporal
+                ? " (fecha final menos inicial)"
+                : " (valor de esta fecha)"}
+              . Es un índice, no un porcentaje de superficie. Los valores que
+              exceden la escala usan el color del extremo.
+            </p>
+          </details>
         </div>
       )}
       <Button

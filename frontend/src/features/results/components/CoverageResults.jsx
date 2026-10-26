@@ -123,16 +123,22 @@ function CoverageExplorer({ entry, condition, artifacts }) {
     <>
       {filterAvailable && (
         <div className="fg-map-controls">
-          <Field label="Capa del mapa">
+          <Field label="¿Qué quieres observar?">
             <Select
               value={layerId}
               onChange={(event) => setLayerId(event.target.value)}
             >
-              <option value="categories">Categorías de cobertura</option>
+              <option value="categories">
+                {condition.tipo === "temporal"
+                  ? "Bosque estable, degradación y posible deforestación"
+                  : "Estado de la vegetación"}
+              </option>
               {layers.map((index) => (
                 <option key={index.id} value={index.id}>
-                  {condition.tipo === "temporal" ? "Cambio " : ""}
-                  {index.id} · {index.bands}
+                  {condition.tipo === "temporal"
+                    ? index.changeLabel
+                    : index.label}{" "}
+                  · {index.id} · {index.bands}
                 </option>
               ))}
             </Select>
@@ -166,18 +172,10 @@ function CoverageExplorer({ entry, condition, artifacts }) {
             id={helpId}
             className="text-sm text-slate-300 fg-map-controls-help"
           >
-            Selecciona una o varias tarjetas para resaltar sus zonas. Con 0 % se
-            oculta el resto; los porcentajes y hectáreas se conservan.
+            Pulsa las tarjetas para resaltar zonas y ajustar la visibilidad de
+            las demás.
           </p>
         </div>
-      )}
-      {layer && (
-        <p className="text-sm text-slate-300">
-          {layer.description} · Bandas {layer.bands}.
-          {condition.tipo === "temporal"
-            ? " El mapa muestra la diferencia entre la fecha final y la inicial."
-            : " El mapa muestra valores de esta fecha."}
-        </p>
       )}
       <div className="grid gap-4 lg:grid-cols-2">
         <figure className="min-w-0 space-y-2">
@@ -200,14 +198,20 @@ function CoverageExplorer({ entry, condition, artifacts }) {
           <figcaption className="font-semibold">
             Resultado ·{" "}
             {layer
-              ? `${condition.tipo === "temporal" ? "Cambio " : ""}${layer.id}`
-              : "categorías espectrales"}
+              ? condition.tipo === "temporal"
+                ? layer.changeLabel
+                : layer.label
+              : condition.tipo === "temporal"
+                ? "Cobertura y cambios"
+                : "Estado de la vegetación"}
           </figcaption>
           {filterAvailable ? (
             <Suspense fallback={<Notice>Cargando visor…</Notice>}>
               <InteractiveCoverageMap
                 result={result}
                 layer={layer?.artifact}
+                indicator={layer}
+                temporal={condition.tipo === "temporal"}
                 categories={condition.categorias}
                 selected={selected}
                 contextOpacity={opacity}
@@ -277,7 +281,7 @@ function CoverageExplorer({ entry, condition, artifacts }) {
         <p role="status" className="text-sm text-slate-300">
           {selected.length
             ? `Resaltando: ${selectedCategories.map((item) => item.etiqueta).join(", ")}.`
-            : "Mostrando todas las categorías."}
+            : "Todas las zonas visibles."}
           {selected.length > 0 &&
           selectedCategories.every((item) => item.pixeles === 0)
             ? " No hay píxeles de estas categorías en el periodo seleccionado."
@@ -293,12 +297,6 @@ function CoverageExplorer({ entry, condition, artifacts }) {
           : " de la escena"}
         . Sin datos: transparente.
       </p>
-      {filterAvailable && (
-        <p className="text-sm text-slate-400">
-          Descargar vista PNG guarda el mapa y el resaltado actuales. Los
-          informes y ZIP completos mantienen todos los resultados.
-        </p>
-      )}
     </>
   );
 }

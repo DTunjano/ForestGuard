@@ -149,16 +149,67 @@ async function verifyInteractiveMap(temporal) {
       coverage.getByRole("button", { name: "Mostrar todo", exact: true }),
     ).toBeEnabled();
     expect(requests).toHaveLength(0); // Highlighting is local, never another analysis or mask request.
+    const presentations = {
+      NDVI: [
+        "Vigor y cobertura vegetal",
+        "Vegetación y posible pérdida",
+        "Menor vigor",
+        "Disminuye el vigor",
+      ],
+      NDMI: [
+        "Humedad de la vegetación",
+        "Cambios de humedad",
+        "Menor humedad",
+        "Disminuye la humedad",
+      ],
+      NBR: [
+        "Condición de la cobertura",
+        "Señales de degradación",
+        "Señal más baja",
+        "Posible deterioro",
+      ],
+      NDRE: [
+        "Clorofila y vigor vegetal",
+        "Cambios de verdor y vigor",
+        "Menor verdor",
+        "Disminuye el verdor",
+      ],
+    };
     for (const index of ["NDVI", "NDMI", "NBR", "NDRE"]) {
-      await pick("Capa del mapa", index);
+      await pick("¿Qué quieres observar?", index);
       await expect(map).toBeVisible();
       await expect(
-        coverage.getByText(
-          temporal
-            ? /Cambio: fecha final menos inicial/
-            : /Valor del índice en esta fecha/,
+        coverage.getByRole("combobox", { name: "¿Qué quieres observar?" }),
+      ).toContainText(presentations[index][temporal ? 1 : 0]);
+      const legend = coverage.getByRole("group", {
+        name: "Cómo interpretar los colores",
+      });
+      await expect(
+        legend.getByText(presentations[index][temporal ? 3 : 2], {
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expect(
+        legend.getByText(temporal ? "Sin cambio" : "Intermedio", {
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expect(legend.locator(".fg-map-legend-labels")).not.toContainText(
+        "%",
+      );
+      await expect(
+        legend.getByText(/Es un índice, no un porcentaje de superficie/),
+      ).not.toBeVisible();
+      await legend.getByText("Ver escala numérica", { exact: true }).click();
+      await expect(
+        legend.getByText(/Es un índice, no un porcentaje de superficie/),
+      ).toBeVisible();
+      await expect(
+        legend.getByText(
+          temporal ? /fecha final menos inicial/ : /valor de esta fecha/,
         ),
       ).toBeVisible();
+      await legend.getByText("Ver escala numérica", { exact: true }).click();
       await expect.poll(async () => (await pixel(40, 40))[3]).toBe(0);
       await expect
         .poll(async () => (await pixel(temporal ? 40 : 5, 5))[3])
