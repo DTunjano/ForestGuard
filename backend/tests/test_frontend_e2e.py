@@ -16,7 +16,7 @@ from rest_framework.throttling import SimpleRateThrottle
 from analyses.models import Analysis
 from analyses.services import claim_next_analysis, process_analysis
 from catalog.models import PipelineModel
-from tests.test_api import make_geotiff
+from tests.test_condition_outputs import sample_scene
 from tests.test_quality_policy import quality_tiff
 
 
@@ -36,8 +36,8 @@ def test_frontend_full_flow(settings, tmp_path, request, monkeypatch):
                                  relative_path="model/modelo_exploratorio.joblib", active=True)
     fixtures = tmp_path / "fixtures"
     fixtures.mkdir()
-    (fixtures / "scene_2024_01_01.tif").write_bytes(make_geotiff())
-    (fixtures / "scene_2024_03_01.tif").write_bytes(make_geotiff(spectral_value=.35))
+    (fixtures / "scene_2024_01_01.tif").write_bytes(sample_scene())
+    (fixtures / "scene_2024_03_01.tif").write_bytes(sample_scene(final=True))
     (fixtures / "invalid_2024_02_01.tif").write_bytes(b"not a raster")
     (fixtures / "cloudy_2024_02_02.tif").write_bytes(quality_tiff(59))
     frontend = Path(settings.BASE_DIR).parent / "frontend"

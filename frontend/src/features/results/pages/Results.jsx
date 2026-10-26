@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 import {
   LuArrowLeft,
@@ -29,7 +29,11 @@ import { statusLabel } from "../../analyses/utils/status";
 import { SatelliteProcessingCard } from "../../analyses/components/SatelliteProcessingCard";
 import { Metrics } from "../components/Metrics";
 import { ArtifactCard } from "../components/ArtifactCard";
-import { CoverageResults } from "../components/CoverageResults";
+const CoverageResults = lazy(() =>
+  import("../components/CoverageResults").then((module) => ({
+    default: module.CoverageResults,
+  })),
+);
 
 export function Results() {
   const { id } = useParams();
@@ -244,7 +248,9 @@ function CompletedResults({ id, summary }) {
 
   return (
     <div className="fg-res-completed-stack">
-      <CoverageResults summary={summary} artifacts={groups} />
+      <Suspense fallback={<Notice>Cargando mapas de cobertura…</Notice>}>
+        <CoverageResults summary={summary} artifacts={groups} />
+      </Suspense>
       {/* Navegación rápida por secciones para facilitar la lectura */}
       <nav
         className="fg-res-quicknav"

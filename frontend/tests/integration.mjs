@@ -79,6 +79,129 @@ async function download(button, extension) {
   expect(buffer.length).toBeGreaterThan(30);
   return buffer;
 }
+
+async function verifyInteractiveMap(temporal) {
+  const coverage = page.getByRole("region", {
+    name: "Original y resultado de cobertura",
+  });
+  const map = coverage.locator("canvas[role=img]");
+  const cards = coverage.getByRole("group", {
+    name: "Resaltar categorías de cobertura",
+  });
+  const pixel = (x, y) =>
+    map.evaluate(
+      (canvas, [column, row]) => [
+        ...canvas.getContext("2d").getImageData(column, row, 1, 1).data,
+      ],
+      [x, y],
+    );
+  await expect(map).toBeVisible();
+  await expect.poll(() => pixel(5, 5)).toEqual([54, 155, 97, 255]);
+  await expect.poll(() => pixel(63, 63)).toEqual([0, 0, 0, 0]);
+  const original = coverage.locator("img").first();
+  const originalSource = await original.getAttribute("src");
+  const metrics = async () =>
+    (await cards.innerText()).match(/\d+[,.]?\d*\s*(?:%|ha)/g);
+  const before = await metrics();
+  const requests = [];
+  const track = (request) => {
+    if (/category-mask\/|palette=contrast/.test(request.url()))
+      requests.push(request.url());
+  };
+  page.on("request", track);
+  try {
+    const selectedCard = temporal
+      ? cards.getByRole("button", {
+          name: "Resaltar Degradación (señal temporal)",
+          exact: true,
+        })
+      : cards.getByRole("button", {
+          name: "Resaltar Vegetación de vigor alto",
+          exact: true,
+        });
+    await selectedCard.focus();
+    await page.keyboard.press("Space");
+    await expect(selectedCard).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(async () => (await pixel(40, 40))[3]).toBe(51);
+    if (temporal) {
+      await cards
+        .getByRole("button", {
+          name: "Resaltar Posible deforestación",
+          exact: true,
+        })
+        .click();
+      await expect.poll(() => pixel(40, 5)).toEqual([234, 185, 73, 255]);
+      await expect.poll(() => pixel(5, 40)).toEqual([220, 80, 76, 255]);
+      await expect.poll(async () => (await pixel(5, 5))[3]).toBe(51);
+    } else {
+      await expect(
+        cards.getByRole("button", { name: /Resaltar Degradación/ }),
+      ).toBeDisabled();
+    }
+    const slider = coverage.getByRole("slider", {
+      name: /Visibilidad del resto/,
+    });
+    await slider.focus();
+    await page.keyboard.press("Home");
+    await expect(slider).toHaveValue("0");
+    await expect.poll(async () => (await pixel(40, 40))[3]).toBe(0);
+    await expect(
+      coverage.getByRole("button", { name: "Mostrar todo", exact: true }),
+    ).toBeEnabled();
+    expect(requests).toHaveLength(0); // Highlighting is local, never another analysis or mask request.
+    for (const index of ["NDVI", "NDMI", "NBR", "NDRE"]) {
+      await pick("Capa del mapa", index);
+      await expect(map).toBeVisible();
+      await expect(
+        coverage.getByText(
+          temporal
+            ? /Cambio: fecha final menos inicial/
+            : /Valor del índice en esta fecha/,
+        ),
+      ).toBeVisible();
+      await expect.poll(async () => (await pixel(40, 40))[3]).toBe(0);
+      await expect
+        .poll(async () => (await pixel(temporal ? 40 : 5, 5))[3])
+        .toBe(255);
+      await expect.poll(async () => (await pixel(63, 63))[3]).toBe(0);
+    }
+    expect(await original.getAttribute("src")).toBe(originalSource);
+    expect(await metrics()).toEqual(before);
+    const image = await download(
+      coverage.getByRole("button", {
+        name: "Descargar vista PNG",
+        exact: true,
+      }),
+      /_NDRE_resaltado\.png$/,
+    );
+    expect(image[0]).toBe(137);
+    await coverage.screenshot({
+      path: `test-results/redesign/map-${temporal ? "comparison" : "individual"}-filtered.png`,
+    });
+    const viewport = page.viewportSize();
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(
+      await coverage.evaluate(
+        (element) => element.scrollWidth <= element.clientWidth,
+      ),
+    ).toBe(true);
+    const bounds = await coverage.boundingBox();
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(390);
+    await coverage.screenshot({
+      path: `test-results/redesign/map-${temporal ? "comparison" : "individual"}-mobile.png`,
+    });
+    await page.setViewportSize(viewport);
+    await coverage
+      .getByRole("button", { name: "Mostrar todo", exact: true })
+      .click();
+    await expect.poll(() => pixel(40, 40)).toEqual([135, 147, 159, 255]);
+    await expect(cards.locator('[aria-pressed="true"]')).toHaveCount(0);
+    await expect(slider).toBeDisabled();
+    expect(await metrics()).toEqual(before);
+  } finally {
+    page.off("request", track);
+  }
+}
 try {
   await page.goto("/dashboard/new");
   await expect(page).toHaveURL(/auth\/login/);
@@ -190,7 +313,7 @@ try {
   ).toContainText("59.00 %");
   await expect(
     page.locator(".fg-upload-item").filter({ hasText: "scene_2024_01_01.tif" }),
-  ).toContainText("Cobertura válida: 100 %");
+  ).toContainText("Cobertura válida: 99,98 %");
   await page
     .locator(".fg-upload-item")
     .filter({ hasText: "cloudy_2024_02_02.tif" })
@@ -215,6 +338,7 @@ try {
     })
     .click();
   await create("Individual controlado");
+  await verifyInteractiveMap(false);
   const individualUrl = page.url();
   await capture("individual");
   await expect(page.locator("img").first()).toBeVisible();
@@ -280,6 +404,27 @@ try {
     })
     .click();
   await create("Comparación controlada");
+  await verifyInteractiveMap(true);
+  await page
+    .getByRole("button", {
+      name: "Resaltar Posible deforestación",
+      exact: true,
+    })
+    .click();
+  await pick("Fecha o comparación", "fechas/2024-01-01");
+  await expect(
+    page.getByRole("button", {
+      name: "Resaltar Vegetación de vigor alto",
+      exact: true,
+    }),
+  ).toHaveAttribute("aria-pressed", "false");
+  await pick("Fecha o comparación", "intervalos/2024-01-01_2024-03-01");
+  await expect(
+    page.getByRole("button", {
+      name: "Resaltar Posible deforestación",
+      exact: true,
+    }),
+  ).toHaveAttribute("aria-pressed", "false");
   await expect(page.getByText(/Clasificación: ejecutada/)).toBeVisible();
   await mkdir("test-results", { recursive: true });
   await page.screenshot({

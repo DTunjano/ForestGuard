@@ -35,6 +35,8 @@ Se aceptan descripciones de banda canónicas (`B2`) y con cero inicial (`B02`), 
 
 ## Análisis
 
+La exploración de resultados incluye [mapas interactivos](mapas-interactivos.md): las categorías ofrecen `category_mask_url`, y las vistas PNG y sus metadatos admiten `palette=contrast` para ver índices con una leyenda consistente. Estos filtros de presentación no recalculan el análisis ni modifican sus métricas.
+
 ```json
 POST /analyses/
 {
