@@ -13,6 +13,7 @@ import { Users } from "../../features/users/pages/Users";
 import { Roles } from "../../features/users/pages/Roles";
 import { Images } from "../../features/images/pages/Images";
 import { Models } from "../../features/models/pages/Models";
+import { AdminModels } from "../../features/models/pages/AdminModels";
 import { StudyAreas } from "../../features/study-areas/pages/StudyAreas";
 import { AdminRoute } from "./AdminRoute";
 
@@ -67,8 +68,8 @@ export const AppRoutes = () => {
         <Route element={<AdminRoute permission="auth.view_group" />}>
           <Route path="/admin/roles" element={<Roles />} />
         </Route>
-        <Route element={<AdminRoute />}>
-          <Route path="/admin/models" element={<Models />} />
+        <Route element={<AdminRoute models />}>
+          <Route path="/admin/models" element={<AdminModels />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -31,7 +31,7 @@ export const NavBar = () => {
     support: sessionStorage.getItem("forestguard-section-support") === "true",
     admin: sessionStorage.getItem("forestguard-section-admin") !== "false",
   }));
-  const { isAdmin, can } = useAuth();
+  const { isAdmin, can, canManageModels } = useAuth();
 
   const setSidebarExpanded = (expanded) => {
     setIsExpanded(expanded);
@@ -137,11 +137,15 @@ export const NavBar = () => {
                     },
                   ]
                 : []),
-              {
-                to: "/admin/models",
-                label: "Modelos ML",
-                icon: LuBrainCircuit,
-              },
+              ...(canManageModels
+                ? [
+                    {
+                      to: "/admin/models",
+                      label: "Gestión de modelos",
+                      icon: LuBrainCircuit,
+                    },
+                  ]
+                : []),
             ],
           },
         ]

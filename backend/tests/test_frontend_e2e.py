@@ -15,7 +15,6 @@ from rest_framework.throttling import SimpleRateThrottle
 
 from analyses.models import Analysis
 from analyses.services import claim_next_analysis, process_analysis
-from catalog.models import PipelineModel
 from tests.test_condition_outputs import sample_scene
 from tests.test_quality_policy import quality_tiff
 
@@ -32,8 +31,9 @@ def test_frontend_full_flow(settings, tmp_path, request, monkeypatch):
     get_user_model().objects.create_user(
         username="integration_admin", email="admin@example.test", password="BrowserTest123!", role="admin",
     )
-    PipelineModel.objects.create(name="ForestGuard", version="v9", algorithm="RF",
-                                 relative_path="model/modelo_exploratorio.joblib", active=True)
+    get_user_model().objects.create_superuser(
+        username="integration_root", email="root@example.test", password="BrowserTest123!",
+    )
     fixtures = tmp_path / "fixtures"
     fixtures.mkdir()
     (fixtures / "scene_2024_01_01.tif").write_bytes(sample_scene())

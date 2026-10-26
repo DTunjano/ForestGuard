@@ -182,7 +182,7 @@ La autorización usa grupos/permisos, no comparaciones contra ese string.
 `permissions`. La web consulta esas capacidades para rutas y navegación;
 el backend vuelve a comprobarlas en cada petición.
 
-El catálogo expone 18 permisos de operaciones soportadas por los endpoints actuales;
+El catálogo expone 21 permisos de operaciones soportadas por los endpoints actuales, incluida la gestión de modelos;
 los permisos estándar de Django para acciones sin endpoint no se ofrecen al crear roles personalizados.
 
 ### Endpoints y uso

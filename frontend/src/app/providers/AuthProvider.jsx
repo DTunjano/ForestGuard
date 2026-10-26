@@ -45,8 +45,22 @@ export function AuthProvider({ children }) {
         isAuthenticated: !!user,
         isAdmin: Boolean(
           user?.permissions?.some((permission) =>
-            ["accounts.view_user", "auth.view_group"].includes(permission),
+            [
+              "accounts.view_user",
+              "auth.view_group",
+              "catalog.add_pipelinemodel",
+              "catalog.change_pipelinemodel",
+              "catalog.delete_pipelinemodel",
+            ].includes(permission),
           ),
+        ),
+        canManageModels: Boolean(
+          user?.permissions?.includes("catalog.view_pipelinemodel") &&
+          [
+            "catalog.add_pipelinemodel",
+            "catalog.change_pipelinemodel",
+            "catalog.delete_pipelinemodel",
+          ].some((permission) => user?.permissions?.includes(permission)),
         ),
         can: (permission) => Boolean(user?.permissions?.includes(permission)),
         signIn,

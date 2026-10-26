@@ -3,6 +3,7 @@ import { useAuth } from "../../auth/hooks/useAuth";
 import { useState } from "react";
 import { useResource } from "../../../shared/api/useResource";
 import { saveUser } from "../api/users";
+import { AdministratorForm } from "../components/AdministratorForm";
 import {
   Page,
   Panel,
@@ -12,13 +13,19 @@ import {
   Select,
 } from "../../../shared/components/UI";
 export function Users() {
-  const { can } = useAuth();
+  const { can, user: currentUser } = useAuth();
+  const canCreateAdministrator =
+    can("accounts.add_user") &&
+    can("auth.change_group") &&
+    (currentUser?.is_superuser ||
+      currentUser?.roles?.some((role) => role.name === "admin"));
   const canAssignRoles = can("auth.change_group") && can("auth.view_group");
   const roles = useResource(canAssignRoles ? "admin/roles/" : null);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [edit, setEdit] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [showAdministratorForm, setShowAdministratorForm] = useState(false);
   const query = useResource(
     `admin/users/?page=${page}&search=${encodeURIComponent(search)}&ordering=username`,
   );
@@ -56,16 +63,29 @@ export function Users() {
           Gestiona las cuentas de tu equipo. Las cuentas se desactivan para
           conservar sus estudios.
         </p>
-        <Button
-          disabled={!can("accounts.add_user")}
-          onClick={() => {
-            setEdit(null);
-            setShowForm(true);
-            setError(null);
-          }}
-        >
-          Nuevo usuario
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          {canCreateAdministrator && (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowAdministratorForm(true);
+                setMessage("");
+              }}
+            >
+              Crear administrador
+            </Button>
+          )}
+          <Button
+            disabled={!can("accounts.add_user")}
+            onClick={() => {
+              setEdit(null);
+              setShowForm(true);
+              setError(null);
+            }}
+          >
+            Nuevo usuario
+          </Button>
+        </div>
       </div>
       <Notice>{message}</Notice>
       <Panel>
@@ -103,8 +123,10 @@ export function Users() {
                     <small className="block text-slate-400">{user.email}</small>
                   </td>
                   <td>
-                    {user.roles?.map((role) => role.name).join(", ") ||
-                      "Sin roles"}
+                    {user.is_superuser
+                      ? "Superusuario"
+                      : user.roles?.map((role) => role.name).join(", ") ||
+                        "Sin roles"}
                   </td>
                   <td>
                     <span
@@ -115,7 +137,11 @@ export function Users() {
                   </td>
                   <td>
                     <Button
-                      disabled={busy || !can("accounts.change_user")}
+                      disabled={
+                        busy ||
+                        !can("accounts.change_user") ||
+                        (user.is_superuser && !currentUser?.is_superuser)
+                      }
                       onClick={() => {
                         setEdit(user);
                         setShowForm(true);
@@ -125,6 +151,11 @@ export function Users() {
                     >
                       Editar {user.username}
                     </Button>
+                    {user.is_superuser && !currentUser?.is_superuser && (
+                      <small className="mt-2 block text-slate-400">
+                        Solo un superusuario puede editar esta cuenta.
+                      </small>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -147,6 +178,23 @@ export function Users() {
           </Button>
         </div>
       </Panel>
+      {showAdministratorForm && (
+        <AdministratorForm
+          canCreateSuperuser={Boolean(currentUser?.is_superuser)}
+          onClose={() => setShowAdministratorForm(false)}
+          onSaved={(account) => {
+            setShowAdministratorForm(false);
+            setSearch("");
+            setPage(1);
+            query.reload();
+            setMessage(
+              account.is_superuser
+                ? "Superusuario creado."
+                : "Administrador creado con todos los permisos de ForestGuard.",
+            );
+          }}
+        />
+      )}
       {showForm && (
         <Modal
           title={edit ? `Editar ${edit.username}` : "Crear usuario"}

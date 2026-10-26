@@ -125,6 +125,8 @@ Pytest usa una base temporal de PostgreSQL creada por Django; no modifica las ta
 
 ## Arquitectura y modelo de datos
 
+La [guía de administración](docs/administracion.md) explica la creación de administradores y superusuarios en Swagger, los permisos y la gestión de modelos desde la web.
+
 Los resultados permiten [resaltar categorías y explorar capas de índices](docs/mapas-interactivos.md), tanto para una fecha como para comparaciones, con descarga de la vista PNG.
 
 Ver [arquitectura](docs/arquitectura.md), [contrato de la API](docs/api.md), [guía de integración posterior con React](docs/integracion-react.md) y [contrato del pipeline](backend/pipeline/README.md). La base PostgreSQL guarda usuarios, áreas, metadatos de imágenes, trabajos y referencias a resultados. Los archivos raster se guardan en un volumen persistente fuera de PostgreSQL. El modelo v9 se distribuye dentro del backend como paquete confiable y se registra con `sync_pipeline_model`; no hay carga de modelos arbitrarios desde la API.

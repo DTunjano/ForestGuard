@@ -10,6 +10,10 @@ Base: `/api/v1/`. La documentación generada por el código está en `/api/docs/
 
 `GET/POST/PATCH /admin/users/` permite a un administrador listar, crear y editar usuarios. La creación requiere `username`, `email` y `password`; admite `role` (`analyst` o `admin`) e `is_active`. La edición admite rol y estado, pero un administrador no puede desactivar su propia cuenta ni quitarse su propio rol. Las cuentas se desactivan sin borrar los análisis históricos. No se expone eliminación de usuarios. Las listas de usuarios admiten `search` y `ordering`.
 
+`POST /admin/administrators/` crea una cuenta administradora con todos los permisos del proyecto. `account_type=superuser` permite crear un superusuario únicamente si lo solicita otro superusuario. Las banderas `is_staff` e `is_superuser` son de solo lectura en los demás endpoints. La [guía de administración](administracion.md) detalla el primer acceso, los ejemplos de Swagger y la interfaz.
+
+La gestión del catálogo de modelos utiliza `GET/POST /admin/models/`, `GET/PATCH/DELETE /admin/models/{id}/` y `GET /admin/models/packages/`. Solo se registran paquetes instalados y verificados; se editan nombre, descripción y disponibilidad. Los modelos con análisis no se eliminan. `GET /models/` continúa devolviendo exclusivamente el catálogo activo.
+
 ## Imágenes y áreas
 
 ```json

@@ -253,10 +253,161 @@ async function verifyInteractiveMap(temporal) {
     page.off("request", track);
   }
 }
+
+async function verifyAdministrativeSetup() {
+  await login("integration_admin");
+  await page.goto("/admin/models");
+  await expect(
+    page.getByRole("heading", { name: "Gestión de modelos", exact: true }),
+  ).toBeVisible();
+  async function register() {
+    await page
+      .getByRole("button", { name: "Registrar modelo", exact: true })
+      .click();
+    await expect(
+      page.getByRole("combobox", { name: "Paquete instalado" }),
+    ).toContainText("v9");
+    await page
+      .getByLabel("Nombre del modelo", { exact: true })
+      .fill("ForestGuard");
+    await page
+      .getByLabel("Descripción del modelo")
+      .fill("Modelo registrado mediante la interfaz de pruebas.");
+    await capture("model-registration-form");
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Registrar modelo", exact: true })
+      .click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  }
+  await register();
+  await page.getByRole("button", { name: "Eliminar v9", exact: true }).click();
+  await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Editar v9", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Eliminar v9", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Confirmar eliminación", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Editar v9", exact: true }),
+  ).toHaveCount(0);
+  await register();
+  await page.getByRole("button", { name: "Editar v9", exact: true }).click();
+  await pick("Disponibilidad del modelo", "false");
+  await page
+    .getByRole("button", { name: "Guardar modelo", exact: true })
+    .click();
+  await expect(
+    page.getByRole("row").filter({ hasText: "ForestGuard" }),
+  ).toContainText("Inactivo");
+  await page.goto("/models");
+  await expect(
+    page.getByRole("heading", { name: "No hay modelos activos registrados" }),
+  ).toBeVisible();
+  await page.goto("/admin/models");
+  await page.getByRole("button", { name: "Editar v9", exact: true }).click();
+  await pick("Disponibilidad del modelo", "true");
+  await page
+    .getByRole("button", { name: "Guardar modelo", exact: true })
+    .click();
+  await expect(
+    page.getByRole("row").filter({ hasText: "ForestGuard" }),
+  ).toContainText("Activo");
+  await capture("model-management");
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await capture("model-management-mobile");
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto("/admin/users");
+  await page
+    .getByRole("button", { name: "Crear administrador", exact: true })
+    .click();
+  await expect(
+    page.getByRole("combobox", { name: "Tipo de cuenta administradora" }),
+  ).toHaveCount(0);
+  await page.getByLabel("Usuario", { exact: true }).fill("new_platform_admin");
+  await page
+    .getByLabel("Correo", { exact: true })
+    .fill("platform-admin@example.test");
+  await page.getByLabel("Contraseña inicial", { exact: true }).fill(password);
+  await page
+    .getByLabel("Confirmar contraseña", { exact: true })
+    .fill("Mismatch123!");
+  await page
+    .getByRole("button", { name: "Crear cuenta administradora", exact: true })
+    .click();
+  await expect(page.getByRole("dialog").getByRole("alert")).toContainText(
+    "no coinciden",
+  );
+  await page.getByLabel("Confirmar contraseña", { exact: true }).fill(password);
+  await capture("administrator-form");
+  await page
+    .getByRole("button", { name: "Crear cuenta administradora", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(
+    page.getByText(
+      "Administrador creado con todos los permisos de ForestGuard.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await logout();
+  await login("new_platform_admin");
+  await page.goto("/admin/models");
+  await expect(
+    page.getByRole("button", { name: "Editar v9", exact: true }),
+  ).toBeEnabled();
+  await page.goto("/admin/users");
+  await expect(
+    page.getByRole("button", { name: "Editar integration_root", exact: true }),
+  ).toBeDisabled();
+  await logout();
+  await login("integration_root");
+  await page.goto("/admin/users");
+  await page
+    .getByRole("button", { name: "Crear administrador", exact: true })
+    .click();
+  await pick("Tipo de cuenta administradora", "superuser");
+  await page
+    .getByLabel("Usuario", { exact: true })
+    .fill("new_django_superuser");
+  await page
+    .getByLabel("Correo", { exact: true })
+    .fill("new-root@example.test");
+  await page.getByLabel("Contraseña inicial", { exact: true }).fill(password);
+  await page.getByLabel("Confirmar contraseña", { exact: true }).fill(password);
+  await capture("superuser-form");
+  await page.setViewportSize({ width: 390, height: 844 });
+  const dialogBounds = await page.getByRole("dialog").boundingBox();
+  expect(dialogBounds.x + dialogBounds.width).toBeLessThanOrEqual(390);
+  await capture("superuser-form-mobile");
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page
+    .getByRole("button", { name: "Crear cuenta administradora", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(
+    page.getByRole("row").filter({ hasText: "new_django_superuser" }),
+  ).toContainText("Superusuario");
+  await logout();
+  await login("new_django_superuser");
+  await page.goto("/admin/users");
+  await expect(
+    page.getByRole("button", { name: "Editar integration_root", exact: true }),
+  ).toBeEnabled();
+  await logout();
+}
 try {
   await page.goto("/dashboard/new");
   await expect(page).toHaveURL(/auth\/login/);
   await capture("login");
+  await verifyAdministrativeSetup();
   await page.getByRole("link", { name: "Crear cuenta" }).click();
   await page.getByLabel("Usuario", { exact: true }).fill("integration_analyst");
   await page.getByLabel("Correo", { exact: true }).fill("analyst@example.test");
@@ -269,6 +420,8 @@ try {
     page.getByRole("heading", { name: "ForestGuard · Panel de trabajo" }),
   ).toBeVisible();
   await page.goto("/admin/users");
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.goto("/admin/models");
   await expect(page).toHaveURL(/\/dashboard$/);
   const rail = page.locator("aside");
   await page.mouse.move(1100, 500);
@@ -736,6 +889,30 @@ try {
     page.getByRole("heading", { name: "ForestGuard · v9" }),
   ).toBeVisible();
   await capture("models");
+  await page.goto("/admin/models");
+  await expect(
+    page.getByRole("button", { name: "Eliminar v9", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    page.getByText("Tiene análisis asociados; puedes desactivarlo.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Registrar modelo", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toContainText(
+    "Todos los paquetes disponibles ya están registrados",
+  );
+  await expect(
+    page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Registrar modelo", exact: true }),
+  ).toBeDisabled();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Cancelar", exact: true })
+    .click();
   await page.goto("/profile");
   await page.getByRole("button", { name: "Configurar", exact: true }).click();
   await page.getByLabel("Contraseña actual").fill(password);
