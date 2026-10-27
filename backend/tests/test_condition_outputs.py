@@ -48,7 +48,17 @@ def sample_scene(final=False):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_real_pipeline_condition_maps_report_and_exports(settings, tmp_path):
+def test_real_pipeline_condition_maps_report_and_exports(settings, tmp_path, monkeypatch):
+    from analyses import reports
+
+    embedded = []
+    original_parts = reports._image_parts
+
+    def capture_plate(path):
+        embedded.append(path)
+        return original_parts(path)
+
+    monkeypatch.setattr(reports, "_image_parts", capture_plate)
     settings.MEDIA_ROOT = tmp_path
     User = get_user_model()
     owner = User.objects.create_user(username="condition_owner", email="condition@example.test")
@@ -102,6 +112,9 @@ def test_real_pipeline_condition_maps_report_and_exports(settings, tmp_path):
     for entry in ("fechas/2024-01-01", "fechas/2024-03-01", "intervalos/2024-01-01_2024-03-01"):
         assert (folder / entry / "resumen_condicion.png").is_file()
     assert (folder / "reporte.pdf").stat().st_size > 10000
+    independent_pngs = {path for path in folder.rglob("*.png")
+                        if not path.with_suffix(".tif").exists() and not path.with_suffix(".tiff").exists()}
+    assert set(embedded) == independent_pngs
     exported = client.get(f"/api/v1/analyses/{job_id}/export/?format=both")
     with ZipFile(BytesIO(b"".join(exported.streaming_content))) as archive:
         names = archive.namelist()

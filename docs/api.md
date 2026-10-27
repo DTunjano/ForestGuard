@@ -91,3 +91,9 @@ Las imágenes requieren cobertura válida ≥ 60 % antes de guardarse. La respue
 incluye `valid_coverage_percent`. Las comparaciones requieren intervalos consecutivos
 de al menos 35 días, sin máximo, y cobertura común ≥ 60 %. Ver
 [calidad y comparaciones](calidad-y-comparaciones.md).
+
+## Informe PDF con láminas
+
+`reporte.pdf` incorpora las láminas PNG independientes en orden de lectura: visión general, fechas, comparaciones y conclusiones. Contiene tablas, interpretación y un índice navegable. Los PNG que son copias de un raster GeoTIFF no se duplican como otra lámina. Consulte [presentación y actualización de informes](informes-pdf.md).
+
+La descarga privada del PDF y la exportación ZIP actualizan automáticamente un informe antiguo si corresponde, conservando su ID y sin recalcular imágenes. El PDF abarca todo el estudio incluso si `section` filtra los mapas incluidos en el ZIP. Las descargas posteriores reutilizan la versión vigente.

@@ -21,6 +21,7 @@ from rest_framework.views import APIView
 
 from .models import Analysis, ResultArtifact
 from .raster_preview import category_mask, raster_metadata, render_preview
+from .reports import ensure_current_report
 from .serializers import (
     AnalysisResultsSerializer,
     AnalysisSerializer,
@@ -129,7 +130,9 @@ class ArtifactDownloadView(APIView):
         description=("Para un raster, `format=tiff` descarga los datos georreferenciados y "
                      "`format=png` descarga el mapa con colores usando el mismo ID. "
                      "Sin `format`, se descarga el archivo original. Para obtener todos los "
-                     "resultados sin elegir artefactos use la exportación del análisis."),
+                     "resultados sin elegir artefactos use la exportación del análisis. "
+                     "El PDF reúne las láminas PNG independientes, métricas e interpretación por fecha e intervalo; "
+                     "los informes antiguos se actualizan al descargar, sin recalcular las imágenes."),
         parameters=[OpenApiParameter("format", str, OpenApiParameter.QUERY, required=False,
                                      enum=["png", "tiff"],
                                      description="Formato deseado del raster; omitir para el archivo original.")],
@@ -142,6 +145,8 @@ class ArtifactDownloadView(APIView):
             raise serializers.ValidationError({"format": "Elija png o tiff."})
         if requested_format and artifact.kind != "raster":
             raise serializers.ValidationError({"format": "Este formato solo se aplica a raster GeoTIFF."})
+        if artifact.kind == "report" and artifact.relative_path == "reporte.pdf":
+            ensure_current_report(artifact.analysis)
         if requested_format == "png":
             png_path = str(Path(artifact.relative_path).with_suffix(".png")).replace("\\", "/")
             png = ResultArtifact.objects.filter(analysis=artifact.analysis, relative_path=png_path,
@@ -196,7 +201,9 @@ class AnalysisExportView(APIView):
         tags=["Resultados"], summary="Descargar análisis completo en ZIP",
         description=("Incluye siempre resumen JSON e informe PDF. `format=png` añade mapas en color "
                      "y láminas; `format=tiff` añade mapas GeoTIFF; `format=both` añade ambos. "
-                     "`section` permite exportar solo resultados individuales o comparaciones."),
+                     "`section` permite exportar solo resultados individuales o comparaciones. "
+                     "El PDF abarca el estudio completo y se actualiza al descargar si corresponde; "
+                     "incluye las láminas PNG independientes, ordenadas por fecha y comparación."),
         parameters=[
             OpenApiParameter("format", str, OpenApiParameter.QUERY, required=False,
                              enum=list(EXPORT_FORMATS), description="Formato de mapas; predeterminado: png."),
@@ -212,6 +219,7 @@ class AnalysisExportView(APIView):
             raise serializers.ValidationError("El análisis debe estar completado para descargarlo.")
         export_format = _query_choice(request, "format", EXPORT_FORMATS, "png")
         section = _query_choice(request, "section", RESULT_SECTIONS, "all")
+        ensure_current_report(analysis)
         groups = _result_groups(analysis)
         chosen = [*groups["reports"]]
         if section in ("all", "individual"):
@@ -236,7 +244,7 @@ class AnalysisExportView(APIView):
                     "mapas_original_resultado.png (dos mapas separados) y condicion_bosque.tif/png.\n"
                     "Los porcentajes de categorías usan el área válida; otra cobertura se muestra en gris.\n"
                     "resumen_serie.json guarda todas las métricas; reporte.pdf es el informe.\n"
-                    "El método y su interpretación se detallan en reporte.pdf y en summary.condicion por fecha/intervalo.\n"
+                    "reporte.pdf reúne las láminas PNG independientes, métricas e interpretación del estudio completo.\n"
                 ))
                 for item in chosen:
                     path = artifact_file(item)
@@ -345,7 +353,9 @@ class AnalysisViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, mixins.
     @extend_schema(exclude=True)
     @decorators.action(detail=True, methods=["get"], url_path="artifacts/(?P<artifact_id>[0-9]+)/download")
     def download(self, request, pk=None, artifact_id=None):
-        _, target = self._artifact_file(artifact_id)
+        artifact, target = self._artifact_file(artifact_id)
+        if artifact.kind == "report" and artifact.relative_path == "reporte.pdf":
+            ensure_current_report(artifact.analysis)
         return FileResponse(target.open("rb"), as_attachment=True, filename=target.name)
 
     @extend_schema(exclude=True)
