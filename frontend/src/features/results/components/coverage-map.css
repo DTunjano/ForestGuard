@@ -12,7 +12,7 @@
 }
 .fg-map-controls {
   display: grid;
-  grid-template-columns: minmax(220px, 1.4fr) minmax(180px, 1fr) auto;
+  grid-template-columns: minmax(150px, 0.9fr) minmax(160px, 1.2fr) auto;
   align-items: end;
   gap: 16px;
   padding: 16px;
@@ -22,6 +22,37 @@
 }
 .fg-map-controls-help {
   grid-column: 1 / -1;
+}
+.fg-map-details-intro {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  align-self: center;
+}
+.fg-map-details-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  min-height: 44px;
+  color: #c1d7bb;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.fg-map-details-toggle:hover {
+  color: var(--fg-accent);
+}
+.fg-map-details-body {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--fg-border);
+  padding-top: 16px;
+}
+.fg-map-details-body[hidden] {
+  display: none;
+}
+.fg-map-details-body > p {
+  margin: 10px 0 0;
 }
 .fg-map-controls input[type="range"] {
   width: 100%;

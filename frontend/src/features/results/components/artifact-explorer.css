@@ -1,0 +1,221 @@
+.fg-files-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 16px;
+}
+.fg-files-heading h2 {
+  font-size: 21px;
+  font-weight: 650;
+}
+.fg-files-heading p:last-child {
+  color: var(--fg-muted);
+  margin-top: 6px;
+  font-size: 14px;
+}
+.fg-files-count {
+  flex-shrink: 0;
+  border: 1px solid var(--fg-border);
+  padding: 6px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  color: #c5d6e4;
+}
+.fg-files-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.fg-files-categories > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  min-height: 44px;
+  border: 1px solid var(--fg-border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.fg-files-categories > button[aria-pressed="true"] {
+  border-color: var(--fg-accent);
+  background: #b9e75c12;
+  color: #d5efaf;
+}
+.fg-files-categories > button > span {
+  font-size: 11px;
+  color: #c3cfdb;
+}
+.fg-files-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.fg-files-status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+.fg-files-status > button {
+  color: #c5e39f;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  min-height: 32px;
+}
+.fg-files-workspace {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.85fr) minmax(0, 1.5fr);
+  gap: 18px;
+  align-items: start;
+}
+.fg-files-navigation,
+.fg-files-preview {
+  min-width: 0;
+}
+.fg-files-list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.fg-files-list button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  padding: 12px;
+  border: 1px solid var(--fg-border);
+  border-radius: 10px;
+  min-height: 72px;
+  cursor: pointer;
+  background: #08131f;
+}
+.fg-files-list button:hover {
+  border-color: #6c8860;
+}
+.fg-files-list button[aria-pressed="true"] {
+  background: #1d322a;
+  border-color: var(--fg-accent);
+}
+.fg-files-list button > svg {
+  color: #9bc27d;
+  flex-shrink: 0;
+}
+.fg-files-list button strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.fg-files-list button small {
+  display: block;
+  color: var(--fg-muted);
+  margin-top: 4px;
+  font-size: 11px;
+}
+.fg-file-format {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 10px;
+  color: #c1d4e5;
+}
+.fg-files-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+.fg-files-pagination .fg-button {
+  font-size: 11px;
+  padding: 8px;
+  min-height: 38px;
+}
+.fg-files-period {
+  font-size: 12px;
+  color: var(--fg-muted);
+  margin-bottom: 8px;
+}
+.fg-files-preview .fg-panel {
+  padding: 16px;
+}
+.fg-files-preview .fg-artifact-top {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+.fg-files-preview .fg-artifact-info {
+  flex: initial;
+}
+.fg-files-preview .fg-artifact-title {
+  font-size: 17px;
+  overflow-wrap: anywhere;
+}
+.fg-files-preview .fg-artifact-actions {
+  justify-content: flex-start;
+  gap: 8px;
+}
+.fg-files-preview .fg-artifact-actions .fg-button {
+  font-size: 12px;
+  padding: 8px 10px;
+}
+.fg-files-preview .fg-artifact-map-frame img {
+  max-height: 560px;
+  width: 100%;
+  object-fit: contain;
+}
+.fg-results-metrics > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  list-style: none;
+}
+.fg-results-metrics > summary::-webkit-details-marker {
+  display: none;
+}
+.fg-results-metrics > summary h2 {
+  font-size: 19px;
+  font-weight: 650;
+  color: #e7edf5;
+}
+.fg-results-metrics > summary span {
+  font-size: 13px;
+  color: #c5e39f;
+  text-decoration: underline;
+}
+.fg-results-metrics[open] > summary {
+  margin-bottom: 20px;
+}
+.fg-results-metrics .fg-when-open {
+  display: none;
+}
+.fg-results-metrics[open] .fg-when-open {
+  display: inline;
+}
+.fg-results-metrics[open] .fg-when-closed {
+  display: none;
+}
+@media (max-width: 900px) {
+  .fg-files-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 620px) {
+  .fg-files-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fg-files-heading {
+    flex-wrap: wrap;
+  }
+}

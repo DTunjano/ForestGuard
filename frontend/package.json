@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "test": "node --test tests/client.test.mjs tests/mapLayers.test.mjs",
+    "test": "node --test tests/client.test.mjs tests/mapLayers.test.mjs tests/artifactCatalog.test.mjs",
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,css,json,md}\""
   },
   "dependencies": {

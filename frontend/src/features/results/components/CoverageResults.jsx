@@ -91,7 +91,9 @@ function CoverageExplorer({ entry, condition, artifacts }) {
   const [selected, setSelected] = useState([]);
   const [opacity, setOpacity] = useState(20);
   const [layerId, setLayerId] = useState("categories");
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const helpId = useId();
+  const detailsId = useId();
   const original = artifacts.find(
     (artifact) => artifact.relative_path === entry.original,
   );
@@ -123,26 +125,25 @@ function CoverageExplorer({ entry, condition, artifacts }) {
     <>
       {filterAvailable && (
         <div className="fg-map-controls">
-          <Field label="¿Qué quieres observar?">
-            <Select
-              value={layerId}
-              onChange={(event) => setLayerId(event.target.value)}
+          <div className="fg-map-details-intro">
+            <button
+              type="button"
+              className="fg-map-details-toggle"
+              aria-expanded={detailsOpen}
+              aria-controls={detailsId}
+              onClick={() => setDetailsOpen((value) => !value)}
             >
-              <option value="categories">
+              {detailsOpen ? "Ocultar detalles" : "Ver más detalles"}
+              <span aria-hidden="true">{detailsOpen ? "⌃" : "⌄"}</span>
+            </button>
+            {!detailsOpen && layer && (
+              <small className="text-slate-300">
                 {condition.tipo === "temporal"
-                  ? "Bosque estable, degradación y posible deforestación"
-                  : "Estado de la vegetación"}
-              </option>
-              {layers.map((index) => (
-                <option key={index.id} value={index.id}>
-                  {condition.tipo === "temporal"
-                    ? index.changeLabel
-                    : index.label}{" "}
-                  · {index.id} · {index.bands}
-                </option>
-              ))}
-            </Select>
-          </Field>
+                  ? layer.changeLabel
+                  : layer.label}
+              </small>
+            )}
+          </div>
           <Field label={`Visibilidad del resto: ${opacity} %`}>
             <input
               type="range"
@@ -168,13 +169,40 @@ function CoverageExplorer({ entry, condition, artifacts }) {
           >
             Mostrar todo
           </Button>
-          <p
-            id={helpId}
-            className="text-sm text-slate-300 fg-map-controls-help"
-          >
-            Pulsa las tarjetas para resaltar zonas y ajustar la visibilidad de
-            las demás.
+          <p id={helpId} className="sr-only">
+            Selecciona tarjetas de cobertura para resaltar zonas. Esta barra
+            atenúa las demás; con cero por ciento las oculta.
           </p>
+          <div
+            id={detailsId}
+            hidden={!detailsOpen}
+            className="fg-map-details-body"
+          >
+            <Field label="¿Qué quieres observar?">
+              <Select
+                value={layerId}
+                onChange={(event) => setLayerId(event.target.value)}
+              >
+                <option value="categories">
+                  {condition.tipo === "temporal"
+                    ? "Bosque estable, degradación y posible deforestación"
+                    : "Estado de la vegetación"}
+                </option>
+                {layers.map((index) => (
+                  <option key={index.id} value={index.id}>
+                    {condition.tipo === "temporal"
+                      ? index.changeLabel
+                      : index.label}{" "}
+                    · {index.id} · {index.bands}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <p className="text-sm text-slate-300">
+              Pulsa las tarjetas para resaltar zonas y ajustar la visibilidad de
+              las demás.
+            </p>
+          </div>
         </div>
       )}
       <div className="grid gap-4 lg:grid-cols-2">

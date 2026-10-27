@@ -7,7 +7,7 @@ En un análisis completado, **Imagen original y resultado** permite explorar cad
 1. Seleccionar **Fecha o comparación**.
 2. Pulsar una o varias tarjetas de cobertura para resaltar sus zonas. Volver a pulsar una tarjeta la deselecciona; sin selecciones se muestran todas.
 3. Ajustar **Visibilidad del resto**: 0 % oculta las categorías no seleccionadas; el valor inicial de 20 % conserva su contexto atenuado.
-4. En **¿Qué quieres observar?**, elegir el resumen de cobertura o un indicador: vigor y cobertura vegetal (NDVI, B8/B4), humedad (NDMI, B8/B11), condición de cobertura y señales de degradación (NBR, B8/B12), o clorofila y vigor (NDRE, B8/B5). La selección de categorías se conserva y permite observar el indicador únicamente en esas zonas.
+4. Pulsar **Ver más detalles** para abrir **¿Qué quieres observar?** y elegir el resumen de cobertura o un indicador: vigor y cobertura vegetal (NDVI, B8/B4), humedad (NDMI, B8/B11), condición de cobertura y señales de degradación (NBR, B8/B12), o clorofila y vigor (NDRE, B8/B5). El selector empieza oculto; la barra **Visibilidad del resto** permanece visible. Ocultar detalles conserva la capa y las selecciones; el nombre del indicador activo sigue visible.
 5. **Mostrar todo** restablece categorías, selección y visibilidad. Cambiar de fecha o intervalo también restablece la exploración para ese periodo.
 6. **Descargar vista PNG** exporta el mapa tal como se está viendo, con sus transparencias. Es una imagen de visualización, sin georreferenciación ni lámina de métricas. Las descargas originales de PNG, GeoTIFF, PDF y ZIP siguen disponibles y contienen los resultados completos.
 

@@ -20,6 +20,7 @@ function formatSize(bytes) {
 
 export function PrivateImage({ url, label }) {
   const [state, setState] = useState({});
+  const [revision, setRevision] = useState(0);
   useEffect(() => {
     const controller = new AbortController();
     let objectUrl;
@@ -27,18 +28,19 @@ export function PrivateImage({ url, label }) {
       .then((blob) => {
         if (!controller.signal.aborted) {
           objectUrl = URL.createObjectURL(blob);
-          setState({ url, src: objectUrl });
+          setState({ url, revision, src: objectUrl });
         }
       })
       .catch((error) => {
-        if (!controller.signal.aborted) setState({ url, error });
+        if (!controller.signal.aborted) setState({ url, revision, error });
       });
     return () => {
       controller.abort();
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [url]);
-  return state.url === url && state.src ? (
+  }, [url, revision]);
+  const current = state.url === url && state.revision === revision;
+  return current && state.src ? (
     <div className="fg-artifact-map-frame">
       <img
         src={state.src}
@@ -47,13 +49,28 @@ export function PrivateImage({ url, label }) {
       />
     </div>
   ) : (
-    <Notice error={state.url === url ? state.error : null}>
-      Cargando visualización…
-    </Notice>
+    <>
+      <Notice error={current ? state.error : null}>
+        Cargando visualización…
+      </Notice>
+      {current && state.error && (
+        <Button
+          variant="secondary"
+          onClick={() => setRevision((value) => value + 1)}
+        >
+          Reintentar visualización
+        </Button>
+      )}
+    </>
   );
 }
 
-export function ArtifactCard({ artifact, initialOpen }) {
+export function ArtifactCard({
+  artifact,
+  initialOpen,
+  title = artifact.label,
+  showToggle = true,
+}) {
   const board =
     artifact.kind === "visualization" && !artifact.relative_path.includes("/");
   const [open, setOpen] = useState(initialOpen ?? board);
@@ -133,12 +150,12 @@ export function ArtifactCard({ artifact, initialOpen }) {
                   {name}
                 </span>
               </div>
-              <h3 className="fg-artifact-title">{artifact.label}</h3>
+              <h3 className="fg-artifact-title">{title}</h3>
             </div>
           </div>
 
           <div className="fg-artifact-actions">
-            {imageUrl && (
+            {imageUrl && showToggle && (
               <Button onClick={() => setOpen((value) => !value)}>
                 {open ? (
                   <>
@@ -182,10 +199,15 @@ export function ArtifactCard({ artifact, initialOpen }) {
         </div>
 
         <Notice error={error} />
-
-        {open && imageUrl && (
-          <PrivateImage url={imageUrl} label={artifact.label} />
+        {!imageUrl && (
+          <p className="text-sm text-slate-300">
+            {ext === "PDF"
+              ? "Informe del análisis con mapas, métricas e interpretación."
+              : "Datos y métricas del análisis en formato estructurado."}
+          </p>
         )}
+
+        {open && imageUrl && <PrivateImage url={imageUrl} label={title} />}
       </div>
     </Panel>
   );

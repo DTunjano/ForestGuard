@@ -10,6 +10,14 @@ const context = await browser.newContext({
 const page = await context.newPage();
 page.setDefaultTimeout(15000);
 const errors = [];
+const roleWrites = [];
+page.on("request", (request) => {
+  if (
+    ["POST", "PATCH"].includes(request.method()) &&
+    /\/api\/v1\/admin\/users\/(?:\d+\/)?$/.test(new URL(request.url()).pathname)
+  )
+    roleWrites.push(request.postDataJSON());
+});
 await mkdir("test-results/redesign", { recursive: true });
 async function capture(name) {
   if (await page.locator("aside").count()) {
@@ -85,6 +93,16 @@ async function verifyInteractiveMap(temporal) {
     name: "Original y resultado de cobertura",
   });
   const map = coverage.locator("canvas[role=img]");
+  const moreDetails = coverage.locator(".fg-map-details-toggle");
+  await expect(
+    coverage.getByRole("slider", { name: /Visibilidad del resto/ }),
+  ).toBeVisible();
+  await expect(
+    coverage.getByRole("combobox", { name: "¿Qué quieres observar?" }),
+  ).toBeHidden();
+  await moreDetails.focus();
+  await page.keyboard.press("Enter");
+  await expect(moreDetails).toHaveAttribute("aria-expanded", "true");
   const cards = coverage.getByRole("group", {
     name: "Resaltar categorías de cobertura",
   });
@@ -226,6 +244,15 @@ async function verifyInteractiveMap(temporal) {
       /_NDRE_resaltado\.png$/,
     );
     expect(image[0]).toBe(137);
+    await moreDetails.click();
+    await expect(moreDetails).toHaveAttribute("aria-expanded", "false");
+    await expect(
+      coverage.getByRole("combobox", { name: "¿Qué quieres observar?" }),
+    ).toBeHidden();
+    await expect(
+      coverage.getByRole("slider", { name: /Visibilidad del resto/ }),
+    ).toBeVisible();
+    await expect.poll(async () => (await pixel(40, 40))[3]).toBe(0);
     await coverage.screenshot({
       path: `test-results/redesign/map-${temporal ? "comparison" : "individual"}-filtered.png`,
     });
@@ -252,6 +279,115 @@ async function verifyInteractiveMap(temporal) {
   } finally {
     page.off("request", track);
   }
+}
+
+async function verifyArtifactExplorer(comparison = false) {
+  const explorer = page.getByRole("region", {
+    name: "Archivos del análisis",
+    exact: true,
+  });
+  const list = explorer.getByRole("list", { name: "Lista de archivos" });
+  const viewer = explorer.getByRole("region", {
+    name: "Vista del archivo seleccionado",
+  });
+  await expect(viewer).toBeVisible();
+  expect(await list.getByRole("button").count()).toBeLessThanOrEqual(6);
+  await expect(explorer.locator(".fg-artifact-card")).toHaveCount(1);
+  const chooseCategory = (name) =>
+    explorer
+      .getByRole("group", { name: "Tipos de resultados" })
+      .getByRole("button", { name: new RegExp(`^${name}`) })
+      .click();
+  await chooseCategory(comparison ? "Comparaciones" : "Por fecha");
+  await expect(list.getByRole("button")).toHaveCount(6);
+  const first = await list
+    .getByRole("button")
+    .first()
+    .getAttribute("aria-label");
+  await explorer
+    .getByRole("button", { name: "Archivos siguientes", exact: true })
+    .click();
+  await expect(list.getByRole("button").first()).not.toHaveAttribute(
+    "aria-label",
+    first,
+  );
+  await explorer
+    .getByRole("button", { name: "Archivos anteriores", exact: true })
+    .click();
+  await expect(list.getByRole("button").first()).toHaveAttribute(
+    "aria-label",
+    first,
+  );
+  await explorer.getByLabel("Buscar archivos", { exact: true }).fill("NDVI");
+  await pick("Formato disponible", "tiff");
+  await list.getByRole("button").first().click();
+  await expect(
+    viewer.getByRole("button", { name: "Descargar GeoTIFF", exact: true }),
+  ).toBeVisible();
+  await expect(
+    viewer.getByRole("button", { name: "Descargar PNG", exact: true }),
+  ).toBeVisible();
+  if (!comparison) {
+    const png = await download(
+      viewer.getByRole("button", { name: "Descargar PNG", exact: true }),
+      /\.png$/,
+    );
+    expect(png[0]).toBe(137);
+    await download(
+      viewer.getByRole("button", { name: "Descargar GeoTIFF", exact: true }),
+      /\.tif$/,
+    );
+  }
+  await explorer
+    .getByLabel("Buscar archivos", { exact: true })
+    .fill("no-such-result-123");
+  await expect(
+    explorer.getByRole("heading", { name: "No hay archivos con esos filtros" }),
+  ).toBeVisible();
+  await explorer
+    .getByRole("button", { name: "Restablecer búsqueda", exact: true })
+    .click();
+  await chooseCategory("Informes");
+  await list
+    .getByRole("button", { name: /Seleccionar Informe completo/ })
+    .click();
+  if (!comparison)
+    await download(
+      viewer.getByRole("button", { name: "Descargar PDF", exact: true }),
+      /\.pdf$/,
+    );
+  await list
+    .getByRole("button", { name: /Seleccionar Resumen y métricas/ })
+    .click();
+  if (!comparison)
+    await download(
+      viewer.getByRole("button", { name: "Descargar JSON", exact: true }),
+      /\.json$/,
+    );
+  await chooseCategory("Resúmenes");
+  await expect(viewer.locator("img")).toBeVisible();
+  expect(
+    (await viewer.locator(".fg-artifact-top").boundingBox()).height,
+  ).toBeLessThan(220);
+  await capture(
+    `artifact-explorer-${comparison ? "comparison" : "individual"}`,
+  );
+  const previous = page.viewportSize();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await explorer.evaluate(
+      (element) => element.scrollWidth <= element.clientWidth,
+    ),
+  ).toBe(true);
+  const bounds = await explorer.boundingBox();
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(390);
+  expect(
+    (await viewer.locator(".fg-artifact-top").boundingBox()).height,
+  ).toBeLessThan(260);
+  await explorer.screenshot({
+    path: `test-results/redesign/artifact-explorer-${comparison ? "comparison" : "individual"}-mobile.png`,
+  });
+  await page.setViewportSize(previous);
 }
 
 async function verifyAdministrativeSetup() {
@@ -559,25 +695,7 @@ try {
     /\.zip$/,
   );
   expect(zip.subarray(0, 2).toString()).toBe("PK");
-  const png = await download(
-    page.getByRole("button", { name: "Descargar PNG", exact: true }).first(),
-    /\.png$/,
-  );
-  expect(png[0]).toBe(137);
-  await download(
-    page
-      .getByRole("button", { name: "Descargar GeoTIFF", exact: true })
-      .first(),
-    /\.tif$/,
-  );
-  await download(
-    page.getByRole("button", { name: "Descargar PDF", exact: true }),
-    /\.pdf$/,
-  );
-  await download(
-    page.getByRole("button", { name: "Descargar JSON", exact: true }),
-    /\.json$/,
-  );
+  await verifyArtifactExplorer();
   await page.reload();
   await expect(
     page.getByRole("heading", { name: "Individual controlado", exact: true }),
@@ -629,22 +747,15 @@ try {
       exact: true,
     }),
   ).toHaveAttribute("aria-pressed", "false");
+  await page.getByText("Ver estadísticas", { exact: true }).click();
   await expect(page.getByText(/Clasificación: ejecutada/)).toBeVisible();
+  await page.getByText("Ocultar estadísticas", { exact: true }).click();
   await mkdir("test-results", { recursive: true });
   await page.screenshot({
     path: "test-results/integration-results.png",
     fullPage: true,
   });
-  await pick("Sección", "comparisons");
-  await expect(
-    page.getByRole("heading", {
-      name: "Lámina de cambios entre fechas en PNG",
-    }),
-  ).toBeVisible();
-  await pick("Índice / lámina", "NDVI");
-  await expect(
-    page.getByRole("button", { name: "Descargar GeoTIFF", exact: true }),
-  ).toHaveCount(1);
+  await verifyArtifactExplorer(true);
   await page.goto("/dashboard/history");
   await expect(page.getByRole("table")).toBeVisible();
   await capture("history");
@@ -984,6 +1095,14 @@ try {
     page.getByRole("button", { name: "Abrir navegación", exact: true }),
   ).toBeVisible();
   expect(errors).toEqual([]);
+  expect(roleWrites.length).toBeGreaterThan(0);
+  expect(
+    roleWrites.every(
+      (body) =>
+        !Object.hasOwn(body, "role") &&
+        (!body.role_ids || body.role_ids.every(Number.isInteger)),
+    ),
+  ).toBe(true);
   console.log(
     "Browser flow passed: auth, reload, roles, profile, area, valid/invalid TIFF, single, v9 comparison, history, private PNG/PDF/JSON/TIFF/ZIP, failure, admin, mobile.",
   );
