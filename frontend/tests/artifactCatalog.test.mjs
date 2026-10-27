@@ -3,6 +3,9 @@ import assert from "node:assert/strict";
 import {
   describeArtifact,
   filterArtifacts,
+  explorationArtifacts,
+  paletteVariants,
+  conditionReading,
 } from "../src/features/results/utils/artifactCatalog.js";
 
 const artifact = (id, path, kind = "visualization") =>
@@ -35,6 +38,52 @@ test("catalog groups every result and keeps dates, intervals and file identity",
     }).map((item) => item.id),
     [1, 2, 3, 4],
   );
+});
+
+test("reading uses the measured dominant category and never turns missing data into zero loss", () => {
+  assert.match(
+    conditionReading({
+      categorias: [
+        { etiqueta: "Vegetación de vigor alto", porcentaje: 70 },
+        { etiqueta: "Degradación", porcentaje: null },
+        { etiqueta: "Otra cobertura", porcentaje: 30 },
+      ],
+    }),
+    /Vegetación de vigor alto.*70 %/,
+  );
+  assert.match(conditionReading({ categorias: [] }), /No hay porcentajes/);
+  assert.match(
+    conditionReading({ categorias: [{ porcentaje: 0 }] }),
+    /No hay porcentajes/,
+  );
+});
+
+test("exploration separates indices from raw technical files and combines palette variants", () => {
+  const items = [
+    artifact(1, "visualizacion_individual.png"),
+    artifact(2, "visualizacion_individual_contraste.png"),
+    artifact(3, "fechas/2024-01-01/NDVI.tif", "raster"),
+    artifact(4, "fechas/2024-01-01/condicion_bosque.tif", "raster"),
+    artifact(5, "intervalos/2024-01-01_2024-03-01/prediccion.tif", "raster"),
+    artifact(6, "resumen_serie.json", "report"),
+    artifact(7, "fechas/2024-01-01/resumen_fecha.png"),
+    artifact(8, "fechas/2024-01-01/resumen_fecha_contraste.png"),
+    artifact(9, "fechas/2024-03-01/resumen_fecha_contraste.png"),
+    artifact(10, "intervalos/2024-01-01_2024-03-01/dNDMI.tif", "raster"),
+  ];
+  assert.deepEqual(
+    explorationArtifacts(items).map((item) => item.id),
+    [1, 3, 7, 9, 10],
+  );
+  assert.deepEqual(
+    paletteVariants(items[6], items).map((item) => item.id),
+    [7, 8],
+  );
+  assert.deepEqual(
+    paletteVariants(items[8], items).map((item) => item.id),
+    [9],
+  );
+  assert.equal(items.length, 10); // The full technical catalog keeps every file.
 });
 test("search understands accents and filters PNG availability without losing raster downloads", () => {
   const items = [

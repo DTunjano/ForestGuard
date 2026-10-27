@@ -73,3 +73,47 @@ export function filterArtifacts(items, { category, search, period, format }) {
         (format === "png" && item.kind === "raster" && item.png_download_url)),
   );
 }
+
+// A palette is a view of the same map, not an additional finding.
+export function explorationArtifacts(artifacts) {
+  return artifacts
+    .filter((artifact) => {
+      const name = artifact.relative_path.split("/").at(-1);
+      return /^(?:d?(?:NDVI|NDMI|NBR|NDRE)\.tiff?|resumen_(?:fecha|cambio)(?:_contraste)?\.png|visualizacion_(?:individual(?:_contraste)?|comparativa)\.png)$/i.test(
+        name,
+      );
+    })
+    .filter(
+      (artifact, _, candidates) =>
+        !artifact.relative_path.includes("_contraste.") ||
+        !candidates.some(
+          (other) =>
+            other.relative_path ===
+            artifact.relative_path.replace("_contraste.", "."),
+        ),
+    );
+}
+
+export function paletteVariants(artifact, artifacts) {
+  const base = artifact.relative_path.replace("_contraste.", ".");
+  return artifacts.filter(
+    (item) => item.relative_path.replace("_contraste.", ".") === base,
+  );
+}
+
+export function conditionReading(condition) {
+  const measured = (condition.categorias || []).filter((item) =>
+    Number.isFinite(item.porcentaje),
+  );
+  const dominant = measured.reduce(
+    (largest, item) =>
+      !largest || item.porcentaje > largest.porcentaje ? item : largest,
+    null,
+  );
+  if (!dominant || dominant.porcentaje <= 0)
+    return "No hay porcentajes de cobertura disponibles para este periodo.";
+  const value = dominant.porcentaje.toLocaleString("es-CO", {
+    maximumFractionDigits: 2,
+  });
+  return `La categoría con mayor superficie es «${dominant.etiqueta}», con ${value} % del área válida evaluada.`;
+}

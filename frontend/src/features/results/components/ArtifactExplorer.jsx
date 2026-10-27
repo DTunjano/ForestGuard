@@ -8,7 +8,12 @@ import {
   Select,
 } from "../../../shared/components/UI";
 import { ArtifactCard } from "./ArtifactCard";
-import { describeArtifact, filterArtifacts } from "../utils/artifactCatalog";
+import {
+  describeArtifact,
+  filterArtifacts,
+  explorationArtifacts,
+  paletteVariants,
+} from "../utils/artifactCatalog";
 import "./artifact-explorer.css";
 
 const categories = [
@@ -21,8 +26,11 @@ const categories = [
 ];
 const PAGE_SIZE = 6;
 
-export function ArtifactExplorer({ artifacts }) {
-  const items = artifacts.map(describeArtifact);
+export function ArtifactExplorer({ artifacts, purpose = "technical" }) {
+  const exploring = purpose === "exploration";
+  const items = (exploring ? explorationArtifacts(artifacts) : artifacts).map(
+    describeArtifact,
+  );
   const [category, setCategory] = useState(
     items.some((item) => item.category === "overview") ? "overview" : "all",
   );
@@ -31,6 +39,7 @@ export function ArtifactExplorer({ artifacts }) {
   const [format, setFormat] = useState("");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState(null);
+  const [palette, setPalette] = useState("default");
   const viewerId = useId();
   const filtered = filterArtifacts(items, { category, search, period, format });
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -38,6 +47,12 @@ export function ArtifactExplorer({ artifacts }) {
   const offset = (currentPage - 1) * PAGE_SIZE;
   const visible = filtered.slice(offset, offset + PAGE_SIZE);
   const active = visible.find((item) => item.id === selected) || visible[0];
+  const variants = active ? paletteVariants(active, artifacts) : [];
+  const alternate = variants.find((item) =>
+    item.relative_path.includes("_contraste."),
+  );
+  const displayed =
+    palette === "contrast" && alternate ? describeArtifact(alternate) : active;
   const periods = [
     ...new Set(
       items
@@ -56,15 +71,21 @@ export function ArtifactExplorer({ artifacts }) {
   }
 
   return (
-    <section id="res-explorer" aria-label="Archivos del análisis">
+    <section
+      id="res-explorer"
+      aria-label={exploring ? "Mapas de índices" : "Archivos del análisis"}
+    >
       <Panel>
         <div className="fg-files-heading">
           <div>
-            <p className="fg-eyebrow">Biblioteca de resultados</p>
-            <h2>Archivos del análisis</h2>
+            <p className="fg-eyebrow">
+              {exploring ? "Exploración visual" : "Biblioteca técnica"}
+            </p>
+            <h2>{exploring ? "Mapas de índices" : "Archivos del análisis"}</h2>
             <p>
-              Selecciona un archivo para verlo o descargarlo, sin salir de este
-              espacio.
+              {exploring
+                ? "Explora la vegetación, humedad y diferencias entre fechas. Los índices conservan su escala propia."
+                : "GeoTIFF para herramientas geográficas, JSON con métricas y todos los archivos originales del análisis."}
             </p>
           </div>
           <span className="fg-files-count">{items.length} archivos</span>
@@ -223,10 +244,21 @@ export function ArtifactExplorer({ artifacts }) {
               aria-label="Vista del archivo seleccionado"
             >
               <p className="fg-files-period">{active.periodLabel}</p>
+              {exploring && alternate && variants.length > 1 && (
+                <Field label="Paleta del mapa">
+                  <Select
+                    value={palette}
+                    onChange={(event) => setPalette(event.target.value)}
+                  >
+                    <option value="default">Ocre–verde</option>
+                    <option value="contrast">Rojo–azul · contraste</option>
+                  </Select>
+                </Field>
+              )}
               <ArtifactCard
-                key={active.id}
-                artifact={active}
-                title={active.title}
+                key={displayed.id}
+                artifact={displayed}
+                title={displayed.title}
                 initialOpen
                 showToggle={false}
               />

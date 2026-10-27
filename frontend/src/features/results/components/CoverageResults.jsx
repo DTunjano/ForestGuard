@@ -8,6 +8,8 @@ import {
 } from "../../../shared/components/UI";
 import { PrivateImage } from "./ArtifactCard";
 import { INDEX_LAYERS } from "../utils/mapLayers";
+import { ResultDownload } from "./ResultDownload";
+import { conditionReading } from "../utils/artifactCatalog";
 import "./coverage-map.css";
 
 const InteractiveCoverageMap = lazy(() =>
@@ -114,6 +116,10 @@ function CoverageExplorer({ entry, condition, artifacts }) {
     selected.includes(item.valor),
   );
   const filterAvailable = !!result?.category_mask_url;
+  const summaryImage = artifacts.find(
+    (artifact) =>
+      artifact.relative_path === `${entry.folder}/resumen_condicion.png`,
+  );
   function toggle(value) {
     setSelected((current) =>
       current.includes(value)
@@ -325,6 +331,20 @@ function CoverageExplorer({ entry, condition, artifacts }) {
           : " de la escena"}
         . Sin datos: transparente.
       </p>
+      <div className="fg-results-reading">
+        <h3 className="font-semibold">Lectura del resultado</h3>
+        <p>
+          {conditionReading(condition)}{" "}
+          {condition.tipo === "temporal"
+            ? "La comparación describe la superficie común observada entre estas dos fechas; las zonas señaladas permiten localizar degradación y posible deforestación."
+            : "Este mapa describe el estado de la vegetación en la fecha seleccionada. Para identificar cambios y degradación se necesita comparar con otra fecha."}
+        </p>
+        {summaryImage && (
+          <ResultDownload artifact={summaryImage}>
+            Descargar resumen PNG
+          </ResultDownload>
+        )}
+      </div>
     </>
   );
 }

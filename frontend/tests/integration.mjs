@@ -75,8 +75,86 @@ async function create(name) {
     page.getByText("Estado: Completado", { exact: true }),
   ).toBeVisible({ timeout: 90000 });
   await expect(
-    page.getByRole("heading", { name: "Resumen y métricas", exact: true }),
+    page.getByRole("heading", {
+      name: "Imagen original y resultado",
+      exact: true,
+    }),
   ).toBeVisible();
+}
+async function selectResultLevel(name) {
+  const button = page
+    .getByRole("group", { name: "Nivel de detalle de resultados" })
+    .getByRole("button", { name: new RegExp(`^${name}`) });
+  await button.click();
+  await expect(button).toHaveAttribute("aria-pressed", "true");
+}
+async function verifyResultLevels(comparison) {
+  const coverage = page.getByRole("region", {
+    name: "Original y resultado de cobertura",
+  });
+  await expect(coverage).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Archivos del análisis", exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByText("Ver estadísticas", { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByRole("heading", { name: "Lectura del resultado", exact: true }),
+  ).toBeVisible();
+  await expect(coverage.locator("canvas[role=img]")).toBeVisible();
+  await expect(coverage.locator("img")).toBeVisible();
+  if (!comparison) {
+    await download(
+      page.getByRole("button", { name: "Descargar informe PDF", exact: true }),
+      /\.pdf$/,
+    );
+    await download(
+      page.getByRole("button", { name: "Descargar resumen PNG", exact: true }),
+      /\.png$/,
+    );
+  }
+  await capture(`results-summary-${comparison ? "comparison" : "individual"}`);
+  const desktop = page.viewportSize();
+  await page.setViewportSize({ width: 390, height: 844 });
+  const levels = page.getByRole("group", {
+    name: "Nivel de detalle de resultados",
+  });
+  expect(
+    await levels.evaluate(
+      (element) => element.scrollWidth <= element.clientWidth,
+    ),
+  ).toBe(true);
+  await capture(
+    `results-summary-${comparison ? "comparison" : "individual"}-mobile`,
+  );
+  await page.setViewportSize(desktop);
+  await selectResultLevel("Explorar índices");
+  await expect(coverage).toBeHidden();
+  const explorer = page.getByRole("region", {
+    name: "Mapas de índices",
+    exact: true,
+  });
+  await expect(explorer).toBeVisible();
+  await expect(explorer.getByRole("button", { name: /^Informes/ })).toHaveCount(
+    0,
+  );
+  const list = explorer.getByRole("list", { name: "Lista de archivos" });
+  await expect(list.getByRole("button", { name: /contraste/ })).toHaveCount(0);
+  await pick("Paleta del mapa", "contrast");
+  const preview = explorer.getByRole("region", {
+    name: "Vista del archivo seleccionado",
+  });
+  await expect(preview.locator("img")).toHaveAttribute("alt", /contraste/);
+  await pick("Paleta del mapa", "default");
+  await expect(preview.locator("img")).toBeVisible();
+  await page.getByText("Ver estadísticas", { exact: true }).click();
+  if (comparison)
+    await expect(page.getByText(/Clasificación: ejecutada/)).toBeVisible();
+  await page.getByText("Ocultar estadísticas", { exact: true }).click();
+  await capture(`results-indices-${comparison ? "comparison" : "individual"}`);
+  await selectResultLevel("Resumen");
+  await expect(coverage).toBeVisible();
 }
 async function download(button, extension) {
   const pending = page.waitForEvent("download");
@@ -282,6 +360,7 @@ async function verifyInteractiveMap(temporal) {
 }
 
 async function verifyArtifactExplorer(comparison = false) {
+  await selectResultLevel("Descargas técnicas");
   const explorer = page.getByRole("region", {
     name: "Archivos del análisis",
     exact: true,
@@ -388,6 +467,7 @@ async function verifyArtifactExplorer(comparison = false) {
     path: `test-results/redesign/artifact-explorer-${comparison ? "comparison" : "individual"}-mobile.png`,
   });
   await page.setViewportSize(previous);
+  await selectResultLevel("Resumen");
 }
 
 async function verifyAdministrativeSetup() {
@@ -690,6 +770,8 @@ try {
         .evaluate((img) => img.complete && img.naturalWidth > 0),
     )
     .toBe(true);
+  await verifyResultLevels(false);
+  await selectResultLevel("Descargas técnicas");
   const zip = await download(
     page.getByRole("button", { name: "Descargar ZIP completo" }),
     /\.zip$/,
@@ -747,9 +829,7 @@ try {
       exact: true,
     }),
   ).toHaveAttribute("aria-pressed", "false");
-  await page.getByText("Ver estadísticas", { exact: true }).click();
-  await expect(page.getByText(/Clasificación: ejecutada/)).toBeVisible();
-  await page.getByText("Ocultar estadísticas", { exact: true }).click();
+  await verifyResultLevels(true);
   await mkdir("test-results", { recursive: true });
   await page.screenshot({
     path: "test-results/integration-results.png",

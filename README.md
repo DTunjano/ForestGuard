@@ -127,7 +127,7 @@ Pytest usa una base temporal de PostgreSQL creada por Django; no modifica las ta
 
 La [guía de administración](docs/administracion.md) explica la creación de administradores y superusuarios en Swagger, los permisos y la gestión de modelos desde la web.
 
-Para crear el primer administrador de la aplicación desde `backend`, con `.venv` activo, usar `py manage.py create_project_admin`; para acceso completo a Django, `py manage.py createsuperuser`. La API asigna roles por `role_ids`. La [biblioteca compacta de resultados](docs/resultados-compactos.md) organiza archivos con un único visor y paginación.
+Para crear el primer administrador de la aplicación desde `backend`, con `.venv` activo, usar `py manage.py create_project_admin`; para acceso completo a Django, `py manage.py createsuperuser`. La API asigna roles por `role_ids`. Los [resultados por niveles](docs/resultados-compactos.md) presentan primero mapas, porcentajes e informe, y permiten abrir los índices o las descargas técnicas en apartados separados, con un único visor y paginación.
 
 Los resultados permiten [resaltar categorías y explorar capas de índices](docs/mapas-interactivos.md), tanto para una fecha como para comparaciones, con descarga de la vista PNG.
 
