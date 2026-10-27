@@ -261,6 +261,7 @@ export function ArtifactExplorer({ artifacts, purpose = "technical" }) {
                 title={displayed.title}
                 initialOpen
                 showToggle={false}
+                stablePreview
               />
             </section>
           </div>

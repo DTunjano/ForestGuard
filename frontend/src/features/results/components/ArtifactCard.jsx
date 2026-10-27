@@ -46,6 +46,16 @@ export function PrivateImage({ url, label }) {
         src={state.src}
         alt={label}
         className="max-h-[960px] w-full object-contain"
+        onLoad={(event) => event.currentTarget.classList.add("is-ready")}
+        onError={() =>
+          setState({
+            url,
+            revision,
+            error: new Error(
+              "No se pudo mostrar la imagen. Vuelve a intentarlo.",
+            ),
+          })
+        }
       />
     </div>
   ) : (
@@ -70,6 +80,7 @@ export function ArtifactCard({
   initialOpen,
   title = artifact.label,
   showToggle = true,
+  stablePreview = false,
 }) {
   const board =
     artifact.kind === "visualization" && !artifact.relative_path.includes("/");
@@ -199,15 +210,18 @@ export function ArtifactCard({
         </div>
 
         <Notice error={error} />
-        {!imageUrl && (
-          <p className="text-sm text-slate-300">
-            {ext === "PDF"
-              ? "Informe del análisis con mapas, métricas e interpretación."
-              : "Datos y métricas del análisis en formato estructurado."}
-          </p>
-        )}
-
-        {open && imageUrl && <PrivateImage url={imageUrl} label={title} />}
+        <div
+          className={stablePreview ? "fg-artifact-preview-stage" : undefined}
+        >
+          {!imageUrl && (
+            <p className="text-sm text-slate-300">
+              {ext === "PDF"
+                ? "Informe del análisis con mapas, métricas e interpretación."
+                : "Datos y métricas del análisis en formato estructurado."}
+            </p>
+          )}
+          {open && imageUrl && <PrivateImage url={imageUrl} label={title} />}
+        </div>
       </div>
     </Panel>
   );

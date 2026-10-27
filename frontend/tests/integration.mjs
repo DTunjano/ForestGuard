@@ -141,11 +141,21 @@ async function verifyResultLevels(comparison) {
   );
   const list = explorer.getByRole("list", { name: "Lista de archivos" });
   await expect(list.getByRole("button", { name: /contraste/ })).toHaveCount(0);
+  const metricsTop = () =>
+    page
+      .locator(".fg-results-metrics")
+      .evaluate(
+        (element) => element.getBoundingClientRect().top + window.scrollY,
+      );
+  const beforePalette = await metricsTop();
   await pick("Paleta del mapa", "contrast");
+  expect(Math.abs((await metricsTop()) - beforePalette)).toBeLessThan(2);
   const preview = explorer.getByRole("region", {
     name: "Vista del archivo seleccionado",
   });
   await expect(preview.locator("img")).toHaveAttribute("alt", /contraste/);
+  await expect(preview.locator("img")).toHaveClass(/is-ready/);
+  expect(Math.abs((await metricsTop()) - beforePalette)).toBeLessThan(2);
   await pick("Paleta del mapa", "default");
   await expect(preview.locator("img")).toBeVisible();
   await page.getByText("Ver estadísticas", { exact: true }).click();
@@ -153,6 +163,20 @@ async function verifyResultLevels(comparison) {
     await expect(page.getByText(/Clasificación: ejecutada/)).toBeVisible();
   await page.getByText("Ocultar estadísticas", { exact: true }).click();
   await capture(`results-indices-${comparison ? "comparison" : "individual"}`);
+  await explorer
+    .getByRole("group", { name: "Tipos de resultados" })
+    .getByRole("button", { name: /^Por fecha/ })
+    .click();
+  const beforeSelection = await metricsTop();
+  for (const item of [
+    list.getByRole("button").first(),
+    list.getByRole("button").last(),
+  ]) {
+    await item.click();
+    expect(Math.abs((await metricsTop()) - beforeSelection)).toBeLessThan(2);
+    await expect(preview.locator("img")).toHaveClass(/is-ready/);
+    expect(Math.abs((await metricsTop()) - beforeSelection)).toBeLessThan(2);
+  }
   await selectResultLevel("Resumen");
   await expect(coverage).toBeVisible();
 }
@@ -198,6 +222,20 @@ async function verifyInteractiveMap(temporal) {
   await page.keyboard.press("Enter");
   await expect(hint).toBeHidden();
   await expect(moreDetails).toHaveAttribute("aria-expanded", "true");
+  await moreDetails.hover();
+  await expect(hint).toBeVisible();
+  await coverage
+    .getByRole("heading", { name: "Imagen original y resultado", exact: true })
+    .hover();
+  await expect(hint).toBeHidden(); // A click leaves focus behind, but must not pin mouse help.
+  const helpButton = coverage.getByRole("button", {
+    name: "Ayuda sobre los detalles del mapa",
+    exact: true,
+  });
+  await helpButton.focus();
+  await expect(hint).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(hint).toBeHidden();
   const cards = coverage.getByRole("group", {
     name: "Resaltar categorías de cobertura",
   });
@@ -247,7 +285,7 @@ async function verifyInteractiveMap(temporal) {
     await expect(
       selectedCard.getByText("Quitar resaltado", { exact: true }),
     ).toBeVisible();
-    await expect(selectedCard.locator(".fg-coverage-check svg")).toHaveCount(1);
+    await expect(cards.locator(".fg-coverage-check")).toHaveCount(0);
     await expect.poll(async () => (await pixel(40, 40))[3]).toBe(51);
     if (temporal) {
       await cards

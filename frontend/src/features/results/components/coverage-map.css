@@ -33,6 +33,27 @@
   position: relative;
   width: 100%;
   max-width: 320px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.fg-map-details-help {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  min-height: 44px;
+  color: #c4d0bc;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.fg-map-details-help:hover {
+  color: #e2f2cf;
+  background: #263d31;
+}
+.fg-map-details-help svg {
+  width: 18px;
+  height: 18px;
 }
 .fg-map-details-toggle {
   display: inline-flex;
@@ -70,9 +91,6 @@
 }
 .fg-map-details-leading {
   color: #c6e88e;
-}
-.fg-map-details-info {
-  color: #c4d0bc;
 }
 .fg-map-details-chevron {
   transition: transform 160ms ease;
@@ -126,22 +144,6 @@
   gap: 8px;
   font-size: 13px;
 }
-.fg-coverage-check {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 21px;
-  height: 21px;
-  border: 1px solid #7893a7;
-  border-radius: 6px;
-  background: #08131f;
-  color: #0b1728;
-}
-.fg-coverage-check svg {
-  width: 15px;
-  height: 15px;
-  stroke-width: 3;
-}
 .fg-coverage-card-action {
   display: flex;
   align-items: center;
@@ -161,10 +163,6 @@
   flex-shrink: 0;
   width: 15px;
   height: 15px;
-}
-.fg-coverage-toggle[aria-pressed="true"] .fg-coverage-check {
-  border-color: var(--fg-accent);
-  background: var(--fg-accent);
 }
 .fg-coverage-toggle[aria-pressed="true"] .fg-coverage-card-action {
   background: #2a4635;

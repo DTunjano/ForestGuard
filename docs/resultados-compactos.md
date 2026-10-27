@@ -18,9 +18,11 @@ Seleccionar un archivo actualiza el visor y sus descargas. Los archivos de cada 
 
 `Results.jsx` conserva la página y los estados de ejecución. `CompletedResults` reúne los tres niveles, exportación y métricas. `ArtifactExplorer` recibe su propósito de exploración o biblioteca técnica; `artifactCatalog.js` concentra nombres, agrupación, variantes, filtros e interpretación de la categoría dominante. `ArtifactCard` mantiene las descargas autenticadas y la vista de un único archivo; `ResultDownload` gestiona las descargas principales y sus estados de espera/error.
 
-No cambian los IDs, archivos, resultados, umbrales, propiedad ni contratos de descarga del backend. Los PDF y PNG existentes se presentan tal como fueron generados; esta reorganización no los regenera ni elimina. `pnpm dev` y el funcionamiento del worker se conservan.
+No cambian los IDs, métricas, umbrales, propiedad ni contratos de descarga. Los PNG y GeoTIFF se conservan; el [informe PDF actualizado](informes-pdf.md) reúne las láminas PNG independientes y se renueva al descargar si su versión está desactualizada. `pnpm dev` y el funcionamiento del worker se conservan.
 
 El visor usa dos paneles en escritorio y una columna en móvil. Las acciones son botones nativos con estado visible; los filtros usan el sistema de diseño. Solo se solicita la imagen seleccionada y se cancela su petición anterior al cambiar, liberando el object URL. Los fallos permiten reintentar. La biblioteca técnica conserva todos los archivos originales aunque la exploración agrupe sus paletas.
+
+El área del archivo seleccionado reserva una altura de 760 px en escritorio y 660 px en móvil. Encabezado, paleta, carga, imagen y errores se distribuyen dentro de ese espacio, sin empujar las estadísticas al cambiar de archivo. Las imágenes se ajustan completas con `object-fit: contain`; la entrada suave respeta movimiento reducido. Las pruebas comprueban que la posición de las métricas varíe menos de 2 px durante la carga y después de cambiar de paleta o archivo.
 
 Se aplica presentación progresiva y reconocimiento de opciones. Referencias de diseño: [heurísticas de Nielsen Norman Group](https://www.nngroup.com/articles/ten-usability-heuristics/) y [patrón de despliegue accesible de W3C](https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/). No constituye una auditoría completa de conformidad WCAG.
 

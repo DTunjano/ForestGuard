@@ -1,5 +1,5 @@
 import { lazy, Suspense, useId, useState } from "react";
-import { LuCheck, LuFocus, LuMousePointer2 } from "react-icons/lu";
+import { LuFocus, LuMousePointer2 } from "react-icons/lu";
 import {
   Button,
   Field,
@@ -300,11 +300,6 @@ function CoverageExplorer({ entry, condition, artifacts }) {
                   ? "Degradación"
                   : category.etiqueta}
               </span>
-              {filterAvailable && category.porcentaje != null && (
-                <span className="fg-coverage-check" aria-hidden="true">
-                  {selected.includes(category.valor) && <LuCheck />}
-                </span>
-              )}
             </span>
             <span className="mt-3 block text-xl font-semibold">
               {category.clave === "degradacion" && condition.tipo !== "temporal"
