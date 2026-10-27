@@ -309,6 +309,7 @@ def test_concurrent_admin_demotions_keep_one_active_administrator():
     second = account("concurrent_second", role="admin")
     first.get_all_permissions()
     second.get_all_permissions()
+    analyst_id = first.groups.model.objects.get(name="analyst").pk
     barrier = Barrier(2)
 
     def demote(actor, target):
@@ -318,7 +319,7 @@ def test_concurrent_admin_demotions_keep_one_active_administrator():
             client.force_authenticate(actor)
             barrier.wait(timeout=10)
             return client.patch(
-                f"/api/v1/admin/users/{target.pk}/", {"role": "analyst"}, format="json"
+                f"/api/v1/admin/users/{target.pk}/", {"role_ids": [analyst_id]}, format="json"
             ).status_code
         finally:
             close_old_connections()

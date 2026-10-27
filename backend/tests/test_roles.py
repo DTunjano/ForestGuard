@@ -109,7 +109,7 @@ def test_builtin_protection_multi_role_union_and_assignment_permission():
         client.patch(
             f"/api/v1/admin/users/{second.pk}/", {"role": "admin"}, format="json"
         ).status_code
-        == 403
+        == 400
     )
     client.force_authenticate(User.objects.get(pk=admin.pk))
     analyst_group = Group.objects.get(name="analyst")

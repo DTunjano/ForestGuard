@@ -176,7 +176,7 @@ grupo. `RoleProfile` añade descripción y protección de roles base.
 - Ser administrador de la API no concede automáticamente `is_staff` ni acceso
   al panel `/admin/` de Django. Ese panel conserva los controles de Django.
 
-`role` se mantiene como campo de compatibilidad para clientes anteriores.
+`role` se mantiene como campo de compatibilidad informativa de solo lectura; su escritura devuelve `400`. Las asignaciones se envían mediante `role_ids`.
 La autorización usa grupos/permisos, no comparaciones contra ese string.
 `GET /api/v1/auth/me/` y el listado de usuarios devuelven `roles` y
 `permissions`. La web consulta esas capacidades para rutas y navegación;
@@ -209,7 +209,7 @@ Asignación de varios roles:
 {"role_ids": [3, 4]}
 ```
 
-No enviar `role` y `role_ids` juntos. Un arreglo vacío retira todos los roles;
+Enviar únicamente `role_ids` para asignar roles; no enviar el campo legado `role`. Un arreglo vacío retira todos los roles cuando las protecciones de administración lo permiten;
 el usuario conserva su cuenta y perfil, pero no gana acceso a módulos.
 Para usar pantallas de edición, conceder también la consulta del módulo. Para
 crear análisis desde la web se necesitan consulta de áreas/imágenes/modelos y

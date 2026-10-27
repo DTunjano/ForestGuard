@@ -67,7 +67,7 @@ def test_admin_user_management_and_deactivation():
     client.force_authenticate(user=admin)
     created = client.post("/api/v1/admin/users/", {
         "username": "newuser", "email": "New@Example.COM", "password": "StrongPass123!",
-        "role": "analyst", "is_active": True,
+        "role_ids": [analyst.groups.get(name="analyst").pk], "is_active": True,
     }, format="json")
     assert created.status_code == 201, created.data
     assert "password" not in created.data
@@ -77,7 +77,7 @@ def test_admin_user_management_and_deactivation():
         "is_active": False,
     }, format="json").status_code == 400
     assert client.patch(f"/api/v1/admin/users/{admin.pk}/", {
-        "role": "analyst",
+        "role_ids": [analyst.groups.get(name="analyst").pk],
     }, format="json").status_code == 400
     assert client.patch(f"/api/v1/admin/users/{new_user.pk}/", {
         "is_active": False,

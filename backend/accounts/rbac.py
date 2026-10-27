@@ -103,7 +103,8 @@ class UserManagementPermission(BasePermission):
 
 
 class AdministratorCreationPermission(BasePermission):
-    message = "Solo un administrador con permisos de creación de usuarios y asignación de roles puede crear administradores."
+    message = ("Se requiere un administrador con permisos de creación de usuarios y asignación de roles. "
+               "Para la primera cuenta, ejecute py manage.py create_project_admin o py manage.py createsuperuser desde consola.")
 
     def has_permission(self, request, view):
         return (request.user.is_authenticated and request.user.is_project_admin

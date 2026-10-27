@@ -153,10 +153,15 @@ class IsProjectAdmin(permissions.BasePermission):
 
 @extend_schema_view(
     list=extend_schema(tags=["Administración de usuarios"], summary="Listar usuarios"),
-    create=extend_schema(tags=["Administración de usuarios"], summary="Crear usuario"),
+    create=extend_schema(tags=["Administración de usuarios"], summary="Crear usuario y asignar roles por ID",
+        request=AdminUserCreateSerializer, responses={201: AdminUserSerializer},
+        description="role_ids contiene IDs obtenidos en GET /api/v1/admin/roles/. Si se omite se asigna el rol de analista. Para asignar roles se requiere auth.change_group. El campo legado role no acepta escritura.",
+        examples=[OpenApiExample("Usuario con roles seleccionados", value={"username": "nuevo_usuario", "email": "usuario@example.com", "password": "UnaContraseñaSegura123!", "role_ids": [2]}, request_only=True)]),
     retrieve=extend_schema(tags=["Administración de usuarios"], summary="Consultar usuario"),
     partial_update=extend_schema(
-        tags=["Administración de usuarios"], summary="Cambiar rol, datos o estado"
+        tags=["Administración de usuarios"], summary="Editar datos, estado o roles por ID",
+        description="Envíe role_ids con los IDs de los roles elegidos para sustituir sus asignaciones; omítalo para conservarlas. Consulte los IDs reales en GET /api/v1/admin/roles/. role es legado de solo lectura.",
+        examples=[OpenApiExample("Asignar roles por ID", value={"role_ids": [2, 3]}, request_only=True)],
     ),
 )
 class UserAdminViewSet(viewsets.ModelViewSet):
@@ -173,6 +178,13 @@ class UserAdminViewSet(viewsets.ModelViewSet):
             return AdminUserCreateSerializer
         return AdminUserSerializer
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(AdminUserSerializer(serializer.instance, context=self.get_serializer_context()).data,
+                        status=status.HTTP_201_CREATED)
+
     def perform_update(self, serializer):
         if serializer.instance.is_superuser and not self.request.user.is_superuser:
             raise PermissionDenied("Solo un superusuario puede modificar otra cuenta de superusuario.")
@@ -181,10 +193,6 @@ class UserAdminViewSet(viewsets.ModelViewSet):
             if serializer.validated_data.get("is_active") is False:
                 raise serializers.ValidationError(
                     {"is_active": "No puede desactivar su propia cuenta."}
-                )
-            if serializer.validated_data.get("role") == User.Role.ANALYST:
-                raise serializers.ValidationError(
-                    {"role": "No puede quitarse su propio rol administrador."}
                 )
         with transaction.atomic():
             # Lock before taking the membership snapshot, including concurrent demotions.
@@ -200,13 +208,11 @@ class UserAdminViewSet(viewsets.ModelViewSet):
                     and sum(user.is_superuser for user in admins) == 1):
                 raise serializers.ValidationError("Debe conservar al menos un superusuario activo.")
             if target.is_superuser and (
-                serializer.validated_data.get("role") == User.Role.ANALYST or
-                (groups is not None and not any(group.name == "admin" for group in groups))
+                groups is not None and not any(group.name == "admin" for group in groups)
             ):
                 raise serializers.ValidationError("Un superusuario debe conservar el rol administrador.")
             removes_admin = (
                 serializer.validated_data.get("is_active") is False
-                or serializer.validated_data.get("role") == User.Role.ANALYST
                 or (groups is not None and not any(group.name == "admin" for group in groups))
             )
             if removes_admin and target.pk in [user.pk for user in admins] and len(admins) == 1:
@@ -220,9 +226,7 @@ class UserAdminViewSet(viewsets.ModelViewSet):
             serializer.save()
 
     def _check_role_assignment(self, serializer):
-        if (
-            "groups" in serializer.validated_data or "role" in self.request.data
-        ) and not self.request.user.has_perm("auth.change_group"):
+        if "groups" in serializer.validated_data and not self.request.user.has_perm("auth.change_group"):
             from rest_framework.exceptions import PermissionDenied
 
             raise PermissionDenied("Se requiere permiso de asignación de roles.")
@@ -246,7 +250,8 @@ class AdministratorCreateView(generics.CreateAPIView):
                      "Por defecto crea un administrador activo con el rol admin y todos los permisos de ForestGuard. "
                      "account_type=superuser requiere un superusuario y habilita también el administrador de Django. "
                      "Los privilegios se asignan en el servidor; no se solicitan IDs de roles. "
-                     "Para la primera cuenta de superusuario use py manage.py createsuperuser desde consola."),
+                     "Para el primer administrador use py manage.py create_project_admin; "
+                     "para el primer superusuario use py manage.py createsuperuser desde consola. No hay creación pública de administradores."),
         request=AdministratorCreateSerializer,
         responses={201: AdminUserSerializer, 400: OpenApiTypes.OBJECT, 401: OpenApiTypes.OBJECT, 403: OpenApiTypes.OBJECT},
         examples=[

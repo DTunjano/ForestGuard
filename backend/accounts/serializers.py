@@ -2,6 +2,7 @@ from django.contrib.auth.models import Group
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 from django.db.models.functions import Lower
+from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
@@ -46,7 +47,7 @@ class RoleSerializer(serializers.ModelSerializer):
                         "permission_ids": "Los permisos base del sistema están protegidos. Cree un rol personalizado."
                     }
                 )
-        if not self.instance and attrs.get("name", "").lower() in ("admin", "analyst"):
+        if attrs.get("name", "").lower() in ("admin", "analyst") and not (self.instance and self.instance.project_role.is_system):
             raise serializers.ValidationError({"name": "Nombre reservado para el sistema."})
         return attrs
 
@@ -68,6 +69,7 @@ class RoleSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
+@extend_schema_serializer(deprecate_fields=["role"])
 class UserSerializer(serializers.ModelSerializer):
     roles = RoleSerializer(source="groups", many=True, read_only=True)
     permissions = serializers.SerializerMethodField()
@@ -94,7 +96,7 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "role", "is_active", "is_staff", "is_superuser", "date_joined")
         extra_kwargs = {
             "role": {
-                "help_text": "Campo de compatibilidad; use roles y permissions para consultar capacidades."
+                "help_text": "Legado, solo lectura. Las relaciones y asignaciones usan roles[].id y role_ids; los permisos efectivos están en permissions."
             }
         }
 
@@ -136,17 +138,20 @@ class AdminUserSerializer(UserSerializer):
         many=True,
         write_only=True,
         required=False,
+        help_text="IDs de GET /api/v1/admin/roles/. Sustituye la lista de roles asignados; [] elimina todos los roles cuando las protecciones de administración lo permitan.",
     )
 
     class Meta(UserSerializer.Meta):
         fields = UserSerializer.Meta.fields + ("role_ids",)
-        read_only_fields = ("id", "is_staff", "is_superuser", "date_joined")
+        read_only_fields = ("id", "role", "is_staff", "is_superuser", "date_joined")
 
     def validate(self, attrs):
         if any(field in self.initial_data for field in ("is_staff", "is_superuser")):
             raise serializers.ValidationError("Use el endpoint de creación de administradores para crear cuentas privilegiadas.")
-        if "groups" in attrs and "role" in attrs:
-            raise serializers.ValidationError("Envíe role_ids o el campo heredado role, no ambos.")
+        if "role" in self.initial_data:
+            raise serializers.ValidationError({"role": "Este campo es de solo lectura. Asigne roles usando role_ids de GET /api/v1/admin/roles/."})
+        if len({group.pk for group in attrs.get("groups", [])}) != len(attrs.get("groups", [])):
+            raise serializers.ValidationError({"role_ids": "Seleccione IDs de roles distintos."})
         return attrs
 
     def update(self, instance, validated_data):
@@ -170,18 +175,20 @@ class AdminUserCreateSerializer(RegistrationSerializer):
         many=True,
         write_only=True,
         required=False,
+        help_text="IDs de GET /api/v1/admin/roles/. Si se omite, se asigna automáticamente el rol de analista.",
     )
-    role = serializers.ChoiceField(choices=User.Role.choices, default=User.Role.ANALYST)
     is_active = serializers.BooleanField(default=True)
 
     class Meta(RegistrationSerializer.Meta):
-        fields = RegistrationSerializer.Meta.fields + ("role", "role_ids", "is_active")
+        fields = RegistrationSerializer.Meta.fields + ("role_ids", "is_active")
 
     def validate(self, attrs):
         if any(field in self.initial_data for field in ("is_staff", "is_superuser")):
             raise serializers.ValidationError("Use el endpoint de creación de administradores para crear cuentas privilegiadas.")
-        if "role_ids" in self.initial_data and "role" in self.initial_data:
-            raise serializers.ValidationError("Envíe role_ids o el campo heredado role, no ambos.")
+        if "role" in self.initial_data:
+            raise serializers.ValidationError({"role": "Asigne roles usando role_ids de GET /api/v1/admin/roles/."})
+        if len({group.pk for group in attrs.get("groups", [])}) != len(attrs.get("groups", [])):
+            raise serializers.ValidationError({"role_ids": "Seleccione IDs de roles distintos."})
         return super().validate(attrs)
 
     def create(self, validated_data):

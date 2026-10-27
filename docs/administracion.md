@@ -1,5 +1,23 @@
 # Administración de cuentas y modelos
 
+## Primera cuenta cuando todavía no hay administradores
+
+No es posible crear una cuenta administradora desde la API sin autenticarse como una cuenta autorizada. El `403` evita que cualquier persona que se registre se otorgue control de la plataforma. La primera cuenta se crea desde una consola del servidor, con PostgreSQL disponible y el entorno virtual activo:
+
+```powershell
+Set-Location C:\Users\braya\OneDrive\Desktop\forestGuard_web\ForestGuard\backend
+.\.venv\Scripts\Activate.ps1
+py manage.py create_project_admin
+```
+
+Este comando solicita un usuario nuevo, correo y contraseña con confirmación. Crea **un administrador de ForestGuard**, con todos los permisos de la aplicación, sin `is_staff` ni `is_superuser`; no cambia las cuentas existentes. No recibe contraseñas como argumentos ni las muestra en pantalla. Si se necesita también acceso completo al panel Django, usar en su lugar:
+
+```powershell
+py manage.py createsuperuser
+```
+
+Después se inicia sesión en la web o en Swagger con esa cuenta. No hace falta crear un superusuario si solo se desea administrar ForestGuard. Estos comandos son acciones de un operador con acceso a la consola; no se habilitó un endpoint público de instalación. Durante el desarrollo no se crean cuentas de producción automáticamente.
+
 ## Crear un administrador desde Swagger
 
 1. Abrir `/api/docs/` e iniciar sesión en `POST /api/v1/auth/token/` con una cuenta administradora.
@@ -40,6 +58,29 @@ El comando solicita las credenciales de forma interactiva; no poner contraseñas
 En **Administración → Usuarios**, **Crear administrador** abre el formulario con confirmación de contraseña. El selector de superusuario solo aparece al autenticarse como superusuario. La lista identifica estas cuentas y bloquea su edición para administradores de aplicación. El formulario habitual **Nuevo usuario** y la asignación de roles existentes se conservan.
 
 `is_staff` e `is_superuser` no se pueden modificar desde el perfil ni desde los endpoints genéricos de usuarios. No se permite desactivar la propia cuenta, eliminar el propio rol administrador ni dejar al sistema sin un administrador o superusuario activo. Un superusuario debe conservar el rol administrador; modificar una cuenta superusuaria requiere otro superusuario o la propia cuenta, con esas protecciones.
+
+## Roles y asignación por IDs
+
+Los roles ya son registros normalizados de Django (`auth_group`), con un ID único. La relación usuario–rol se guarda en `accounts_user_groups` mediante claves foráneas; los permisos se relacionan con el rol en `auth_group_permissions`. Un usuario puede recibir varios roles. El texto mostrado en la web es el nombre; el valor enviado al guardar es el ID.
+
+Flujo desde Swagger:
+
+1. `GET /api/v1/admin/permissions/`: consultar IDs y códigos de permisos disponibles.
+2. `POST /api/v1/admin/roles/`: crear un rol con nombre, descripción y `permission_ids`.
+3. `GET /api/v1/admin/roles/`: consultar la lista real de roles y sus IDs.
+4. `POST /api/v1/admin/users/` o `PATCH /api/v1/admin/users/{id}/`: enviar `role_ids` con los IDs elegidos.
+
+Ejemplo de asignación, usando siempre los IDs devueltos por la API:
+
+```json
+{"role_ids": [3, 4]}
+```
+
+Omitir `role_ids` en una edición conserva las asignaciones. Enviar una lista las sustituye; `[]` las retira cuando las protecciones de administración lo permiten. Se rechazan IDs inexistentes, nombres de rol y duplicados. Un usuario creado sin `role_ids` recibe automáticamente el rol de analista.
+
+El campo antiguo `role` queda **solo para lectura y marcado como obsoleto en OpenAPI**. Enviar ese campo en creación o edición administrativa devuelve `400`, indicando que se debe usar `role_ids`. Se conserva en respuestas y base de datos para compatibilidad informativa; no es una relación por texto ni sustituye las asignaciones normalizadas. También es de solo lectura en el panel Django; allí las relaciones se gestionan mediante el selector de grupos. Esta es una modificación intencional del contrato de escritura: los clientes anteriores que enviaban `role` deben migrar a `role_ids`.
+
+Cambiar el nombre de un rol personalizado mantiene su ID, usuarios y permisos. Los nombres reservados `admin` y `analyst` están protegidos también al renombrar, y los roles base conservan sus protecciones. Desde **Roles y permisos** se administra la lista; desde **Usuarios** se seleccionan sus nombres y el frontend envía sus IDs, sin pedir que el usuario los escriba.
 
 ## Gestión de modelos
 
@@ -93,11 +134,12 @@ Las pruebas específicas están en `backend/tests/test_admin_management.py`. Com
 
 ## Verificación de esta entrega
 
-- **59 pruebas aprobadas, sin omisiones**, con PostgreSQL temporal, navegador Edge y el par real Sentinel-2 2024-08-07 → 2026-10-13, incluido v9.
-- **8 pruebas del frontend aprobadas**; lint y compilación correctos.
+- **63 pruebas aprobadas, sin omisiones**, con PostgreSQL temporal, navegador Edge y el par real Sentinel-2 2024-08-07 → 2026-10-13, incluido v9; verificación completada el 27 de octubre de 2026.
+- **10 pruebas del frontend aprobadas**; lint y compilación correctos.
 - Ruff, comprobación de Django, migraciones y generación/validación de Swagger correctos; no se necesitan nuevas migraciones.
 - La prueba concurrente intenta retirar a la vez el rol de los dos administradores: una petición se rechaza y se conserva una cuenta administradora activa. La API bloquea el grupo administrador antes de consultar los miembros y modificar sus cuentas.
 - Verificación visual de formularios y administración en escritorio y a 390 px; confirmaciones, estados deshabilitados, error de contraseña y operaciones protegidas comprobados.
 - Se conservaron cuentas, modelos y resultados personales. No se generaron credenciales de producción ni se desplegó la aplicación.
+- `test_bootstrap_roles.py` verifica el primer administrador por consola y su acceso posterior a la API, contraseñas inválidas, duplicados, asignación por IDs y conservación de permisos al renombrar un rol. El navegador comprueba que los formularios envían IDs numéricos, sin el campo antiguo `role`.
 
 Rasterio mantiene advertencias de deprecación de Affine sin fallos de ejecución. El recorrido del asistente de análisis también conserva la advertencia de React ya documentada en [mapas interactivos](mapas-interactivos.md); esos componentes no se modificaron en esta entrega y el flujo completo finalizó correctamente.

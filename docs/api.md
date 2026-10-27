@@ -8,9 +8,11 @@ Base: `/api/v1/`. La documentación generada por el código está en `/api/docs/
 
 `POST /auth/logout/` recibe el `refresh` actual y lo revoca. `GET/PATCH /auth/me/` consulta o edita nombre, apellido y correo propios. `POST /auth/password/change/` recibe `old_password` y `new_password`; devuelve `204` y revoca los tokens anteriores, incluido el access token. El cliente debe borrar sus tokens y volver a iniciar sesión. No hay restablecimiento de contraseña por correo: requiere configurar antes un servicio de envío fiable.
 
-`GET/POST/PATCH /admin/users/` permite a un administrador listar, crear y editar usuarios. La creación requiere `username`, `email` y `password`; admite `role` (`analyst` o `admin`) e `is_active`. La edición admite rol y estado, pero un administrador no puede desactivar su propia cuenta ni quitarse su propio rol. Las cuentas se desactivan sin borrar los análisis históricos. No se expone eliminación de usuarios. Las listas de usuarios admiten `search` y `ordering`.
+`GET/POST/PATCH /admin/users/` permite listar, crear y editar usuarios según permisos. La creación requiere `username`, `email` y `password`; admite `role_ids` (IDs de `GET /admin/roles/`) e `is_active`. Si se omiten los roles se asigna el de analista. Una edición con `role_ids` sustituye las asignaciones; omitirlo las conserva. No se acepta `role` para escritura: es un campo legado de solo lectura, marcado como obsoleto. Se rechazan nombres, IDs inválidos o duplicados en `role_ids`. Un administrador no puede desactivar su propia cuenta ni quitarse su propio rol. Las cuentas se desactivan sin borrar los análisis históricos. No se expone eliminación de usuarios. Las listas admiten `search` y `ordering`.
 
 `POST /admin/administrators/` crea una cuenta administradora con todos los permisos del proyecto. `account_type=superuser` permite crear un superusuario únicamente si lo solicita otro superusuario. Las banderas `is_staff` e `is_superuser` son de solo lectura en los demás endpoints. La [guía de administración](administracion.md) detalla el primer acceso, los ejemplos de Swagger y la interfaz.
+
+Sin una cuenta autorizada no se puede crear un administrador por API. Para la primera cuenta de aplicación, ejecutar `py manage.py create_project_admin` desde `backend` con el entorno activo; para un superusuario de Django, `py manage.py createsuperuser`. Ambos solicitan credenciales por consola. No se habilita creación pública de administradores.
 
 La gestión del catálogo de modelos utiliza `GET/POST /admin/models/`, `GET/PATCH/DELETE /admin/models/{id}/` y `GET /admin/models/packages/`. Solo se registran paquetes instalados y verificados; se editan nombre, descripción y disponibilidad. Los modelos con análisis no se eliminan. `GET /models/` continúa devolviendo exclusivamente el catálogo activo.
 
@@ -81,7 +83,7 @@ Consulte [Cobertura y roles](cobertura-y-roles.md) para el contrato de
 `summary.escenas[].condicion` y `summary.intervalos[].condicion`, el informe PDF,
 las láminas original/resultado y los endpoints `/api/v1/admin/roles/` y
 `/api/v1/admin/permissions/`. `role_ids` asigna múltiples roles; los permisos de
-Django son la autoridad efectiva. Se conserva `role` para clientes anteriores.
+Django son la autoridad efectiva. Se conserva `role` solo como información de lectura; la escritura usa exclusivamente `role_ids`.
 
 ## Calidad y política temporal
 
