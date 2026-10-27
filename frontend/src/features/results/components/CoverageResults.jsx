@@ -1,4 +1,5 @@
 import { lazy, Suspense, useId, useState } from "react";
+import { LuCheck, LuFocus, LuMousePointer2 } from "react-icons/lu";
 import {
   Button,
   Field,
@@ -10,6 +11,7 @@ import { PrivateImage } from "./ArtifactCard";
 import { INDEX_LAYERS } from "../utils/mapLayers";
 import { ResultDownload } from "./ResultDownload";
 import { conditionReading } from "../utils/artifactCatalog";
+import { MapDetailsToggle } from "./MapDetailsToggle";
 import "./coverage-map.css";
 
 const InteractiveCoverageMap = lazy(() =>
@@ -132,16 +134,11 @@ function CoverageExplorer({ entry, condition, artifacts }) {
       {filterAvailable && (
         <div className="fg-map-controls">
           <div className="fg-map-details-intro">
-            <button
-              type="button"
-              className="fg-map-details-toggle"
-              aria-expanded={detailsOpen}
-              aria-controls={detailsId}
-              onClick={() => setDetailsOpen((value) => !value)}
-            >
-              {detailsOpen ? "Ocultar detalles" : "Ver más detalles"}
-              <span aria-hidden="true">{detailsOpen ? "⌃" : "⌄"}</span>
-            </button>
+            <MapDetailsToggle
+              open={detailsOpen}
+              controls={detailsId}
+              onToggle={() => setDetailsOpen((value) => !value)}
+            />
             {!detailsOpen && layer && (
               <small className="text-slate-300">
                 {condition.tipo === "temporal"
@@ -263,9 +260,22 @@ function CoverageExplorer({ entry, condition, artifacts }) {
           )}
         </figure>
       </div>
+      {filterAvailable && (
+        <div className="fg-coverage-selection-guide" id={`${helpId}-selection`}>
+          <LuMousePointer2 aria-hidden="true" />
+          <div>
+            <h3>Resalta zonas en el mapa</h3>
+            <p>
+              Selecciona una o varias tarjetas. Vuelve a pulsar para quitar el
+              resaltado.
+            </p>
+          </div>
+        </div>
+      )}
       <div
         role="group"
         aria-label="Resaltar categorías de cobertura"
+        aria-describedby={filterAvailable ? `${helpId}-selection` : undefined}
         className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
       >
         {condition.categorias.map((category) => (
@@ -278,15 +288,23 @@ function CoverageExplorer({ entry, condition, artifacts }) {
             aria-label={`Resaltar ${category.etiqueta}`}
             onClick={() => toggle(category.valor)}
           >
-            <span className="flex items-start gap-2 text-sm">
+            <span className="fg-coverage-card-heading">
               <span
                 aria-hidden="true"
                 className="mt-1 h-3 w-3 shrink-0 rounded-full"
                 style={{ background: category.color }}
               />
-              {category.clave === "degradacion" && condition.tipo !== "temporal"
-                ? "Degradación"
-                : category.etiqueta}
+              <span className="min-w-0 flex-1">
+                {category.clave === "degradacion" &&
+                condition.tipo !== "temporal"
+                  ? "Degradación"
+                  : category.etiqueta}
+              </span>
+              {filterAvailable && category.porcentaje != null && (
+                <span className="fg-coverage-check" aria-hidden="true">
+                  {selected.includes(category.valor) && <LuCheck />}
+                </span>
+              )}
             </span>
             <span className="mt-3 block text-xl font-semibold">
               {category.clave === "degradacion" && condition.tipo !== "temporal"
@@ -302,10 +320,11 @@ function CoverageExplorer({ entry, condition, artifacts }) {
               </span>
             )}
             {filterAvailable && category.porcentaje != null && (
-              <span className="mt-3 block text-xs text-slate-300">
+              <span className="fg-coverage-card-action">
+                <LuFocus aria-hidden="true" />
                 {selected.includes(category.valor)
-                  ? "✓ Resaltada"
-                  : "Resaltar zona"}
+                  ? "Quitar resaltado"
+                  : "Resaltar en el mapa"}
               </span>
             )}
           </button>

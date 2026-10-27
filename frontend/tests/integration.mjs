@@ -178,8 +178,25 @@ async function verifyInteractiveMap(temporal) {
   await expect(
     coverage.getByRole("combobox", { name: "¿Qué quieres observar?" }),
   ).toBeHidden();
+  const hint = coverage.getByRole("tooltip");
+  await expect(hint).toBeHidden();
+  await moreDetails.hover();
+  await expect(hint).toBeVisible();
+  await expect(hint).toContainText("índices de vegetación y humedad");
+  await hint.hover();
+  await expect(hint).toBeVisible();
   await moreDetails.focus();
+  await page.keyboard.press("Escape");
+  await expect(hint).toBeHidden();
+  await expect(moreDetails).toHaveAttribute("aria-expanded", "false");
+  await moreDetails.blur();
+  await moreDetails.focus();
+  await expect(hint).toBeVisible();
+  await coverage.screenshot({
+    path: `test-results/redesign/map-details-help-${temporal ? "comparison" : "individual"}.png`,
+  });
   await page.keyboard.press("Enter");
+  await expect(hint).toBeHidden();
   await expect(moreDetails).toHaveAttribute("aria-expanded", "true");
   const cards = coverage.getByRole("group", {
     name: "Resaltar categorías de cobertura",
@@ -216,8 +233,21 @@ async function verifyInteractiveMap(temporal) {
           exact: true,
         });
     await selectedCard.focus();
+    await expect(
+      selectedCard.getByText("Resaltar en el mapa", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      coverage.getByRole("heading", {
+        name: "Resalta zonas en el mapa",
+        exact: true,
+      }),
+    ).toBeVisible();
     await page.keyboard.press("Space");
     await expect(selectedCard).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      selectedCard.getByText("Quitar resaltado", { exact: true }),
+    ).toBeVisible();
+    await expect(selectedCard.locator(".fg-coverage-check svg")).toHaveCount(1);
     await expect.poll(async () => (await pixel(40, 40))[3]).toBe(51);
     if (temporal) {
       await cards
