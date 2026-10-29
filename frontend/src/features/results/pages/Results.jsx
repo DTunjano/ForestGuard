@@ -29,6 +29,7 @@ import { statusLabel } from "../../analyses/utils/status";
 import { SatelliteProcessingCard } from "../../analyses/components/SatelliteProcessingCard";
 import { Metrics } from "../components/Metrics";
 import { ArtifactCard } from "../components/ArtifactCard";
+import { CoverageResults } from "../components/CoverageResults";
 
 export function Results() {
   const { id } = useParams();
@@ -67,16 +68,12 @@ export function Results() {
   );
 }
 
-function AnalysisResultContent({ id, data, fromCreate }) {
+function AnalysisResultContent({ id, data }) {
   const navigate = useNavigate();
-  const [barDone, setBarDone] = useState(
-    () => !fromCreate && data.status === "completed",
-  );
 
   const isFailed = data.status === "failed";
-  const showProcessingBar = !isFailed && !barDone;
-  const effectiveStatus =
-    showProcessingBar && data.status === "completed" ? "running" : data.status;
+  const showProcessingBar = ["queued", "running"].includes(data.status);
+  const effectiveStatus = data.status;
 
   return (
     <>
@@ -157,7 +154,6 @@ function AnalysisResultContent({ id, data, fromCreate }) {
               <SatelliteProcessingCard
                 status={data.status}
                 scenesCount={data.images?.length || 1}
-                onComplete={() => setBarDone(true)}
                 cancelLabel="Volver al historial"
                 onCancel={() => navigate("/dashboard/history")}
               />
@@ -179,7 +175,7 @@ function AnalysisResultContent({ id, data, fromCreate }) {
         </div>
       </Panel>
 
-      {data.status === "completed" && barDone && (
+      {data.status === "completed" && (
         <CompletedResults key={id} id={id} summary={data.summary} />
       )}
     </>
@@ -248,6 +244,7 @@ function CompletedResults({ id, summary }) {
 
   return (
     <div className="fg-res-completed-stack">
+      <CoverageResults summary={summary} artifacts={groups} />
       {/* Navegación rápida por secciones para facilitar la lectura */}
       <nav
         className="fg-res-quicknav"

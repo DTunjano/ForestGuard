@@ -1,8 +1,15 @@
 # ForestGuard
 
+Actualización: [calidad de entrada y comparaciones](docs/calidad-y-comparaciones.md).
+Se requiere cobertura válida ≥ 60 % y las comparaciones admiten desde 35 días,
+sin límite máximo. El PDF conserva resultados e interpretación sin la sección
+de método y trazabilidad.
+
 API Django y frontend React para registrar escenas Sentinel-2 y ejecutar el pipeline histórico v7. La integración local permite cargar imágenes, crear análisis y consultar/descargar resultados desde `frontend/`. El sistema **no predice riesgo futuro**. La clase ML expresa un patrón exploratorio de cambio entre fechas; los indicios espectrales requieren revisión.
 
 La [guía de integración local](docs/integracion-local.md) incluye arquitectura, sesión, ramas, pruebas y comandos de las tres consolas. El frontend continúa iniciándose con `pnpm dev`.
+
+La [guía de cobertura y roles](docs/cobertura-y-roles.md) describe los mapas de original/resultado, categorías y porcentajes, PDF y gestión de roles con permisos. Tras actualizar esta fase, ejecute `py manage.py migrate` y reinicie el worker. Los análisis nuevos incorporan el método `forestguard_spectral_rules_v1`; los anteriores conservan su versión.
 
 ## Requisitos
 
@@ -45,7 +52,7 @@ API: `http://localhost:8000/api/v1/`. La raíz `http://localhost:8000/` redirige
 ### Documentación interactiva de la API
 
 - Swagger UI: `http://localhost:8000/api/docs/`; ReDoc: `http://localhost:8000/api/redoc/`; esquema OpenAPI: `http://localhost:8000/api/schema/` (agregue `?format=json` para JSON).
-- Las operaciones están agrupadas en **Autenticación**, **Mi cuenta**, **Administración de usuarios**, **Áreas de estudio**, **Imágenes satelitales**, **Modelos**, **Análisis** y **Resultados**. Swagger permite filtrar por nombre o ruta.
+- Las operaciones están agrupadas en **Autenticación**, **Mi cuenta**, **Administración de usuarios**, **Roles y permisos**, **Áreas de estudio**, **Imágenes satelitales**, **Modelos**, **Análisis** y **Resultados**. Swagger permite filtrar por nombre o ruta.
 - Para probar una operación protegida, ejecute `POST /api/v1/auth/token/` con `username` y `password`. Pulse **Authorize** e introduzca el valor de `access` (sin el prefijo `Bearer`); Swagger enviará el encabezado `Authorization: Bearer <access>`. Al caducar, use `POST /api/v1/auth/token/refresh/` con `refresh` e introduzca el nuevo access token.
 - En la carga de imágenes seleccione `multipart/form-data`, complete los campos y elija un archivo `.tif` o `.tiff` en `file`. En `POST /api/v1/analyses/`, seleccione `study_area`; el ejemplo **Análisis de una imagen** usa un solo `image_ids` y omite `model_id`. El backend omite v9 automáticamente cuando recibe una sola imagen. Consulte `GET /api/v1/analyses/{id}/` hasta `completed` o `failed`. Cada resultado expone sus enlaces `preview_url`, `download_url` y, si es raster, `metadata_url`. En Swagger las tres operaciones de **Resultados** solo piden `artifact_id`.
 - Los IDs son creados por el servidor. Para seleccionar una imagen, modelo o recurso existente en Swagger, obtenga su ID en el listado correspondiente; Swagger UI no vincula automáticamente una respuesta con el formulario de otra operación. La futura interfaz de usuario hará esa selección sin mostrar IDs.
@@ -60,7 +67,7 @@ Antes de iniciar Django o el worker, abra Docker Desktop y, desde la raíz del r
 1. Registrar usuario en `POST /api/v1/auth/register/`; obtener JWT con `POST /api/v1/auth/token/` y renovar con `POST /api/v1/auth/token/refresh/`.
 2. Crear área en `POST /api/v1/study-areas/`.
 3. Cargar cada GeoTIFF multibanda en `POST /api/v1/images/` con `multipart/form-data`: `study_area` y `file`; `name` es opcional. El servidor extrae la fecha de adquisición de los metadatos o del nombre del archivo (por ejemplo, `2025_01_19`), detecta la escala de reflectancia y el factor SCL, y devuelve esos valores como campos de solo lectura. `uploaded_at` registra por separado la fecha de carga. Si no puede inferir algún dato de forma segura, la API explica el motivo y rechaza el archivo.
-4. Crear análisis con `POST /api/v1/analyses/`: `name`, `study_area`, `image_ids` (uno o varios) y `model_id` opcional. Con una imagen se calculan automáticamente NDVI, NDMI, NBR y NDRE sin v9; con varias fechas hay diferencias e indicios de degradación. El modelo v9 requiere al menos dos escenas con SCL y solo se ejecuta en intervalos que cumplen su contrato.
+4. Crear análisis con `POST /api/v1/analyses/`: `name`, `study_area`, `image_ids` (uno o varios) y `model_id` opcional. Con una imagen se calculan automáticamente NDVI, NDMI, NBR y NDRE sin v9; con varias fechas hay diferencias e indicios de degradación. El modelo v9 requiere al menos dos escenas con SCL y se ejecuta desde 35 días, sin máximo, respetando sus demás requisitos de entrada.
 5. Consultar estado y resumen en `GET /api/v1/analyses/{id}/`. El worker guarda mapas PNG de los raster y las láminas `visualizacion_individual.png` y, si hay varias fechas, `visualizacion_comparativa.png`. Usar el `download_url` de estos artefactos para obtenerlos. Los GeoTIFF originales siguen disponibles; `preview_url` genera una miniatura de cada raster. Cada ruta de **Resultados** pide un único `artifact_id` y comprueba que el archivo pertenece al usuario. Las rutas antiguas con ID del análisis siguen funcionando para clientes existentes.
 
 Para registrar PNG en análisis completados antes de esta función, desde `backend/` ejecute `py manage.py backfill_analysis_visualizations --analysis-id 15`. Puede repetir `--analysis-id` para varios análisis; el comando es idempotente y requiere conservar resultados y escenas normalizadas.

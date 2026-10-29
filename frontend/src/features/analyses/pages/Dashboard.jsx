@@ -24,10 +24,16 @@ import {
 import { statusLabel } from "../utils/status";
 
 export function Dashboard() {
-  const { user } = useAuth();
-  const analyses = useResource("analyses/?ordering=-created_at");
-  const areas = useResource("study-areas/");
-  const images = useResource("images/");
+  const { user, can } = useAuth();
+  const analyses = useResource(
+    can("analyses.view_analysis") ? "analyses/?ordering=-created_at" : null,
+  );
+  const areas = useResource(
+    can("catalog.view_studyarea") ? "study-areas/" : null,
+  );
+  const images = useResource(
+    can("catalog.view_satelliteimage") ? "images/" : null,
+  );
 
   const recentAnalyses = analyses.data?.results?.slice(0, 6) || [];
   const completedInPage = (analyses.data?.results || []).filter(
@@ -80,7 +86,15 @@ export function Dashboard() {
       accent: "lime",
       query: analyses,
     },
-  ];
+  ].filter((item) =>
+    can(
+      {
+        areas: "catalog.view_studyarea",
+        images: "catalog.view_satelliteimage",
+        analyses: "analyses.view_analysis",
+      }[item.key],
+    ),
+  );
 
   const workflowSteps = [
     {
@@ -137,23 +151,31 @@ export function Dashboard() {
         </div>
 
         <div className="fg-dash-hero-actions">
-          <Link className="fg-dash-primary-cta" to="/dashboard/new">
-            <LuPlus size={18} aria-hidden="true" />
-            <span>Nuevo análisis</span>
-          </Link>
+          {can("analyses.add_analysis") && (
+            <Link className="fg-dash-primary-cta" to="/dashboard/new">
+              <LuPlus size={18} aria-hidden="true" />
+              <span>Nuevo análisis</span>
+            </Link>
+          )}
           <div className="fg-dash-secondary-ctas">
-            <Link className="fg-dash-secondary-cta" to="/study-areas">
-              <LuMapPin size={15} aria-hidden="true" />
-              <span>Áreas</span>
-            </Link>
-            <Link className="fg-dash-secondary-cta" to="/images">
-              <LuSatellite size={15} aria-hidden="true" />
-              <span>Imágenes</span>
-            </Link>
-            <Link className="fg-dash-secondary-cta" to="/dashboard/history">
-              <LuFolderClock size={15} aria-hidden="true" />
-              <span>Historial</span>
-            </Link>
+            {can("catalog.view_studyarea") && (
+              <Link className="fg-dash-secondary-cta" to="/study-areas">
+                <LuMapPin size={15} aria-hidden="true" />
+                <span>Áreas</span>
+              </Link>
+            )}
+            {can("catalog.view_satelliteimage") && (
+              <Link className="fg-dash-secondary-cta" to="/images">
+                <LuSatellite size={15} aria-hidden="true" />
+                <span>Imágenes</span>
+              </Link>
+            )}
+            {can("analyses.view_analysis") && (
+              <Link className="fg-dash-secondary-cta" to="/dashboard/history">
+                <LuFolderClock size={15} aria-hidden="true" />
+                <span>Historial</span>
+              </Link>
+            )}
           </div>
         </div>
       </section>
@@ -256,7 +278,7 @@ export function Dashboard() {
             <p className="fg-eyebrow">Actividad reciente</p>
             <h2>Análisis recientes</h2>
           </div>
-          {hasNoAnalyses ? (
+          {hasNoAnalyses || !can("analyses.view_analysis") ? (
             <button
               type="button"
               disabled
@@ -377,10 +399,12 @@ export function Dashboard() {
           <EmptyState
             title="Tu próximo descubrimiento empieza aquí"
             action={
-              <Link className="fg-dash-primary-cta" to="/dashboard/new">
-                <LuPlus size={18} aria-hidden="true" />
-                <span>Crear nuevo análisis</span>
-              </Link>
+              can("analyses.add_analysis") && (
+                <Link className="fg-dash-primary-cta" to="/dashboard/new">
+                  <LuPlus size={18} aria-hidden="true" />
+                  <span>Crear nuevo análisis</span>
+                </Link>
+              )
             }
           >
             Tu cuenta aún no tiene análisis. Empieza creando un área de estudio,

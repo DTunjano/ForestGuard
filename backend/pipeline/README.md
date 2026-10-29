@@ -12,6 +12,21 @@ python src/forestguard_pipeline.py --escena '2024-05-07=escena_20240507.tif' --e
 
 Con una sola `--escena`, omite `--modelo`: devuelve índices y estadísticas. Con dos o más escenas con máscara SCL, entrega diferencias e indicios espectrales de degradación observada por intervalo; esta regla no confirma degradación forestal y requiere revisión. El modelo clasifica solo los intervalos compatibles. Desde tres fechas calcula también tendencia NDVI. Las salidas son GeoTIFF y `resumen_serie.json`. Las rutas de escenas se proporcionan en tiempo de ejecución; los archivos fuente y el modelo no requieren el directorio original.
 
-Para una investigación puntual se puede añadir `--permitir-intervalos-fuera-de-entrenamiento` junto con `--modelo`. Esto ejecuta v9 también en pares separados más de 330 días (o menos de 35), marcando cada resultado afectado con `fuera_intervalo_entrenamiento` y `ejecucion_experimental` en los JSON. Son predicciones fuera del intervalo temporal con que se entrenó el piloto: no están validadas para esas separaciones y no confirman deforestación. El backend no activa esta excepción al procesar análisis normales.
+La política de ejecución requiere **al menos 35 días entre fechas consecutivas y no tiene máximo**.
+No es necesario activar una excepción para pares de más de 330 días. Los flags anteriores se
+conservan por compatibilidad y no permiten pares de menos de 35 días. Los metadatos
+`intervalo_entrenamiento_dias`, `fuera_intervalo_entrenamiento` y `ejecucion_experimental`
+conservan el contexto del modelo entrenado; el archivo del modelo no se altera.
+
+Antes de generar índices o inferencias se verifica que cada escena y el área común
+comparable tengan **al menos 60 % de cobertura válida**. Se usan lecturas por ventanas,
+con la misma máscara de bandas válidas y denominadores de índices que la API.
+Los archivos cargados al backend se validan también durante la carga, antes de guardar.
+Consulta [la guía de calidad y comparaciones](../../docs/calidad-y-comparaciones.md).
 
 Usa el manifiesto SHA256 para verificar los archivos transferidos. No cargues archivos `joblib` provenientes de terceros no confiables.
+
+El manifiesto normaliza CRLF a LF antes de calcular los SHA256 de `.py` y `.json`,
+para que la comprobación funcione con los finales de línea de Windows y Linux.
+Los binarios se verifican byte por byte. Se mantienen el modelo y su contrato de
+entrenamiento originales; `politica_ejecucion` documenta los límites de ejecución actuales.

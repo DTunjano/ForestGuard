@@ -1,9 +1,12 @@
 """Create downloadable PNG maps and compact visual summaries of an analysis."""
 
+from contextlib import ExitStack
+
 import numpy as np
 import rasterio
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 from rasterio.enums import Resampling
+from rasterio.vrt import WarpedVRT
 
 from .raster_preview import render_preview
 
@@ -27,9 +30,9 @@ LABEL = _font(18)
 SMALL = _font(15)
 
 
-def _sample(path, indexes=(1,), method=Resampling.bilinear):
+def _sample(path, indexes=(1,), method=Resampling.bilinear, size=PANEL):
     with rasterio.open(path) as src:
-        factor = min(1, PANEL[0] / src.width, PANEL[1] / src.height)
+        factor = min(1, size[0] / src.width, size[1] / src.height)
         width, height = max(1, round(src.width * factor)), max(1, round(src.height * factor))
         return src.read(indexes, out_shape=(len(indexes), height, width),
                         masked=True, resampling=method)
@@ -47,15 +50,25 @@ def _panel(image):
     return panel
 
 
-def _rgb_scene(path):
-    with rasterio.open(path) as src:
+def _rgb_scene(path, full=False, reference=None):
+    with ExitStack() as stack:
+        src = stack.enter_context(rasterio.open(path))
         indexes = [src.descriptions.index(band) + 1 for band in ("B4", "B3", "B2")]
-    cube = _sample(path, indexes)
+        if reference:
+            grid = stack.enter_context(rasterio.open(reference))
+            src = stack.enter_context(WarpedVRT(src, crs=grid.crs, transform=grid.transform,
+                                                width=grid.width, height=grid.height,
+                                                src_nodata=np.nan, nodata=np.nan, resampling=Resampling.bilinear))
+        size = (1200, 1200) if full else PANEL
+        factor = min(1, size[0] / src.width, size[1] / src.height)
+        cube = src.read(indexes, out_shape=(3, max(1, round(src.height * factor)), max(1, round(src.width * factor))),
+                        masked=True, resampling=Resampling.bilinear)
     values = cube.filled(np.nan)
     rgb = (np.clip(np.nan_to_num(values, nan=0) / .22, 0, 1) ** .75 * 255)
     array = rgb.transpose(1, 2, 0).astype("uint8")
     array[np.ma.getmaskarray(cube).any(axis=0)] = (221, 225, 226)
-    return _panel(Image.fromarray(array))
+    image = Image.fromarray(array)
+    return image if full else _panel(image)
 
 
 def _index_map(path, low, high, start, end):
@@ -218,7 +231,7 @@ def _individual_summary(summary, output, normalized_paths):
         suffix = "_contraste" if contrast else ""
         note = ("Rojo: valor bajo; azul: valor alto. Son valores de una fecha, no cambios temporales."
                 if contrast else
-                "Índices con escalas fijas. Ocre: valor bajo; verde: valor alto. No confirman deforestación.")
+                "Índices con escalas fijas. Ocre: valor bajo; verde: valor alto. Condición espectral de cada fecha.")
         board, draw = _board("ForestGuard | Resultados individuales" +
                              (" · contraste" if contrast else ""), note, len(scenes))
         for number, (scene, path) in enumerate(scenes):
@@ -290,3 +303,60 @@ def write_visualizations(summary, output, normalized_paths):
         raster.with_suffix(".png").write_bytes(render_preview(raster, max_size=1024))
     _individual_summary(summary, output, normalized_paths)
     _comparative_summary(summary, output)
+    _condition_boards(summary, output, normalized_paths)
+
+
+def _condition_boards(summary, output, normalized_paths):
+    """Original and categorized result share extent; labels use area percentages."""
+    from io import BytesIO
+
+    originals = {}
+    paths = {scene["fecha"]: path for scene, path in zip(summary["escenas"], normalized_paths)}
+    for scene, path in zip(summary["escenas"], normalized_paths):
+        folder = output / "fechas" / scene["fecha"]
+        image = _rgb_scene(path, full=True)
+        image.save(folder / "original_rgb.png")
+        originals[scene["fecha"]] = image
+    entries = [(scene, output / "fechas" / scene["fecha"], scene["fecha"],
+                originals[scene["fecha"]]) for scene in summary["escenas"]]
+    for item in summary["intervalos"]:
+        folder = output / "intervalos" / f'{item["fecha_inicial"]}_{item["fecha_final"]}'
+        original = _rgb_scene(paths[item["fecha_final"]], full=True, reference=paths[item["fecha_inicial"]])
+        original.save(folder / "original_final_rgb.png")
+        entries.append((item, folder, f'{item["fecha_inicial"]} a {item["fecha_final"]}', original))
+    for item, folder, title, original in entries:
+        condition = item.get("condicion")
+        if not condition:
+            continue
+        canvas = Image.new("RGB", (1080, 740), "#f8faf9")
+        draw = ImageDraw.Draw(canvas)
+        draw.rectangle((0, 0, 1080, 86), fill="#142b31")
+        draw.text((25, 14), "ForestGuard | Condición de la cobertura", font=TITLE, fill="white")
+        draw.text((25, 52), title, font=LABEL, fill="#bfe1c7")
+        draw.text((25, 105), "Imagen original · color natural", font=LABEL, fill=INK)
+        draw.text((555, 105), "Resultado · categorías espectrales", font=LABEL, fill=INK)
+        categorized = Image.open(BytesIO(render_preview(folder / "condicion_bosque.tif", 1200))).convert("RGBA")
+        for x, image in ((25, original), (555, categorized)):
+            fitted = ImageOps.contain(image, (500, 370), Image.Resampling.NEAREST)
+            canvas.paste(fitted, (x + (500 - fitted.width) // 2, 140 + (370 - fitted.height) // 2),
+                         fitted if fitted.mode == "RGBA" else None)
+        for row, category in enumerate(condition["categorias"]):
+            x, y = (25 if row % 2 == 0 else 555), 530 + (row // 2) * 65
+            draw.rounded_rectangle((x, y, x + 500, y + 57), radius=8, fill="white", outline="#dbe3e2")
+            draw.ellipse((x + 12, y + 12, x + 25, y + 25), fill=category["color"])
+            draw.text((x + 34, y + 5), category["etiqueta"], font=SMALL, fill=INK)
+            value = category["porcentaje"]
+            text = (f"{value:.2f} % del área válida" if value is not None else
+                    "Requiere otra fecha" if condition["tipo"] != "temporal" and category["clave"] == "degradacion"
+                    else "Sin área válida")
+            draw.text((x + 34, y + 29), text, font=SMALL, fill=MUTED)
+        coverage = condition.get("porcentaje_cobertura_valida")
+        coverage_text = f"{coverage:.2f} %" if coverage is not None else "sin datos"
+        draw.text((25, 676), f"Cobertura válida: {coverage_text} | Categorías excluyentes · método {condition['version']}",
+                  font=SMALL, fill=MUTED)
+        draw.text((25, 705), "Gris: otra cobertura. Transparente: sin datos. Porcentajes calculados sobre píxeles válidos.",
+                  font=SMALL, fill=MUTED)
+        # The report already supplies the date and branding; omit the duplicated
+        # banner so the v9 statistics fit with the maps on the same page.
+        canvas.crop((0, 86, 1080, 515)).save(folder / "mapas_original_resultado.png", optimize=True)
+        canvas.save(folder / "resumen_condicion.png", optimize=True)

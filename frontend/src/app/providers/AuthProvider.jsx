@@ -43,7 +43,12 @@ export function AuthProvider({ children }) {
         user,
         checking,
         isAuthenticated: !!user,
-        isAdmin: user?.role === "admin",
+        isAdmin: Boolean(
+          user?.permissions?.some((permission) =>
+            ["accounts.view_user", "auth.view_group"].includes(permission),
+          ),
+        ),
+        can: (permission) => Boolean(user?.permissions?.includes(permission)),
         signIn,
         logout,
         updateProfile,

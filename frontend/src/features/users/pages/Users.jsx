@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from "react";
 import {
   LuArrowDownAZ,
   LuArrowDownWideNarrow,
@@ -24,8 +23,9 @@ import {
   LuX,
 } from "react-icons/lu";
 import { Modal } from "../../../shared/components/Modal";
-import { useResource } from "../../../shared/api/useResource";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { useEffect, useRef, useState } from "react";
+import { useResource } from "../../../shared/api/useResource";
 import { saveUser } from "../api/users";
 import {
   Page,

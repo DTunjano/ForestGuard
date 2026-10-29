@@ -75,6 +75,8 @@ staticfiles/
 htmlcov/
 test-results/
 playwright-report/
+/backend/tmp/
+/output/
 
 # Type checking
 .mypy_cache/

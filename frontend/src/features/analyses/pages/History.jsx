@@ -1,3 +1,4 @@
+import { useAuth } from "../../auth/hooks/useAuth";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import {
@@ -51,6 +52,7 @@ const FILTER_CRITERIA = [
 ];
 
 export function History() {
+  const { can } = useAuth();
   const [remove, setRemove] = useState(null);
   const [message, setMessage] = useState("");
   const [search, setSearch] = useState("");
@@ -534,7 +536,9 @@ export function History() {
                           </Link>
                           <button
                             type="button"
-                            disabled={!canDelete}
+                            disabled={
+                              !canDelete || !can("analyses.delete_analysis")
+                            }
                             className="fg-img-subtle-action is-danger"
                             onClick={() => setRemove(item)}
                           >

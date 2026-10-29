@@ -80,7 +80,15 @@ export const ProfileDropdown = ({
             {user?.first_name || user?.username}
           </p>
           <p className="max-w-32 truncate text-[11px] text-gray-400">
-            {user?.role === "admin" ? "Administrador" : "Analista"}
+            {user?.roles
+              ?.map((role) =>
+                role.name === "admin"
+                  ? "Administrador"
+                  : role.name === "analyst"
+                    ? "Analista"
+                    : role.name,
+              )
+              .join(", ") || "Sin roles"}
           </p>
         </div>
       </button>

@@ -6,6 +6,8 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from catalog.models import PipelineModel, SatelliteImage, StudyArea
+from catalog.quality import check_image_quality
+from pipeline.src.temporal_policy import require_interval
 
 from .models import Analysis, AnalysisImage, ResultArtifact
 
@@ -129,6 +131,14 @@ class AnalysisSerializer(serializers.ModelSerializer):
         dates = [img.acquisition_date for img in images]
         if len(set(dates)) != len(dates):
             raise serializers.ValidationError({"image_ids": "Cada escena debe tener una fecha distinta."})
+        ordered_dates = sorted(dates)
+        try:
+            for first, last in zip(ordered_dates, ordered_dates[1:]):
+                require_interval((last - first).days)
+            for image in images:
+                check_image_quality(image)
+        except (ValueError, OSError) as exc:
+            raise serializers.ValidationError({"image_ids": str(exc)}) from exc
         if len(ids) == 1:
             attrs["model"] = None
         elif attrs.get("model") and any(img.scl_factor is None for img in images):
