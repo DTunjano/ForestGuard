@@ -8,6 +8,7 @@ import { NewAnalysis } from "../../features/analyses/pages/NewAnalysis";
 import { Results } from "../../features/results/pages/Results";
 import { History } from "../../features/analyses/pages/History";
 import { Help } from "../../features/analyses/pages/Help";
+import { Faq } from "../../features/analyses/pages/Faq";
 import { Profile } from "../../features/profile/pages/Profile";
 import { Users } from "../../features/users/pages/Users";
 import { Roles } from "../../features/users/pages/Roles";
@@ -48,6 +49,7 @@ export const AppRoutes = () => {
           element={<Navigate to="/dashboard/history" replace />}
         />
         <Route path="/help" element={<Help />} />
+        <Route path="/faq" element={<Faq />} />
 
         <Route
           element={<AdminRoute permission="catalog.view_satelliteimage" />}

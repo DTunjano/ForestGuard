@@ -97,3 +97,7 @@ de al menos 35 días, sin máximo, y cobertura común ≥ 60 %. Ver
 `reporte.pdf` incorpora las láminas PNG independientes en orden de lectura: visión general, fechas, comparaciones y conclusiones. Contiene tablas, interpretación y un índice navegable. Los PNG que son copias de un raster GeoTIFF no se duplican como otra lámina. Consulte [presentación y actualización de informes](informes-pdf.md).
 
 La descarga privada del PDF y la exportación ZIP actualizan automáticamente un informe antiguo si corresponde, conservando su ID y sin recalcular imágenes. El PDF abarca todo el estudio incluso si `section` filtra los mapas incluidos en el ZIP. Las descargas posteriores reutilizan la versión vigente.
+
+### Filtros de usuarios
+
+`GET /api/v1/admin/users/?role_id=<id>&is_active=true|false` filtra por pertenencia real al rol y estado antes de paginar. Admite roles personalizados, búsqueda y ordenamiento combinados. Los valores vacíos omiten el filtro y los valores inválidos devuelven 400. La API conserva páginas de 20 registros; la interfaz presenta tramos de 10 sin calcular totales solo sobre la página cargada. La asignación sigue usando `role_ids`, nunca el campo legado `role`.

@@ -6,6 +6,7 @@ import {
   LuChevronDown,
   LuBrainCircuit,
   LuLayoutDashboard,
+  LuMessageSquare,
   LuPlus,
   LuScanLine,
   LuTrees,
@@ -116,7 +117,10 @@ export const NavBar = () => {
       id: "support",
       label: "Soporte",
       icon: LuCircleHelp,
-      items: [{ to: "/help", label: "Ayuda", icon: LuCircleHelp }],
+      items: [
+        { to: "/help", label: "Ayuda", icon: LuCircleHelp },
+        { to: "/faq", label: "Preguntas frecuentes", icon: LuMessageSquare },
+      ],
     },
     ...(isAdmin
       ? [

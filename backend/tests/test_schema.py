@@ -22,6 +22,8 @@ def test_openapi_groups_modules_and_documents_uploads_and_results():
     assert component["properties"]["file"]["format"] == "binary"
 
     assert not schema["paths"]["/api/v1/auth/token/"]["post"].get("security")
+    user_parameters = {item["name"] for item in schema["paths"]["/api/v1/admin/users/"]["get"]["parameters"]}
+    assert {"role_id", "is_active", "page", "search", "ordering"} <= user_parameters
     assert schema["paths"]["/api/v1/analyses/"]["post"]["security"] == [{"jwtAuth": []}]
     analysis_request = schema["components"]["schemas"]["AnalysisRequest"]
     assert "study_area" in analysis_request["properties"]

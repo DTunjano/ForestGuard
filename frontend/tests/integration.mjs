@@ -1108,6 +1108,34 @@ try {
     .getByRole("button", { name: "Guardar usuario", exact: true })
     .click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(
+    page.getByRole("row").filter({ hasText: "created_by_admin" }),
+  ).toContainText("reviewer");
+  await page.getByRole("button", { name: /^Filtros/ }).click();
+  const userFilters = page.getByRole("dialog", {
+    name: "Filtrar cuentas de usuario",
+  });
+  await userFilters
+    .getByRole("group", { name: "Criterios disponibles" })
+    .getByRole("button", { name: "Rol", exact: true })
+    .click();
+  const filteredUsers = page.waitForResponse(
+    (response) =>
+      response.url().includes("/admin/users/") &&
+      /^\d+$/.test(new URL(response.url()).searchParams.get("role_id") || ""),
+  );
+  await userFilters
+    .getByRole("button", { name: "reviewer", exact: true })
+    .click();
+  const filteredResponse = await filteredUsers;
+  expect(filteredResponse.status()).toBe(200);
+  expect((await filteredResponse.json()).count).toBe(1);
+  await expect(page.locator("tbody tr")).toHaveCount(1);
+  await userFilters
+    .getByRole("button", { name: "Limpiar", exact: true })
+    .click();
+  await page.keyboard.press("Escape");
+  await expect(userFilters).toHaveCount(0);
   await logout();
   await login("created_by_admin");
   await page.goto("/study-areas");
@@ -1234,6 +1262,20 @@ try {
     page.getByRole("heading", { name: "Ayuda", exact: true }),
   ).toBeVisible();
   await capture("help");
+  await page.getByRole("link", { name: /Ver preguntas frecuentes/ }).click();
+  await expect(page).toHaveURL(/\/faq$/);
+  await expect(
+    page.getByRole("heading", { name: "Preguntas frecuentes", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByText("¿Por qué se rechazó mi GeoTIFF?", { exact: true })
+    .click();
+  await expect(
+    page.getByText(/cobertura válida inferior al 60 %/),
+  ).toBeVisible();
+  await capture("faq");
+  await page.getByRole("link", { name: "Volver a Ayuda", exact: true }).click();
+  await expect(page).toHaveURL(/\/help$/);
   await page.getByRole("link", { name: "Saltar al contenido" }).focus();
   await expect(
     page.getByRole("link", { name: "Saltar al contenido" }),

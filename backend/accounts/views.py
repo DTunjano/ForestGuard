@@ -2,7 +2,12 @@ from django.contrib.auth.models import Group
 from django.db import transaction
 from django.db.models import Q
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiExample, extend_schema, extend_schema_view
+from drf_spectacular.utils import (
+    OpenApiExample,
+    OpenApiParameter,
+    extend_schema,
+    extend_schema_view,
+)
 from rest_framework import filters, generics, permissions, serializers, status, throttling, viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
@@ -152,7 +157,9 @@ class IsProjectAdmin(permissions.BasePermission):
 
 
 @extend_schema_view(
-    list=extend_schema(tags=["Administración de usuarios"], summary="Listar usuarios"),
+    list=extend_schema(tags=["Administración de usuarios"], summary="Listar usuarios",
+        parameters=[OpenApiParameter("role_id", int, description="Filtrar por ID de rol, incluidos roles personalizados."),
+                    OpenApiParameter("is_active", bool, description="Filtrar cuentas activas o inactivas.")]),
     create=extend_schema(tags=["Administración de usuarios"], summary="Crear usuario y asignar roles por ID",
         request=AdminUserCreateSerializer, responses={201: AdminUserSerializer},
         description="role_ids contiene IDs obtenidos en GET /api/v1/admin/roles/. Si se omite se asigna el rol de analista. Para asignar roles se requiere auth.change_group. El campo legado role no acepta escritura.",
@@ -172,6 +179,26 @@ class UserAdminViewSet(viewsets.ModelViewSet):
     filter_backends = (filters.SearchFilter, filters.OrderingFilter)
     search_fields = ("username", "email", "first_name", "last_name")
     ordering_fields = ("username", "date_joined", "role", "is_active")
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.action != "list":
+            return queryset
+        role_id = self.request.query_params.get("role_id")
+        active = self.request.query_params.get("is_active")
+        if role_id not in (None, ""):
+            try:
+                role_id = serializers.IntegerField(min_value=1, max_value=2147483647).run_validation(role_id)
+            except serializers.ValidationError as exc:
+                raise serializers.ValidationError({"role_id": exc.detail}) from exc
+            queryset = queryset.filter(groups__id=role_id, groups__project_role__isnull=False).distinct()
+        if active not in (None, ""):
+            try:
+                active = serializers.BooleanField().run_validation(active)
+            except serializers.ValidationError as exc:
+                raise serializers.ValidationError({"is_active": exc.detail}) from exc
+            queryset = queryset.filter(is_active=active)
+        return queryset
 
     def get_serializer_class(self):
         if self.action == "create":
