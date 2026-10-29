@@ -351,6 +351,7 @@ export function Users() {
       setEdit(null);
       setShowForm(false);
       form.reset();
+      setPage(1);
       query.reload();
       setMessage("Usuario guardado.");
     } catch (err) {
