@@ -142,7 +142,7 @@ function PasswordFieldInput({
         required
         placeholder="Mínimo 8 caracteres seguros"
         autoComplete="new-password"
-        className="w-full rounded-lg border border-white/25 bg-[#08111f] p-2 pr-11 text-white placeholder-slate-500 focus:border-[#b9e75c] focus:outline-none"
+        className="w-full rounded-lg border border-white/25 bg-[var(--fg-surface,#08111f)] p-2 pr-11 text-white placeholder-slate-500 focus:border-[var(--fg-stroke,#b9e75c)] focus:outline-none"
         {...props}
       />
       <button

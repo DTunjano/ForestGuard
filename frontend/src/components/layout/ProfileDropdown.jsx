@@ -96,10 +96,10 @@ export const ProfileDropdown = ({
       {/* DROPDOWN MENU */}
       {isOpen && (!sidebar || expanded) && (
         <div
-          className={`absolute ${sidebar ? "bottom-0 left-full ml-3" : "right-0 top-full mt-2"} z-50 w-56 overflow-hidden rounded-lg border border-[#1e293b] bg-[#0b1728] shadow-2xl animate-fadeIn`}
+          className={`absolute ${sidebar ? "bottom-0 left-full ml-3" : "right-0 top-full mt-2"} z-50 w-56 overflow-hidden rounded-lg border border-[var(--fg-stroke,#1e293b)] bg-[var(--fg-surface,#0b1728)] shadow-2xl animate-fadeIn`}
         >
           {/* HEADER CON INFO DEL USUARIO */}
-          <div className="border-b border-[#1e293b] bg-linear-to-r from-[#0b1728] to-[#0f1f32] px-4 py-3">
+          <div className="border-b border-[var(--fg-stroke,#1e293b)] bg-linear-to-r from-[var(--fg-surface,#0b1728)] to-[var(--fg-surface,#0f1f32)] px-4 py-3">
             <div className="flex items-center gap-3">
               <div className="flex size-12 items-center justify-center rounded-full bg-linear-to-br from-green-500 to-green-600 border border-green-400/30">
                 {user?.avatar ? (
@@ -132,14 +132,14 @@ export const ProfileDropdown = ({
             {/* Opción: Ver Perfil */}
             <button
               onClick={handleProfileClick}
-              className="w-full px-4 py-3 flex items-center gap-3 text-gray-300 hover:bg-[#1e293b] hover:text-green-400 transition-all duration-150 group"
+              className="w-full px-4 py-3 flex items-center gap-3 text-gray-300 hover:bg-[var(--fg-surface-soft,#1e293b)] hover:text-green-400 transition-all duration-150 group"
             >
               <PiUserBold className="text-lg group-hover:text-green-400 transition" />
               <span className="text-sm">Ver Perfil</span>
             </button>
 
             {/* Divider */}
-            <div className="mx-2 h-px bg-[#1e293b]"></div>
+            <div className="mx-2 h-px bg-[var(--fg-surface-soft,#1e293b)]"></div>
 
             {/* Opción: Cerrar Sesión */}
             <button

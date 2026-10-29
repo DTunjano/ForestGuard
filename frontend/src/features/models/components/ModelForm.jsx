@@ -103,7 +103,7 @@ export function ModelForm({ model, onClose, onSaved }) {
               name="description"
               defaultValue={model?.description || ""}
               rows={3}
-              className="w-full rounded-lg border border-white/25 bg-[#08111f] p-3"
+              className="w-full rounded-lg border border-white/25 bg-[var(--fg-surface,#08111f)] p-3"
             />
           </Field>
           <Field label="Disponibilidad del modelo">

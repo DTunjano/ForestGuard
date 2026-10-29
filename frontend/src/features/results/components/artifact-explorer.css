@@ -12,12 +12,12 @@
   min-height: 76px;
   border: 1px solid var(--fg-border);
   border-radius: 12px;
-  background: #0b1728;
+  background: var(--fg-surface, #0b1728);
   cursor: pointer;
 }
 .fg-results-levels button[aria-pressed="true"] {
   border-color: var(--fg-accent);
-  background: #1d322a;
+  background: var(--fg-green-wash, #1d322a);
 }
 .fg-results-levels strong {
   display: block;
@@ -48,7 +48,7 @@
 .fg-results-reading {
   padding: 16px;
   border-radius: 12px;
-  background: #08131f;
+  background: var(--fg-surface, #08131f);
   display: grid;
   gap: 12px;
 }
@@ -73,7 +73,7 @@
   padding: 6px 10px;
   border-radius: 20px;
   font-size: 12px;
-  color: #c5d6e4;
+  color: var(--fg-ink, #c5d6e4);
 }
 .fg-files-categories {
   display: flex;
@@ -93,12 +93,12 @@
 }
 .fg-files-categories > button[aria-pressed="true"] {
   border-color: var(--fg-accent);
-  background: #b9e75c12;
-  color: #d5efaf;
+  background: var(--fg-green-wash, #b9e75c12);
+  color: var(--fg-green-ink, #d5efaf);
 }
 .fg-files-categories > button > span {
   font-size: 11px;
-  color: #c3cfdb;
+  color: var(--fg-muted-ink, #c3cfdb);
 }
 .fg-files-filters {
   display: grid;
@@ -114,7 +114,7 @@
   color: var(--fg-muted);
 }
 .fg-files-status > button {
-  color: #c5e39f;
+  color: var(--fg-green-ink, #c5e39f);
   text-decoration: underline;
   text-underline-offset: 3px;
   cursor: pointer;
@@ -155,7 +155,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  background: #08131f;
+  background: var(--fg-surface, #08131f);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -202,17 +202,17 @@
   border-radius: 10px;
   min-height: 72px;
   cursor: pointer;
-  background: #08131f;
+  background: var(--fg-surface, #08131f);
 }
 .fg-files-list button:hover {
-  border-color: #6c8860;
+  border-color: var(--fg-stroke, #6c8860);
 }
 .fg-files-list button[aria-pressed="true"] {
-  background: #1d322a;
+  background: var(--fg-green-wash, #1d322a);
   border-color: var(--fg-accent);
 }
 .fg-files-list button > svg {
-  color: #9bc27d;
+  color: var(--fg-green-ink, #9bc27d);
   flex-shrink: 0;
 }
 .fg-files-list button strong {
@@ -231,7 +231,7 @@
   margin-left: auto;
   flex-shrink: 0;
   font-size: 10px;
-  color: #c1d4e5;
+  color: var(--fg-ink, #c1d4e5);
 }
 .fg-files-pagination {
   display: flex;
@@ -295,11 +295,11 @@
 .fg-results-metrics > summary h2 {
   font-size: 19px;
   font-weight: 650;
-  color: #e7edf5;
+  color: var(--fg-ink, #e7edf5);
 }
 .fg-results-metrics > summary span {
   font-size: 13px;
-  color: #c5e39f;
+  color: var(--fg-green-ink, #c5e39f);
   text-decoration: underline;
 }
 .fg-results-metrics[open] > summary {

@@ -39,7 +39,7 @@ export function Page({ title, greeting, description, action, children }) {
 }
 export function Panel({ children }) {
   return (
-    <section className="fg-panel space-y-4 rounded-2xl border border-white/10 bg-[#0b1728] p-5">
+    <section className="fg-panel space-y-4 rounded-2xl border border-white/10 bg-[var(--fg-surface,#0b1728)] p-5">
       {children}
     </section>
   );
@@ -66,7 +66,7 @@ export function Field({ label, children, ...props }) {
       ) : (
         <input
           id={id}
-          className="w-full rounded-lg border border-white/25 bg-[#08111f] p-2"
+          className="w-full rounded-lg border border-white/25 bg-[var(--fg-surface,#08111f)] p-2"
           {...props}
         />
       )}

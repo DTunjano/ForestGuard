@@ -9,6 +9,7 @@ import { Link, Navigate, useNavigate } from "react-router";
 import { useAuth } from "../hooks/useAuth";
 import { register } from "../api/auth";
 import { Button, Field, Notice, Panel } from "../../../shared/components/UI";
+import { ThemeToggle } from "../../../shared/components/ThemeToggle";
 
 export function AuthPage({ registration = false }) {
   const { signIn, isAuthenticated, checking } = useAuth();
@@ -41,6 +42,9 @@ export function AuthPage({ registration = false }) {
   }
   return (
     <main className="fg-auth text-white">
+      <div className="fg-auth-appearance">
+        <ThemeToggle />
+      </div>
       <section className="fg-auth-story" aria-label="Acerca de ForestGuard">
         <div className="fg-auth-brand">
           <LuTrees size={32} />

@@ -183,7 +183,7 @@ export const NavBar = () => {
   const sectionIsOpen = (sectionId) => isExpanded && openSections[sectionId];
 
   const sectionClass = (isOpen) =>
-    `flex shrink-0 items-center overflow-hidden rounded-xl text-left text-xs font-semibold uppercase tracking-[0.12em] transition ${isExpanded ? "h-11 w-full justify-between px-3" : "mx-auto size-11 justify-center px-0"} ${isOpen ? "text-[#b9e75c]" : "text-slate-400 hover:bg-white/6 hover:text-white"}`;
+    `flex shrink-0 items-center overflow-hidden rounded-xl text-left text-xs font-semibold uppercase tracking-[0.12em] transition ${isExpanded ? "h-11 w-full justify-between px-3" : "mx-auto size-11 justify-center px-0"} ${isOpen ? "text-[var(--fg-green-ink,#b9e75c)]" : "text-slate-400 hover:bg-white/6 hover:text-white"}`;
 
   const linkClass = (isActive) =>
     `flex h-10 shrink-0 items-center overflow-hidden rounded-lg text-sm transition ${isExpanded ? "justify-start px-3" : "mx-auto size-11 justify-center px-0"} ${isActive ? "bg-[#b9e75c] text-[#10261d] shadow-[0_8px_24px_rgba(185,231,92,0.12)]" : "text-slate-300 hover:bg-white/6 hover:text-white"}`;
@@ -195,7 +195,7 @@ export const NavBar = () => {
     <aside
       data-forestguard-sidebar
       data-expanded={isExpanded}
-      className={`peer fixed inset-y-0 left-0 z-50 flex flex-col overflow-visible border-r border-white/10 bg-[#0b1728] px-3 py-5 transition-[width] duration-300 ease-out ${isExpanded ? "w-64" : "w-19"}`}
+      className={`peer fixed inset-y-0 left-0 z-50 flex flex-col overflow-visible border-r border-white/10 bg-[var(--fg-surface,#0b1728)] px-3 py-5 transition-[width] duration-300 ease-out ${isExpanded ? "w-64" : "w-19"}`}
       onMouseEnter={expandSidebar}
       onMouseLeave={collapseSidebar}
       onFocusCapture={expandSidebar}
