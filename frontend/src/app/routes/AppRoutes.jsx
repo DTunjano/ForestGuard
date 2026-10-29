@@ -8,6 +8,7 @@ import { NewAnalysis } from "../../features/analyses/pages/NewAnalysis";
 import { Results } from "../../features/results/pages/Results";
 import { History } from "../../features/analyses/pages/History";
 import { Help } from "../../features/analyses/pages/Help";
+import { Faq } from "../../features/analyses/pages/Faq";
 import { Profile } from "../../features/profile/pages/Profile";
 import { Users } from "../../features/users/pages/Users";
 import { Images } from "../../features/images/pages/Images";
@@ -42,6 +43,7 @@ export const AppRoutes = () => {
         />
         <Route path="/dashboard/results/:id" element={<Results />} />
         <Route path="/help" element={<Help />} />
+        <Route path="/faq" element={<Faq />} />
 
         <Route path="/images" element={<Images />} />
         <Route path="/study-areas" element={<StudyAreas />} />

@@ -798,27 +798,6 @@ main {
   border-radius: 12px;
   background: #101e2d;
 }
-.fg-page[data-page="Ayuda"] ol {
-  counter-reset: steps;
-  list-style: none;
-  display: grid;
-  gap: 14px;
-}
-.fg-page[data-page="Ayuda"] li {
-  padding: 20px;
-  border: 1px solid var(--fg-border);
-  border-radius: 12px;
-  background: #152638;
-  line-height: 1.8;
-}
-.fg-page[data-page="Ayuda"] li:before {
-  counter-increment: steps;
-  content: counter(steps, decimal-leading-zero);
-  color: #b9e75c;
-  font-weight: 700;
-  display: block;
-  margin-bottom: 8px;
-}
 @media (min-width: 1100px) {
   .fg-page[data-page="Mi perfil"] > .fg-profile-hero,
   .fg-page[data-page="Mi perfil"] > .fg-profile-flow {
@@ -6237,4 +6216,660 @@ pre::-webkit-scrollbar-thumb {
   color: #a8bbd0;
   font-size: 12px;
   line-height: 1.55;
+}
+
+/* Redesigned Help Page */
+.fg-help-card {
+  display: grid;
+  gap: 16px;
+  padding: 20px 22px;
+  border: 1px solid #ffffff16;
+  border-radius: 14px;
+  background: linear-gradient(155deg, #0d1a2c 0%, #07101d 100%);
+}
+.fg-help-section-head {
+  display: grid;
+  gap: 3px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #ffffff12;
+}
+.fg-help-section-head h2 {
+  margin: 0;
+  color: #f4f8fb;
+  font-size: 16.5px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+/* Requisitos de las escenas */
+.fg-help-req-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-help-req-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #ffffff14;
+  border-radius: 12px;
+  background: #07101d;
+  transition: border-color 150ms ease;
+}
+.fg-help-req-item:hover {
+  border-color: #b9e75c40;
+}
+.fg-help-req-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  place-items: center;
+  border: 1px solid #b9e75c40;
+  border-radius: 10px;
+  background: #b9e75c18;
+  color: #c8f272;
+}
+.fg-help-req-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.fg-help-req-copy strong {
+  color: #f1f6fa;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.fg-help-req-copy p {
+  margin: 0;
+  color: #9cb0c4;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.fg-help-req-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+.fg-help-req-chips span {
+  padding: 1px 7px;
+  border: 1px solid #38bdf845;
+  border-radius: 6px;
+  background: #38bdf814;
+  color: #bae6fd;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Nota destacada: validación automática de imágenes */
+.fg-help-callout {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 16px 18px;
+  border: 1px solid #fbbf2466;
+  border-left: 4px solid #fbbf24;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 0% 0%, #fbbf2422 0, transparent 60%), #1a1608;
+}
+.fg-help-callout-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  place-items: center;
+  border: 1px solid #fbbf2466;
+  border-radius: 11px;
+  background: #fbbf2422;
+  color: #fcd34d;
+}
+.fg-help-callout-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 240px;
+  flex: 1;
+}
+.fg-help-callout-copy strong {
+  color: #fde68a;
+  font-size: 14.5px;
+  font-weight: 700;
+}
+.fg-help-callout-copy p {
+  margin: 0;
+  color: #e7dcc0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.fg-help-callout-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid #fbbf2477;
+  border-radius: 9px;
+  background: #fbbf241f;
+  color: #fde68a;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+.fg-help-callout-action:hover,
+.fg-help-callout-action:focus-visible {
+  border-color: #fbbf24;
+  background: #fbbf2433;
+  color: #ffffff;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fg-help-req-item,
+  .fg-help-callout-action {
+    transition: none;
+  }
+}
+
+/* Pasos numerados */
+.fg-help-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+@media (max-width: 1100px) {
+  .fg-help-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .fg-help-steps {
+    grid-template-columns: 1fr;
+  }
+}
+.fg-help-step {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid #ffffff14;
+  border-radius: 12px;
+  background: #07101d;
+}
+.fg-help-step-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.fg-help-step-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border: 1px solid #b9e75c55;
+  border-radius: 999px;
+  background: #142a1d;
+  color: #d6efb9;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+.fg-help-step-icon {
+  color: #8ea2b8;
+}
+.fg-help-step strong {
+  color: #f1f6fa;
+  font-size: 14px;
+  font-weight: 700;
+}
+.fg-help-step p {
+  margin: 0;
+  color: #9cb0c4;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* Índices espectrales */
+.fg-help-index-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 900px) {
+  .fg-help-index-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 480px) {
+  .fg-help-index-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.fg-help-index-card {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid #ffffff14;
+  border-radius: 11px;
+  background: #07101d;
+}
+.fg-help-index-card span {
+  justify-self: start;
+  padding: 2px 9px;
+  border: 1px solid #38bdf845;
+  border-radius: 7px;
+  background: #38bdf818;
+  color: #bae6fd;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+}
+.fg-help-index-card p {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.fg-help-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 2px solid #fbbf24aa;
+  border-radius: 0 8px 8px 0;
+  background: #fbbf240f;
+  color: #e2d6b5;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+/* Enlace a preguntas frecuentes */
+.fg-help-faq-cta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  border: 1px solid #b9e75c38;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 0% 0%, #b9e75c1c 0, transparent 55%), #081322;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 150ms ease;
+}
+.fg-help-faq-cta:hover,
+.fg-help-faq-cta:focus-visible {
+  border-color: #b9e75c77;
+}
+.fg-help-quick-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  place-items: center;
+  border: 1px solid #b9e75c40;
+  border-radius: 10px;
+  background: #b9e75c18;
+  color: #c8f272;
+}
+.fg-help-quick-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 220px;
+  flex: 1;
+}
+.fg-help-quick-copy strong {
+  color: #f1f6fa;
+  font-size: 14px;
+  font-weight: 700;
+}
+.fg-help-quick-copy small {
+  color: #8ea2b8;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.fg-help-faq-cta-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border: 1px solid #b9e75c55;
+  border-radius: 8px;
+  background: #b9e75c14;
+  color: #d6efb9;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Acordeón de preguntas frecuentes */
+.fg-help-faq {
+  display: grid;
+  gap: 8px;
+}
+.fg-help-faq-item {
+  border: 1px solid #ffffff14;
+  border-radius: 11px;
+  background: #07101d;
+  overflow: hidden;
+}
+.fg-help-faq-item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 16px;
+  color: #e2ecf6;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+.fg-help-faq-item summary::-webkit-details-marker {
+  display: none;
+}
+.fg-help-faq-item summary::after {
+  content: "+";
+  flex-shrink: 0;
+  color: #8ea2b8;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1;
+}
+.fg-help-faq-item[open] summary::after {
+  content: "−";
+  color: #b9e75c;
+}
+.fg-help-faq-item summary:hover {
+  color: #ffffff;
+}
+.fg-help-faq-item[open] {
+  border-color: #b9e75c40;
+}
+.fg-help-faq-item p {
+  margin: 0;
+  padding: 0 16px 14px;
+  color: #9cb0c4;
+  font-size: 13px;
+  line-height: 1.6;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fg-help-faq-cta {
+    transition: none;
+  }
+}
+
+/* Panel de administración: Gestión de usuarios */
+.fg-user-account-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.fg-user-avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 1px solid #b9e75c44;
+  border-radius: 10px;
+  background: #142b1e;
+  color: #d6efb9;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.fg-user-avatar.is-admin {
+  border-color: #38bdf844;
+  background: #0c2438;
+  color: #7dd3fc;
+}
+
+.fg-user-account-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.fg-user-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.fg-user-self-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border: 1px solid #b9e75c66;
+  border-radius: 999px;
+  background: #b9e75c1c;
+  color: #d6efb9;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.fg-user-email {
+  color: #8ea2b8;
+  font-size: 11.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fg-user-fullname {
+  color: #e2ecf6;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.fg-user-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.fg-user-role-badge.is-admin {
+  border: 1px solid #38bdf844;
+  background: #0d2235;
+  color: #bae6fd;
+}
+
+.fg-user-role-badge.is-analyst {
+  border: 1px solid #ffffff16;
+  background: #091524;
+  color: #cbd5e1;
+}
+
+.fg-user-modal-form {
+  display: grid;
+  gap: 16px;
+}
+
+.fg-user-modal-subtitle {
+  margin: 0;
+  color: #9cb0c4;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.fg-user-form-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+}
+
+/* Registro date cell fix */
+.fg-user-date-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.fg-user-date-cell svg {
+  flex-shrink: 0;
+  color: #8ea2b8;
+}
+
+/* Modal form real-time field validation feedback */
+.fg-field-feedback {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+  padding: 4px 4px 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+.fg-field-feedback.is-valid {
+  color: #86efac;
+}
+.fg-field-feedback.is-valid svg {
+  color: #4ade80;
+  flex-shrink: 0;
+}
+.fg-field-feedback.is-invalid {
+  color: #fca5a5;
+}
+.fg-field-feedback.is-invalid svg {
+  color: #f87171;
+  flex-shrink: 0;
+}
+
+/* Password field with toggle button */
+.fg-password-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.fg-password-toggle-btn {
+  position: absolute;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #8ea2b8;
+  cursor: pointer;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
+}
+.fg-password-toggle-btn:hover {
+  background: #ffffff14;
+  color: #ffffff;
+}
+
+/* Password requirements checklist */
+.fg-password-checklist {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid #ffffff16;
+  border-radius: 10px;
+  background: #060e1a;
+}
+.fg-password-checklist-title {
+  color: #93a7bc;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.fg-password-req-list {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fg-password-req-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  transition: color 150ms ease;
+}
+.fg-password-req-item.is-met {
+  color: #86efac;
+}
+.fg-password-req-item.is-met .fg-password-req-text {
+  text-decoration: line-through;
+  opacity: 0.9;
+}
+.fg-password-req-item.is-pending {
+  color: #8ea2b8;
+}
+.fg-password-req-icon {
+  display: grid;
+  width: 16px;
+  height: 16px;
+  place-items: center;
+  flex-shrink: 0;
+}
+.fg-password-req-item.is-met .fg-password-req-icon {
+  color: #4ade80;
+}
+.fg-password-req-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: #52657a;
+}
+
+/* Modal form refinement for users */
+.fg-user-field-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.fg-user-self-protected-note {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 4px;
+  padding: 10px 14px;
+  border: 1px solid #38bdf838;
+  border-radius: 10px;
+  background: #0b1f33;
+  color: #bae6fd;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.fg-user-self-protected-note svg {
+  flex-shrink: 0;
+  color: #38bdf8;
 }
