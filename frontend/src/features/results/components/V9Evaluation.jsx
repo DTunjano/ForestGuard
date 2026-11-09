@@ -53,12 +53,25 @@ function ReferenceForm({ prediction, canEvaluate }) {
       aria-busy={busy}
     >
       {!evaluation && <h3>Cargar referencia verificada</h3>}
-      <p>
-        Usa la predicción como guía para la cuadrícula. La referencia debe ser
-        un GeoTIFF de una banda Byte, con <strong>0</strong> para sin pérdida,{" "}
-        <strong>1</strong> para pérdida y <strong>255</strong> para sin
-        etiqueta. Tamaño máximo: 64 MB y 25 millones de píxeles.
-      </p>
+      <div className="space-y-2">
+        <p>
+          <strong>Archivo para descargar.</strong> La predicción de v9 te sirve
+          de plantilla para consultar la cuadrícula y preparar una referencia
+          alineada.
+        </p>
+        <p>
+          <strong>Archivo para cargar.</strong> Una máscara de referencia con
+          etiquetas independientes, obtenidas de una fuente verificada para esta
+          zona y periodo. Comparar la predicción consigo misma solo mide su
+          coincidencia con una copia.
+        </p>
+        <p>
+          La máscara debe ser un GeoTIFF de una banda Byte con la misma
+          cuadrícula que la predicción. Usa <strong>0</strong> para sin pérdida,{" "}
+          <strong>1</strong> para pérdida y <strong>255</strong> para sin
+          etiqueta. Tamaño máximo: 64 MB y 25 millones de píxeles.
+        </p>
+      </div>
       <ResultDownload artifact={prediction}>
         Descargar predicción GeoTIFF
       </ResultDownload>
@@ -84,6 +97,7 @@ function ReferenceForm({ prediction, canEvaluate }) {
             name="independent_reference"
             type="checkbox"
             value="true"
+            data-required-message="Confirma que las etiquetas corresponden a la zona y al periodo y son independientes de v9."
             required
           />
           <span>

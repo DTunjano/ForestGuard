@@ -268,6 +268,16 @@ try {
         .click();
       await expect(page.getByRole("dialog")).toBeVisible();
       await screenshot("area-modal-light");
+      const dialog = page.getByRole("dialog");
+      await dialog
+        .getByRole("button", { name: "Crear área", exact: true })
+        .click();
+      await expect(page.locator("[data-sonner-toast]")).toContainText(
+        "Completa el campo",
+      );
+      await expect(dialog.getByLabel("Nombre del área")).toBeFocused();
+      await page.getByRole("button", { name: "Cerrar notificación" }).click();
+      await expect(dialog).toBeVisible();
       await page.keyboard.press("Escape");
     }
   }
@@ -301,6 +311,14 @@ try {
   const evaluationTab = page.getByRole("button", { name: /^Evaluación v9/ });
   await evaluationTab.click();
   const reference = page.getByLabel("Máscara de referencia GeoTIFF");
+  const evaluate = page.getByRole("button", {
+    name: "Calcular y guardar evaluación",
+  });
+  const validation = page.locator("[data-sonner-toast]");
+  await evaluate.click();
+  await expect(validation).toHaveCount(1);
+  await expect(validation).toContainText("Selecciona un archivo");
+  await expect(reference).toBeFocused();
   await reference.setInputFiles({
     name: "referencia.tif",
     mimeType: "image/tiff",
@@ -308,12 +326,16 @@ try {
   });
   const source = page.getByLabel("Fuente de las etiquetas");
   await source.fill("Cuadrícula incorrecta");
-  await page
-    .getByRole("checkbox", { name: /^Confirmo que las etiquetas/ })
-    .check();
-  const evaluate = page.getByRole("button", {
-    name: "Calcular y guardar evaluación",
+  const confirmation = page.getByRole("checkbox", {
+    name: /^Confirmo que las etiquetas/,
   });
+  await evaluate.click();
+  await expect(validation).toContainText(
+    "Confirma que las etiquetas corresponden",
+  );
+  await expect(confirmation).toBeFocused();
+  await screenshot("validation-toast-light");
+  await confirmation.check();
   await evaluate.click();
   await expect(page.getByRole("alert")).toContainText(
     "La cuadrícula no coincide",
@@ -327,6 +349,7 @@ try {
     name: "Resultado guardado de la evaluación v9",
   });
   await expect(score.getByText("50 %", { exact: true })).toBeVisible();
+  await expect(validation).toHaveCount(0);
   await screenshot("jaccard-evaluation-light");
   await page.reload();
   await evaluationTab.click();

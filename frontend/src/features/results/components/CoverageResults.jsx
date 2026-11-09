@@ -90,6 +90,12 @@ export function CoverageResults({ summary, artifacts }) {
         {entry.coincidencia_vegetacion && (
           <VegetationOverlap overlap={entry.coincidencia_vegetacion} />
         )}
+        {entry.fecha_inicial && !entry.coincidencia_vegetacion && (
+          <Notice>
+            La coincidencia entre fechas se calcula en comparaciones nuevas.
+            Crea otro análisis con estas mismas escenas para obtenerla.
+          </Notice>
+        )}
       </Panel>
     </section>
   );

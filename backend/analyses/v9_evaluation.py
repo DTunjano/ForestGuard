@@ -22,6 +22,12 @@ def evaluate_reference(prediction_path, upload):
     if upload.read(4) not in TIFF_HEADERS:
         raise ValueError("El archivo no es un GeoTIFF legible.")
     upload.seek(0)
+    if upload.size == prediction_path.stat().st_size:
+        with prediction_path.open("rb") as source:
+            identical = all(source.read(len(chunk)) == chunk for chunk in upload.chunks())
+        if identical:
+            raise ValueError("El archivo es una copia de la predicción de v9. Carga una máscara de referencia verificada e independiente.")
+        upload.seek(0)
     try:
         with ExitStack() as stack:
             stack.enter_context(rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR"))

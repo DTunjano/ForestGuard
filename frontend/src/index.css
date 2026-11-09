@@ -855,12 +855,6 @@ main {
   outline-offset: 4px;
   border-radius: 30px;
 }
-[data-sonner-toast] {
-  font-family: inherit !important;
-  border-color: var(--fg-stroke, #496077) !important;
-  background: var(--fg-surface, #122032) !important;
-  color: var(--fg-ink, #e7edf5) !important;
-}
 @media (max-width: 600px) {
   .fg-section-heading {
     flex-wrap: wrap;

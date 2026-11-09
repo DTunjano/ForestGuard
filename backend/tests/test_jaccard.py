@@ -13,18 +13,20 @@ from analyses.v9_evaluation import compare_rasters
 from catalog.models import PipelineModel, StudyArea
 
 
-def write_mask(target, values, *, x=500000):
+def write_mask(target, values, *, x=500000, reference=False):
     with rasterio.open(
         target, "w", driver="GTiff", count=1, dtype="uint8", nodata=255,
         width=len(values[0]), height=len(values), crs="EPSG:32618",
         transform=from_origin(x, 500000, 10, 10),
     ) as raster:
         raster.write(np.array(values, dtype="uint8"), 1)
+        if reference:
+            raster.update_tags(source="Referencia independiente de pruebas")
 
 
 def upload(values, *, x=500000):
     stream = BytesIO()
-    write_mask(stream, values, x=x)
+    write_mask(stream, values, x=x, reference=True)
     return SimpleUploadedFile("referencia.tif", stream.getvalue())
 
 
@@ -79,6 +81,9 @@ def test_reference_evaluation_validates_and_saves_only_owner_predictions(setting
         SimpleUploadedFile("incorrecto.tif", b"not a raster"),
     ):
         assert evaluate(invalid).status_code == 400
+    copy = evaluate(SimpleUploadedFile("renombrado.tif", target.read_bytes()))
+    assert copy.status_code == 400
+    assert "copia de la predicción" in copy.data["reference"]
     assert client.get(url).data == result.data
     replacement = evaluate(upload([[1, 1, 0, 0], [255, 1, 0, 255]]))
     assert replacement.data["evaluation"]["metrics"]["jaccard"] == 1

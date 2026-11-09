@@ -12,6 +12,8 @@ La coincidencia describe la distribución del vigor alto. Las salidas y entradas
 
 En **Historial → Resultados → Evaluación v9**, selecciona un intervalo con predicción. Se admiten análisis anteriores que conserven el GeoTIFF de clasificación v9. El botón **Descargar predicción GeoTIFF** permite consultar la cuadrícula de destino.
 
+El archivo descargado sirve como plantilla espacial. Carga un GeoTIFF con etiquetas verificadas de una fuente independiente. ForestGuard rechaza una copia exacta de la predicción, aunque se cambie el nombre del archivo.
+
 1. Prepara las etiquetas de una fuente verificada, independiente del entrenamiento y ajuste, para la misma zona e intervalo. Si la referencia consiste en polígonos, rasterízalos sobre la cuadrícula de la predicción. Codifica como 0 solamente la superficie verificada sin pérdida.
 2. Guarda un GeoTIFF de una banda Byte (UInt8) con el mismo CRS, dimensiones y transformación afín que la predicción. Etiquetas: 0 sin pérdida, 1 pérdida y 255 sin etiqueta. Si se declara NoData, debe ser 255. Se admiten hasta 64 MB y 25 millones de píxeles.
 3. Selecciona el archivo, indica su fuente y confirma la independencia. Pulsa **Calcular y guardar evaluación**. El resultado muestra Jaccard, precisión, sensibilidad, la matriz de conteos y la proporción de la predicción que se pudo evaluar.
