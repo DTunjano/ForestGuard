@@ -50,6 +50,16 @@ const summary = {
       fecha_inicial: "2024-01-01",
       fecha_final: "2025-01-01",
       dias: 366,
+      coincidencia_vegetacion: {
+        jaccard: 0.8,
+        umbral_ndvi: 0.5,
+        pixeles_interseccion: 8,
+        pixeles_union: 10,
+        pixeles_solo_fecha_inicial: 1,
+        pixeles_solo_fecha_final: 1,
+        area_salida_ha: 0.01,
+        area_entrada_ha: 0.01,
+      },
       condicion: {
         tipo: "temporal",
         categorias: categories,
@@ -74,7 +84,16 @@ const artifacts = [
     category_mask_url: "/api/v1/artifacts/2/category-mask/",
     label: "Cobertura",
   },
+  {
+    id: 3,
+    kind: "raster",
+    relative_path: `${folder}/clasificacion_piloto/clasificacion_cambio_exploratoria.tif`,
+    v9_evaluation_url: "/api/v1/artifacts/3/v9-evaluation/",
+    download_url: "/api/v1/artifacts/3/download/",
+    label: "Predicción v9",
+  },
 ];
+let evaluation = null;
 const browser = await chromium.launch({ channel: "msedge", headless: true });
 const context = await browser.newContext({
   baseURL: process.env.FG_TEST_URL || "http://127.0.0.1:5173",
@@ -111,7 +130,40 @@ await context.route("**/api/v1/**", async (route) => {
     };
   else if (path.endsWith("/analyses/99/results/"))
     body = { reports: [], individual: [], comparisons: artifacts, other: [] };
-  else if (path.endsWith("/category-mask/"))
+  else if (path.endsWith("/v9-evaluation/")) {
+    if (route.request().method() === "POST") {
+      const payload = route.request().postData();
+      for (const field of [
+        "reference",
+        "reference_source",
+        "independent_reference",
+      ])
+        expect(payload).toContain(`name="${field}"`);
+      if (payload.includes("Cuadrícula incorrecta")) {
+        return route.fulfill({
+          status: 400,
+          json: { reference: ["La cuadrícula no coincide."] },
+        });
+      }
+      evaluation = {
+        reference_name: "referencia.tif",
+        reference_source: "Fuente de prueba",
+        evaluated_at: "2026-11-08T18:00:00Z",
+        metrics: {
+          jaccard: 0.5,
+          precision: 0.75,
+          sensibilidad: 0.6,
+          verdaderos_positivos: 6,
+          falsos_positivos: 2,
+          falsos_negativos: 4,
+          verdaderos_negativos: 6,
+          pixeles_evaluados: 18,
+          pixeles_prediccion_validos: 24,
+        },
+      };
+    }
+    body = { evaluation };
+  } else if (path.endsWith("/category-mask/"))
     body = {
       encoding: "uint8-base64",
       width: 4,
@@ -242,6 +294,43 @@ try {
   await expect(page.getByRole("listbox")).toBeVisible();
   await screenshot("result-picker-light");
   await page.keyboard.press("Escape");
+  const overlap = page.getByRole("region", {
+    name: "Coincidencia de vegetación entre fechas",
+  });
+  await expect(overlap.getByText("80 %", { exact: true })).toBeVisible();
+  const evaluationTab = page.getByRole("button", { name: /^Evaluación v9/ });
+  await evaluationTab.click();
+  const reference = page.getByLabel("Máscara de referencia GeoTIFF");
+  await reference.setInputFiles({
+    name: "referencia.tif",
+    mimeType: "image/tiff",
+    buffer: Buffer.from("mock TIFF for the browser test"),
+  });
+  const source = page.getByLabel("Fuente de las etiquetas");
+  await source.fill("Cuadrícula incorrecta");
+  await page
+    .getByRole("checkbox", { name: /^Confirmo que las etiquetas/ })
+    .check();
+  const evaluate = page.getByRole("button", {
+    name: "Calcular y guardar evaluación",
+  });
+  await evaluate.click();
+  await expect(page.getByRole("alert")).toContainText(
+    "La cuadrícula no coincide",
+  );
+  await source.fill("Fuente de prueba");
+  await evaluate.click();
+  await expect(
+    page.getByText("Evaluación guardada.", { exact: true }),
+  ).toBeVisible();
+  const score = page.getByRole("region", {
+    name: "Resultado guardado de la evaluación v9",
+  });
+  await expect(score.getByText("50 %", { exact: true })).toBeVisible();
+  await screenshot("jaccard-evaluation-light");
+  await page.reload();
+  await evaluationTab.click();
+  await expect(score.getByText("50 %", { exact: true })).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   for (const path of [
     "/dashboard",
@@ -253,6 +342,10 @@ try {
     await page.goto(path);
     await appearance("light");
     await expect(page.locator(".fg-page h1")).toBeVisible();
+    if (path.includes("/results/")) {
+      await evaluationTab.click();
+      await expect(score).toBeVisible();
+    }
     await screenshot(path.replaceAll("/", "-").slice(1) + "-mobile");
     const overflow = await page.evaluate(() =>
       [...document.querySelectorAll("main *")]

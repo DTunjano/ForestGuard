@@ -17,10 +17,11 @@ from pathlib import Path
 import joblib
 import numpy as np
 import rasterio
+from binary_overlap import overlap_counts, ratio
 from calcular_indices_cambios_scl import INDEX_NAMES, calculate_indices
 from contrato_inferencia_ideam import VERSION
 from esquema_bandas_forestguard import HISTORICAL_BANDS
-from forest_condition import classify, condition_summary
+from forest_condition import RULES, classify, condition_summary
 from inferir_par_ideam import validar_entrada, validar_fecha_nombre
 from inferir_par_ideam_ventanas import read_window
 from raster_quality import normalized_coverage, normalized_pair_coverage
@@ -181,6 +182,8 @@ def describe_interval(first, second, output, side):
         stats = {name: HistogramSummary(-2, 2) for name in names}
         condition = create_condition_raster(stack, folder, initial)
         condition_counts = np.zeros(4, dtype=np.int64)
+        retained = gained = lost = 0
+        threshold = RULES["ndvi_bosque_proxy_minimo"]
         scl_quality = all("tras máscara SCL" in src.tags().get("processing", "")
                           for src in (initial, final))
         degradation_counts = np.zeros(4, dtype=np.int64)
@@ -200,6 +203,12 @@ def describe_interval(first, second, output, side):
             after, valid_after = indices_from(bilinear, after_indexes, window)
             _, valid_nearest = read_window(nearest, after_indexes, window)
             valid = valid_before & valid_after & valid_nearest
+            common, entered, exited = overlap_counts(
+                after["NDVI"] >= threshold, before["NDVI"] >= threshold, valid,
+            )
+            retained += common
+            gained += entered
+            lost += exited
             classes = classify(after["NDVI"], valid, before["NDVI"], before["NBR"], after["NBR"])
             condition.write(classes, 1, window=window)
             condition_counts += np.bincount(classes[valid], minlength=4)
@@ -220,6 +229,17 @@ def describe_interval(first, second, output, side):
                 degradation_counts += np.bincount(legacy_classes.ravel(), minlength=256)[[0, 1, 2, 255]]
         common_count = stats["dNDVI"].total
         pixel_area = area_pixel_m2(initial)
+        union = retained + gained + lost
+        overlap = {
+            "jaccard": ratio(retained, union),
+            "umbral_ndvi": threshold,
+            "pixeles_interseccion": retained,
+            "pixeles_union": union,
+            "pixeles_solo_fecha_inicial": lost,
+            "pixeles_solo_fecha_final": gained,
+            "area_salida_ha": lost * pixel_area / 10_000 if pixel_area else None,
+            "area_entrada_ha": gained * pixel_area / 10_000 if pixel_area else None,
+        }
         degradation_summary = {
             "estado": "evaluada_como_indicio" if scl_quality else "omitida_sin_mascara_scl",
             "conclusion": ("indicios_espectrales_detectados" if degradation_counts[1]
@@ -253,6 +273,7 @@ def describe_interval(first, second, output, side):
                 "area_comun_ha_aprox": (common_count * pixel_area / 10_000
                                          if pixel_area else None),
                 "condicion": condition_summary(condition_counts, initial.width * initial.height, pixel_area, temporal=True),
+                "coincidencia_vegetacion": overlap,
                 "diferencias": {name: item.result() for name, item in stats.items()},
                 "degradacion_observada": degradation_summary}, folder
 
@@ -360,7 +381,7 @@ def main():
             parser.error("La excepción temporal requiere --modelo")
         quality = None
     args.salida.mkdir(parents=True)
-    report = {"version_pipeline": "forestguard_historico_v4",
+    report = {"version_pipeline": "forestguard_historico_v8",
               "politica_temporal": temporal_policy(), "cobertura_valida_minima_porcentaje": 60,
               "modalidad": "indices_una_fecha" if len(scenes) == 1 else "serie_multifecha",
               "alcance": "índices, indicios de degradación y cambio histórico; sin riesgo futuro",

@@ -94,6 +94,17 @@ def test_real_pipeline_condition_maps_report_and_exports(settings, tmp_path, mon
     counts = [item["pixeles"] for item in condition["categorias"]]
     assert counts == [1023, 1024, 1024, 1024]
     assert sum(item["porcentaje"] for item in condition["categorias"]) == pytest.approx(100)
+    overlap = analysis.summary["intervalos"][0]["coincidencia_vegetacion"]
+    assert overlap == {
+        "jaccard": pytest.approx(2 / 3),
+        "umbral_ndvi": 0.5,
+        "pixeles_interseccion": 2048,
+        "pixeles_union": 3072,
+        "pixeles_solo_fecha_inicial": 1024,
+        "pixeles_solo_fecha_final": 0,
+        "area_salida_ha": pytest.approx(10.24),
+        "area_entrada_ha": 0,
+    }
     folder = tmp_path / "results" / str(job_id)
     with rasterio.open(folder / "intervalos/2024-01-01_2024-03-01/condicion_bosque.tif") as source:
         values = source.read(1)

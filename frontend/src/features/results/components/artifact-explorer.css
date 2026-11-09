@@ -6,6 +6,16 @@
 .fg-res-completed-stack[hidden] {
   display: none;
 }
+@media (min-width: 900px) {
+  .fg-results-levels.has-evaluation {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (min-width: 621px) and (max-width: 899px) {
+  .fg-results-levels.has-evaluation {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 .fg-results-levels button {
   text-align: left;
   padding: 16px;

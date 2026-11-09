@@ -10,6 +10,7 @@ from catalog.quality import check_image_quality
 from pipeline.src.temporal_policy import require_interval
 
 from .models import Analysis, AnalysisImage, ResultArtifact
+from .v9_evaluation import PREDICTION_PATH
 
 
 class CategoryMaskSerializer(serializers.Serializer):
@@ -29,11 +30,21 @@ class ResultArtifactSerializer(serializers.ModelSerializer):
     download_url = serializers.SerializerMethodField(help_text="Ruta privada de descarga del archivo.")
     metadata_url = serializers.SerializerMethodField(help_text="Ruta privada de metadatos; solo para raster.")
     category_mask_url = serializers.SerializerMethodField(help_text="Clases para filtros interactivos; solo para condición de cobertura.")
+    v9_evaluation_url = serializers.SerializerMethodField(help_text="Evaluación privada contra una referencia; solo para la máscara de clasificación v9.")
 
     class Meta:
         model = ResultArtifact
         fields = ("id", "kind", "label", "relative_path", "size_bytes", "preview_url", "download_url",
-                  "png_artifact_id", "png_download_url", "metadata_url", "category_mask_url", "created_at")
+                  "png_artifact_id", "png_download_url", "metadata_url", "category_mask_url", "v9_evaluation_url", "created_at")
+
+    @extend_schema_field(serializers.URLField(allow_null=True))
+    def get_v9_evaluation_url(self, obj):
+        if obj.kind != "raster" or not PREDICTION_PATH.fullmatch(obj.relative_path):
+            return None
+        analysis = obj.analysis
+        if analysis.status == Analysis.Status.COMPLETED and analysis.model and analysis.model.version == "v9":
+            return self._absolute_url("v9-evaluation", obj.pk)
+        return None
 
     @extend_schema_field(serializers.URLField(allow_null=True))
     def get_category_mask_url(self, obj):

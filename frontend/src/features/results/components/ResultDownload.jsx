@@ -23,7 +23,12 @@ export function ResultDownload({ artifact, children }) {
   }
   return (
     <div>
-      <Button variant="secondary" disabled={!artifact || busy} onClick={save}>
+      <Button
+        type="button"
+        variant="secondary"
+        disabled={!artifact || busy}
+        onClick={save}
+      >
         <LuDownload aria-hidden="true" />
         {busy ? "Descargando…" : children}
       </Button>

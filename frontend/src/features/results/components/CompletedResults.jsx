@@ -2,6 +2,7 @@ import { lazy, Suspense, useId, useState } from "react";
 import { LuDownload } from "react-icons/lu";
 import { useResource } from "../../../shared/api/useResource";
 import { download } from "../../../shared/api/client";
+import { useAuth } from "../../auth/hooks/useAuth";
 import {
   Button,
   Field,
@@ -12,6 +13,7 @@ import {
 import { Metrics } from "./Metrics";
 import { ArtifactExplorer } from "./ArtifactExplorer";
 import { ResultDownload } from "./ResultDownload";
+import { V9Evaluation } from "./V9Evaluation";
 import "./artifact-explorer.css";
 
 const CoverageResults = lazy(() =>
@@ -26,6 +28,7 @@ const sections = [
 ];
 
 export function CompletedResults({ id, summary }) {
+  const { can } = useAuth();
   const query = useResource(`analyses/${id}/results/`);
   const [section, setSection] = useState("summary");
   const [format, setFormat] = useState("both");
@@ -40,6 +43,17 @@ export function CompletedResults({ id, summary }) {
   const report = artifacts.find((item) =>
     item.relative_path.toLowerCase().endsWith(".pdf"),
   );
+  const predictions = artifacts
+    .filter((item) => item.v9_evaluation_url)
+    .sort((first, last) =>
+      first.relative_path.localeCompare(last.relative_path),
+    );
+  const levels = predictions.length
+    ? [
+        ...sections,
+        ["evaluation", "Evaluación v9", "Comparar con una referencia"],
+      ]
+    : sections;
   async function exportAll() {
     if (busy || !query.data) return;
     setBusy(true);
@@ -58,11 +72,11 @@ export function CompletedResults({ id, summary }) {
   return (
     <div className="fg-res-completed-stack">
       <div
-        className="fg-results-levels"
+        className={`fg-results-levels${predictions.length ? " has-evaluation" : ""}`}
         role="group"
         aria-label="Nivel de detalle de resultados"
       >
-        {sections.map(([key, label, description]) => (
+        {levels.map(([key, label, description]) => (
           <button
             key={key}
             type="button"
@@ -82,6 +96,12 @@ export function CompletedResults({ id, summary }) {
         <Button onClick={query.reload}>Reintentar archivos</Button>
       )}
       <div id={contentId}>
+        {section === "evaluation" && predictions.length > 0 && (
+          <V9Evaluation
+            predictions={predictions}
+            canEvaluate={can("analyses.add_analysis")}
+          />
+        )}
         <div hidden={section !== "summary"} className="fg-res-completed-stack">
           <Suspense fallback={<Notice>Cargando mapas de cobertura…</Notice>}>
             <CoverageResults summary={summary || {}} artifacts={artifacts} />

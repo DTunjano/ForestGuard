@@ -31,7 +31,7 @@ INK = colors.HexColor("#18333d")
 NAVY = colors.HexColor("#0b1728")
 MUTED = colors.HexColor("#526875")
 WIDTH = A4[0] - 80
-REPORT_VERSION = "forestguard-report-v3"
+REPORT_VERSION = "forestguard-report-v4"
 
 
 def number(value, suffix="", decimals=2):
@@ -474,6 +474,17 @@ def write_report(analysis, summary, destination, *, source_root=None):
             if readings:
                 story.append(text(" ".join(readings)))
         if temporal:
+            overlap = item.get("coincidencia_vegetacion")
+            if overlap:
+                jaccard = overlap["jaccard"]
+                reading = (
+                    f"{number(jaccard * 100, ' %')} de superposición (Jaccard). "
+                    f"Superficie que salió de la categoría: {number(overlap['area_salida_ha'], ' ha')}. "
+                    f"Superficie que entró: {number(overlap['area_entrada_ha'], ' ha')}."
+                    if jaccard is not None
+                    else "No evaluable: ninguna fecha presenta píxeles de vigor alto en el área válida común."
+                )
+                story.append(text(f"Coincidencia de vegetación de vigor alto. {reading}", "Caption"))
             story.append(
                 text(
                     f"Intervalo observado: {item.get('dias', 'No disponible')} días. Los mapas permiten distinguir cambios locales que la media del área puede compensar.",

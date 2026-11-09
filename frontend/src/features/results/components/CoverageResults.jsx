@@ -12,6 +12,7 @@ import { INDEX_LAYERS } from "../utils/mapLayers";
 import { ResultDownload } from "./ResultDownload";
 import { conditionReading } from "../utils/artifactCatalog";
 import { MapDetailsToggle } from "./MapDetailsToggle";
+import { VegetationOverlap } from "./JaccardMetrics";
 import "./coverage-map.css";
 
 const InteractiveCoverageMap = lazy(() =>
@@ -86,6 +87,9 @@ export function CoverageResults({ summary, artifacts }) {
           condition={condition}
           artifacts={artifacts}
         />
+        {entry.coincidencia_vegetacion && (
+          <VegetationOverlap overlap={entry.coincidencia_vegetacion} />
+        )}
       </Panel>
     </section>
   );

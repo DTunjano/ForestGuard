@@ -1,5 +1,5 @@
 {
-  "version": "forestguard_historico_v7",
+  "version": "forestguard_historico_v8",
   "python_creacion": "3.13.7",
   "dependencias": {
     "numpy": "2.5.3",
@@ -13,13 +13,14 @@
     "model/dominio_territorial.json": "746543c1e95687e92ff8081b2289f69392e4ae16164c9190ae882aee7bee8203",
     "model/modelo_exploratorio.joblib": "df0f951bc5c1e1014420a23e6d11b7c9fd271a534ce4c7b2db9fabf2df5bdafc",
     "model/perfil_desempeno.json": "b210825307f0a24bac52fb66619b3673061e93aff8b5b3cf2444818ca260fc28",
+    "src/binary_overlap.py": "88a01dfacbd62061f174902c92a5b0c285129e211fa9b3250b77339ef77e2cd4",
     "src/calcular_indices_cambios_scl.py": "7b6e7faa94b95264bc3fcd25635746153e26347aa50e19717949c1e14ac422ab",
     "src/construir_dataset_ml_ideam.py": "d620a5d7d13641af3705faa5fcd13487fa9c33aeae3143e13d6158de3fc426ac",
     "src/contrato_inferencia_ideam.py": "97dbe0e21f34977191708c5b4cd5aef9d892e1656c3873ff8134fdbccf406535",
     "src/dominio_territorial_ideam.py": "635aaebfeddc426383646bf33c4a5f2a6479488d26b5a80b7c3e98c032ad560f",
     "src/esquema_bandas_forestguard.py": "c0ce86f8dcc8b45adc62db32819466fd1161f30a465ce85c8407a837fb3df873",
     "src/forest_condition.py": "f7754e96c83f412a91155f724fb6c8d39030770bd4d065fca358e81460a585b8",
-    "src/forestguard_pipeline.py": "112a7b1868e577be06bfae4677bf1733473a66f5e63c2642700480f6c41efc33",
+    "src/forestguard_pipeline.py": "10e6432ee3b1f835a81cb3e2243d71e84e0ffab00648aed6ffcdef8dd5fe85be",
     "src/inferir_par_ideam.py": "5008027b03e9195bebef0e5113e27d5dfa064536ccf4e78cc737170543a0f08a",
     "src/inferir_par_ideam_ventanas.py": "35bc65f73943deb745c5c2fc0812e0962ca9f51931af1ccda9e5a25e59e7987c",
     "src/normalizar_entrada_forestguard.py": "10ab3e3035aed46e160553a3483de8aa4077acf95bc9343562438fe11be3bbfe",
