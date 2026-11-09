@@ -10,7 +10,8 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Analysis, ResultArtifact, V9Evaluation
+from .ideam_reference import ANNUAL_FILES, evaluate_ideam, plan_reference
+from .models import Analysis, ResultArtifact, V9Evaluation, V9IdeamEvaluation
 from .v9_evaluation import MAX_REFERENCE_BYTES, PREDICTION_PATH, evaluate_reference
 from .views import artifact_file
 
@@ -53,17 +54,25 @@ class V9EvaluationSerializer(serializers.ModelSerializer):
         fields = ("reference_name", "reference_source", "metrics", "evaluated_at")
 
 
-class EvaluationResponseSerializer(serializers.Serializer):
+class IdeamAvailabilitySerializer(serializers.Serializer):
+    available = serializers.BooleanField()
+    reason = serializers.CharField(allow_blank=True)
+    years = serializers.ListField(child=serializers.IntegerField())
+    complete_years = serializers.ListField(child=serializers.IntegerField())
     evaluation = V9EvaluationSerializer(allow_null=True)
 
 
-class V9EvaluationView(APIView):
+class EvaluationResponseSerializer(serializers.Serializer):
+    evaluation = V9EvaluationSerializer(allow_null=True)
+    ideam = IdeamAvailabilitySerializer()
+
+
+class PredictionEvaluationView(APIView):
     permission_model = Analysis
-    parser_classes = [MultiPartParser]
 
     def prediction(self, request, artifact_id):
         artifact = get_object_or_404(
-            ResultArtifact, pk=artifact_id, kind="raster",
+            ResultArtifact.objects.select_related("analysis"), pk=artifact_id, kind="raster",
             analysis__owner=request.user, analysis__status=Analysis.Status.COMPLETED,
             analysis__model__version="v9",
         )
@@ -71,14 +80,35 @@ class V9EvaluationView(APIView):
             raise Http404
         return artifact
 
+    def save_evaluation(self, model, artifact, **defaults):
+        with transaction.atomic():
+            locked = get_object_or_404(ResultArtifact.objects.select_for_update(), pk=artifact.pk)
+            evaluation, _ = model.objects.update_or_create(prediction=locked, defaults=defaults)
+        return evaluation
+
+    def evaluation_response(self, artifact, plan=None):
+        plan = plan or plan_reference(artifact)
+        return Response(EvaluationResponseSerializer({
+            "evaluation": V9Evaluation.objects.filter(prediction=artifact).first(),
+            "ideam": {
+                "available": plan.available,
+                "reason": plan.reason,
+                "years": plan.years,
+                "complete_years": plan.complete_years,
+                "evaluation": V9IdeamEvaluation.objects.filter(prediction=artifact).first(),
+            },
+        }).data)
+
+
+class V9EvaluationView(PredictionEvaluationView):
+    parser_classes = [MultiPartParser]
+
     @extend_schema(
         tags=["Resultados"], summary="Consultar evaluación de v9 contra una referencia",
         responses={200: EvaluationResponseSerializer, 404: OpenApiResponse(description="Predicción no disponible.")},
     )
     def get(self, request, artifact_id):
-        artifact = self.prediction(request, artifact_id)
-        evaluation = V9Evaluation.objects.filter(prediction=artifact).first()
-        return Response(EvaluationResponseSerializer({"evaluation": evaluation}).data)
+        return self.evaluation_response(self.prediction(request, artifact_id))
 
     @extend_schema(
         tags=["Resultados"], summary="Evaluar y guardar la coincidencia de v9 con una referencia",
@@ -102,14 +132,41 @@ class V9EvaluationView(APIView):
             metrics = evaluate_reference(artifact_file(artifact), upload)
         except ValueError as exc:
             raise serializers.ValidationError({"reference": str(exc)}) from exc
-        with transaction.atomic():
-            locked = get_object_or_404(ResultArtifact.objects.select_for_update(), pk=artifact.pk)
-            evaluation, _ = V9Evaluation.objects.update_or_create(
-                prediction=locked,
-                defaults={
-                    "reference_name": upload.name,
-                    "reference_source": form.validated_data["reference_source"],
-                    "metrics": metrics,
-                },
-            )
-        return Response(EvaluationResponseSerializer({"evaluation": evaluation}).data)
+        self.save_evaluation(
+            V9Evaluation, artifact, reference_name=upload.name,
+            reference_source=form.validated_data["reference_source"], metrics=metrics,
+        )
+        return self.evaluation_response(artifact)
+
+
+class V9IdeamEvaluationView(PredictionEvaluationView):
+    @extend_schema(
+        tags=["Resultados"], summary="Evaluar v9 con las capas anuales del IDEAM",
+        description=("Alinea las capas instaladas a la predicción de este intervalo. "
+                     "Excluye los cambios de años parciales, regeneración y píxeles sin información. "
+                     "El resultado se guarda separado de la evaluación manual."),
+        request=None,
+        responses={
+            200: EvaluationResponseSerializer,
+            400: OpenApiResponse(description="Intervalo o referencia no evaluable."),
+            404: OpenApiResponse(description="Predicción no disponible."),
+        },
+    )
+    def post(self, request, artifact_id):
+        if not request.user.has_perm("analyses.view_analysis"):
+            raise PermissionDenied()
+        artifact = self.prediction(request, artifact_id)
+        plan = plan_reference(artifact)
+        if not plan.available:
+            raise serializers.ValidationError({"ideam": plan.reason})
+        try:
+            metrics = evaluate_ideam(artifact_file(artifact), plan)
+        except ValueError as exc:
+            raise serializers.ValidationError({"ideam": str(exc)}) from exc
+        self.save_evaluation(
+            V9IdeamEvaluation, artifact,
+            reference_name=f"IDEAM · capas anuales {plan.years[0]}–{plan.years[-1]}",
+            reference_source="IDEAM SMByC · " + ", ".join(ANNUAL_FILES[year] for year in plan.years),
+            metrics=metrics,
+        )
+        return self.evaluation_response(artifact, plan)

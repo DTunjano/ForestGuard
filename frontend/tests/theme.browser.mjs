@@ -92,8 +92,24 @@ const artifacts = [
     download_url: "/api/v1/artifacts/3/download/",
     label: "Predicción v9",
   },
+  {
+    id: 4,
+    kind: "raster",
+    relative_path:
+      "intervalos/2023-01-01_2023-03-01/clasificacion_piloto/clasificacion_cambio_exploratoria.tif",
+    v9_evaluation_url: "/api/v1/artifacts/4/v9-evaluation/",
+    download_url: "/api/v1/artifacts/4/download/",
+    label: "Predicción v9 · par corto",
+  },
 ];
 let evaluation = null;
+const official = {
+  available: true,
+  reason: "",
+  years: [2024, 2025],
+  complete_years: [2024],
+  evaluation: null,
+};
 const browser = await chromium.launch({ channel: "msedge", headless: true });
 const context = await browser.newContext({
   baseURL: process.env.FG_TEST_URL || "http://127.0.0.1:5173",
@@ -130,7 +146,36 @@ await context.route("**/api/v1/**", async (route) => {
     };
   else if (path.endsWith("/analyses/99/results/"))
     body = { reports: [], individual: [], comparisons: artifacts, other: [] };
-  else if (path.endsWith("/v9-evaluation/")) {
+  else if (path.endsWith("/3/v9-evaluation/ideam/")) {
+    official.evaluation = {
+      reference_name: "IDEAM · capas anuales 2024–2025",
+      reference_source: "Capas oficiales de prueba",
+      evaluated_at: "2026-11-09T18:00:00Z",
+      metrics: {
+        jaccard: 0.25,
+        precision: 0.5,
+        sensibilidad: 1 / 3,
+        verdaderos_positivos: 1,
+        falsos_positivos: 1,
+        falsos_negativos: 2,
+        verdaderos_negativos: 4,
+        pixeles_evaluados: 8,
+        pixeles_prediccion_validos: 10,
+      },
+    };
+    body = { evaluation, ideam: official };
+  } else if (path.endsWith("/4/v9-evaluation/"))
+    body = {
+      evaluation: null,
+      ideam: {
+        available: false,
+        reason: "El intervalo no contiene un año calendario completo.",
+        years: [2023],
+        complete_years: [],
+        evaluation: null,
+      },
+    };
+  else if (path.endsWith("/3/v9-evaluation/")) {
     if (route.request().method() === "POST") {
       const payload = route.request().postData();
       for (const field of [
@@ -162,7 +207,7 @@ await context.route("**/api/v1/**", async (route) => {
         },
       };
     }
-    body = { evaluation };
+    body = { evaluation, ideam: official };
   } else if (path.endsWith("/category-mask/"))
     body = {
       encoding: "uint8-base64",
@@ -310,6 +355,27 @@ try {
   await expect(overlap.getByText("80 %", { exact: true })).toBeVisible();
   const evaluationTab = page.getByRole("button", { name: /^Evaluación v9/ });
   await evaluationTab.click();
+  const ideam = page.getByRole("region", {
+    name: "Evaluación automática con IDEAM",
+  });
+  await ideam
+    .getByRole("button", { name: "Evaluar con IDEAM", exact: true })
+    .click();
+  await expect(ideam.getByText("25 %", { exact: true })).toBeVisible();
+  const interval = page.getByRole("combobox", {
+    name: "Intervalo de la predicción",
+  });
+  await interval.click();
+  await page.getByRole("option", { name: "2023-01-01 a 2023-03-01" }).click();
+  await expect(ideam).toContainText("no contiene un año calendario completo");
+  await expect(ideam.getByText("25 %", { exact: true })).toHaveCount(0);
+  await interval.click();
+  await page.getByRole("option", { name: "2024-01-01 a 2025-01-01" }).click();
+  await expect(ideam.getByText("25 %", { exact: true })).toBeVisible();
+  const manualToggle = page.getByText("Evaluación con referencia propia", {
+    exact: true,
+  });
+  await manualToggle.click();
   const reference = page.getByLabel("Máscara de referencia GeoTIFF");
   const evaluate = page.getByRole("button", {
     name: "Calcular y guardar evaluación",
@@ -345,7 +411,7 @@ try {
   await expect(
     page.getByText("Evaluación guardada.", { exact: true }),
   ).toBeVisible();
-  const score = page.getByRole("region", {
+  const score = manualToggle.locator("..").getByRole("region", {
     name: "Resultado guardado de la evaluación v9",
   });
   await expect(score.getByText("50 %", { exact: true })).toBeVisible();
@@ -353,6 +419,8 @@ try {
   await screenshot("jaccard-evaluation-light");
   await page.reload();
   await evaluationTab.click();
+  await expect(ideam.getByText("25 %", { exact: true })).toBeVisible();
+  await manualToggle.click();
   await expect(score.getByText("50 %", { exact: true })).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   for (const path of [
@@ -367,7 +435,7 @@ try {
     await expect(page.locator(".fg-page h1")).toBeVisible();
     if (path.includes("/results/")) {
       await evaluationTab.click();
-      await expect(score).toBeVisible();
+      await expect(ideam.getByText("25 %", { exact: true })).toBeVisible();
     }
     await screenshot(path.replaceAll("/", "-").slice(1) + "-mobile");
     const overflow = await page.evaluate(() =>

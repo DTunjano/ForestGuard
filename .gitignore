@@ -76,6 +76,7 @@ htmlcov/
 test-results/
 playwright-report/
 /backend/tmp/
+/backend/reference_data/
 /tmp/
 /output/
 

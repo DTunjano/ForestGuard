@@ -11,6 +11,7 @@ import {
 } from "../../../shared/components/UI";
 import { ResultDownload } from "./ResultDownload";
 import { V9EvaluationMetrics } from "./JaccardMetrics";
+import { IdeamEvaluation } from "./IdeamEvaluation";
 
 function ReferenceForm({ prediction, canEvaluate }) {
   const url = prediction.v9_evaluation_url;
@@ -19,6 +20,7 @@ function ReferenceForm({ prediction, canEvaluate }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const evaluation = saved || query.data?.evaluation;
+  const automatic = query.data?.ideam;
   const headingRef = useRef(null);
   useEffect(() => {
     if (saved) headingRef.current?.focus();
@@ -36,7 +38,7 @@ function ReferenceForm({ prediction, canEvaluate }) {
         body: new FormData(form),
       });
       form.reset();
-      const disclosure = form.closest("details");
+      const disclosure = form.closest("details[data-manual-replace]");
       if (disclosure) disclosure.open = false;
       setSaved(result.evaluation);
     } catch (err) {
@@ -124,14 +126,8 @@ function ReferenceForm({ prediction, canEvaluate }) {
     </form>
   );
 
-  return (
+  const manualEvaluation = (
     <>
-      <Notice error={query.error}>
-        {query.loading ? "Consultando la evaluación guardada…" : null}
-      </Notice>
-      {query.error && (
-        <Button onClick={query.reload}>Reintentar consulta</Button>
-      )}
       {evaluation && (
         <V9EvaluationMetrics evaluation={evaluation} headingRef={headingRef} />
       )}
@@ -139,7 +135,7 @@ function ReferenceForm({ prediction, canEvaluate }) {
       {canEvaluate &&
         query.data &&
         (evaluation ? (
-          <details className="space-y-3">
+          <details data-manual-replace className="space-y-3">
             <summary className="cursor-pointer font-semibold">
               Actualizar la evaluación
             </summary>
@@ -150,6 +146,34 @@ function ReferenceForm({ prediction, canEvaluate }) {
         ))}
       {!canEvaluate && query.data && !evaluation && (
         <p>Este intervalo todavía no tiene una evaluación guardada.</p>
+      )}
+    </>
+  );
+
+  return (
+    <>
+      <Notice error={query.error}>
+        {query.loading ? "Consultando la evaluación guardada…" : null}
+      </Notice>
+      {query.error && (
+        <Button onClick={query.reload}>Reintentar consulta</Button>
+      )}
+      {automatic && (
+        <IdeamEvaluation
+          url={url}
+          reference={automatic}
+          canEvaluate={canEvaluate}
+        />
+      )}
+      {automatic ? (
+        <details className="space-y-4 border-t border-white/15 pt-4">
+          <summary className="cursor-pointer font-semibold">
+            Evaluación con referencia propia
+          </summary>
+          {manualEvaluation}
+        </details>
+      ) : (
+        manualEvaluation
       )}
     </>
   );
@@ -164,9 +188,9 @@ export function V9Evaluation({ predictions, canEvaluate }) {
       <p className="fg-eyebrow">Validación por intervalo</p>
       <h2>Evaluación del modelo v9</h2>
       <p>
-        Contrasta la predicción de pérdida de cobertura con etiquetas
-        verificadas del mismo territorio y periodo. La evaluación usa los
-        píxeles válidos y etiquetados de ambas capas.
+        Cada intervalo tiene su propia predicción y evaluación. Selecciona las
+        fechas para consultar el resultado guardado o calcularlo con IDEAM
+        cuando haya capas compatibles.
       </p>
       <Field label="Intervalo de la predicción">
         <Select

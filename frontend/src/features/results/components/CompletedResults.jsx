@@ -13,13 +13,15 @@ import {
 import { Metrics } from "./Metrics";
 import { ArtifactExplorer } from "./ArtifactExplorer";
 import { ResultDownload } from "./ResultDownload";
-import { V9Evaluation } from "./V9Evaluation";
 import "./artifact-explorer.css";
 
 const CoverageResults = lazy(() =>
   import("./CoverageResults").then((module) => ({
     default: module.CoverageResults,
   })),
+);
+const V9Evaluation = lazy(() =>
+  import("./V9Evaluation").then((module) => ({ default: module.V9Evaluation })),
 );
 const sections = [
   ["summary", "Resumen", "Mapas, porcentajes e informe"],
@@ -97,10 +99,12 @@ export function CompletedResults({ id, summary }) {
       )}
       <div id={contentId}>
         {section === "evaluation" && predictions.length > 0 && (
-          <V9Evaluation
-            predictions={predictions}
-            canEvaluate={can("analyses.add_analysis")}
-          />
+          <Suspense fallback={<Notice>Cargando evaluación v9…</Notice>}>
+            <V9Evaluation
+              predictions={predictions}
+              canEvaluate={can("analyses.add_analysis")}
+            />
+          </Suspense>
         )}
         <div hidden={section !== "summary"} className="fg-res-completed-stack">
           <Suspense fallback={<Notice>Cargando mapas de cobertura…</Notice>}>

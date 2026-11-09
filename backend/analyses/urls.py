@@ -1,7 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .evaluation_views import V9EvaluationView
+from .evaluation_views import V9EvaluationView, V9IdeamEvaluationView
 from .views import (
     AnalysisExportView,
     AnalysisResultsView,
@@ -22,5 +22,6 @@ urlpatterns = [
     path("artifacts/<int:artifact_id>/metadata/", ArtifactMetadataView.as_view(), name="artifact-metadata"),
     path("artifacts/<int:artifact_id>/category-mask/", ArtifactCategoryMaskView.as_view(), name="artifact-category-mask"),
     path("artifacts/<int:artifact_id>/v9-evaluation/", V9EvaluationView.as_view(), name="v9-evaluation"),
+    path("artifacts/<int:artifact_id>/v9-evaluation/ideam/", V9IdeamEvaluationView.as_view(), name="v9-ideam-evaluation"),
     path("", include(router.urls)),
 ]

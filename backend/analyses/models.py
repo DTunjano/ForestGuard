@@ -53,12 +53,20 @@ class ResultArtifact(models.Model):
         constraints = [models.UniqueConstraint(fields=("analysis", "relative_path"), name="unique_artifact_path")]
 
 
-class V9Evaluation(models.Model):
-    prediction = models.OneToOneField(ResultArtifact, on_delete=models.CASCADE)
+class EvaluationRecord(models.Model):
     reference_name = models.CharField(max_length=255)
     reference_source = models.CharField(max_length=300)
     metrics = models.JSONField()
     evaluated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        abstract = True
         default_permissions = ()
+
+
+class V9Evaluation(EvaluationRecord):
+    prediction = models.OneToOneField(ResultArtifact, on_delete=models.CASCADE)
+
+
+class V9IdeamEvaluation(EvaluationRecord):
+    prediction = models.OneToOneField(ResultArtifact, on_delete=models.CASCADE)

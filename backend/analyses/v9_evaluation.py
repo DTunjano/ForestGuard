@@ -55,13 +55,18 @@ def compare_rasters(prediction, reference):
         or not prediction.transform.almost_equals(reference.transform, precision=1e-8)
     ):
         raise ValueError("La referencia debe tener el mismo CRS, dimensiones y cuadrícula que el GeoTIFF de predicción.")
-    if reference.width * reference.height > MAX_REFERENCE_PIXELS:
+    return compare_labels(prediction, lambda window: reference.read(1, window=window, masked=True))
+
+
+def compare_labels(prediction, read_labels):
+    """Score aligned reference labels supplied a window at a time."""
+    if prediction.width * prediction.height > MAX_REFERENCE_PIXELS:
         raise ValueError("La cuadrícula supera el límite de 25 millones de píxeles para evaluación.")
 
     tp = fp = fn = compared = prediction_valid = 0
     for window in windows(prediction):
         predicted = prediction.read(1, window=window, masked=True)
-        labels = reference.read(1, window=window, masked=True)
+        labels = read_labels(window)
         has_prediction = ~np.ma.getmaskarray(predicted) & (predicted.data != 255)
         has_label = ~np.ma.getmaskarray(labels) & (labels.data != 255)
         if np.any(has_label & (labels.data > 1)):

@@ -55,7 +55,11 @@ export function VegetationOverlap({ overlap }) {
   );
 }
 
-export function V9EvaluationMetrics({ evaluation, headingRef }) {
+export function V9EvaluationMetrics({
+  evaluation,
+  headingRef,
+  official = false,
+}) {
   const { metrics } = evaluation;
   return (
     <section
@@ -100,8 +104,18 @@ export function V9EvaluationMetrics({ evaluation, headingRef }) {
       <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
           ["verdaderos_positivos", "Pérdidas coincidentes"],
-          ["falsos_positivos", "Falsas alarmas"],
-          ["falsos_negativos", "Pérdidas omitidas"],
+          [
+            "falsos_positivos",
+            official
+              ? "Positivos de v9 sin pérdida en IDEAM"
+              : "Falsas alarmas",
+          ],
+          [
+            "falsos_negativos",
+            official
+              ? "Pérdidas de IDEAM omitidas por v9"
+              : "Pérdidas omitidas",
+          ],
           ["verdaderos_negativos", "Sin pérdida en ambos"],
         ].map(([key, label]) => (
           <div className="fg-metric-kpi-card" key={key}>
