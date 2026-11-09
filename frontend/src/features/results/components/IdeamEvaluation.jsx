@@ -31,42 +31,21 @@ export function IdeamEvaluation({ url, reference, canEvaluate }) {
 
   return (
     <section className="space-y-4" aria-label="Evaluación automática con IDEAM">
-      <h3>Evaluación automática con IDEAM</h3>
-      {reference.available && (
-        <>
-          <p>
-            ForestGuard alinea las capas oficiales de{" "}
-            {reference.years.join(", ")}. Cuenta las pérdidas registradas en los
-            años completos del intervalo ({reference.complete_years.join(", ")})
-            y excluye los cambios de años parciales.
-          </p>
-          <p className="text-sm text-slate-300">
-            El resultado mide concordancia con mapas anuales fuera de las zonas
-            supervisadas registradas. Alinear las capas a la cuadrícula de v9
-            conserva el detalle de la fuente IDEAM, de aproximadamente 30
-            metros.
-          </p>
-        </>
-      )}
+      {!evaluation && <h3>Evaluación con IDEAM</h3>}
       {!reference.available && <Notice>{reference.reason}</Notice>}
       {evaluation && (
         <V9EvaluationMetrics
           evaluation={evaluation}
           headingRef={headingRef}
           official
+          method={`Años completos evaluados: ${reference.complete_years.join(", ")}. Se excluyen los cambios de años parciales. Resolución de la referencia: aproximadamente 30 m.`}
         />
       )}
-      {evaluation &&
-        evaluation.metrics.verdaderos_positivos +
-          evaluation.metrics.falsos_negativos ===
-          0 && (
-          <Notice>
-            IDEAM no registró pérdidas en los píxeles comparados. En este
-            intervalo se pueden observar discrepancias de v9, pero la
-            sensibilidad para detectar pérdidas queda sin evaluar.
-          </Notice>
-        )}
-      {saved && <p role="status">Evaluación con IDEAM guardada.</p>}
+      {saved && (
+        <p role="status" className="sr-only">
+          Evaluación con IDEAM guardada.
+        </p>
+      )}
       {canEvaluate && reference.available && (
         <Button
           type="button"

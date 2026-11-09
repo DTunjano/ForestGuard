@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { LuFileCheck2 } from "react-icons/lu";
+import { LuFileCheck2, LuX } from "react-icons/lu";
 import { request } from "../../../shared/api/client";
 import { useResource } from "../../../shared/api/useResource";
 import {
@@ -19,9 +19,11 @@ function ReferenceForm({ prediction, canEvaluate }) {
   const [saved, setSaved] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [hasFile, setHasFile] = useState(false);
   const evaluation = saved || query.data?.evaluation;
   const automatic = query.data?.ideam;
   const headingRef = useRef(null);
+  const fileInput = useRef(null);
   useEffect(() => {
     if (saved) headingRef.current?.focus();
   }, [saved]);
@@ -38,6 +40,7 @@ function ReferenceForm({ prediction, canEvaluate }) {
         body: new FormData(form),
       });
       form.reset();
+      setHasFile(false);
       const disclosure = form.closest("details[data-manual-replace]");
       if (disclosure) disclosure.open = false;
       setSaved(result.evaluation);
@@ -55,38 +58,44 @@ function ReferenceForm({ prediction, canEvaluate }) {
       aria-busy={busy}
     >
       {!evaluation && <h3>Cargar referencia verificada</h3>}
-      <div className="space-y-2">
-        <p>
-          <strong>Archivo para descargar.</strong> La predicción de v9 te sirve
-          de plantilla para consultar la cuadrícula y preparar una referencia
-          alineada.
-        </p>
-        <p>
-          <strong>Archivo para cargar.</strong> Una máscara de referencia con
-          etiquetas independientes, obtenidas de una fuente verificada para esta
-          zona y periodo. Comparar la predicción consigo misma solo mide su
-          coincidencia con una copia.
-        </p>
-        <p>
-          La máscara debe ser un GeoTIFF de una banda Byte con la misma
-          cuadrícula que la predicción. Usa <strong>0</strong> para sin pérdida,{" "}
-          <strong>1</strong> para pérdida y <strong>255</strong> para sin
-          etiqueta. Tamaño máximo: 64 MB y 25 millones de píxeles.
-        </p>
-      </div>
+      <p>
+        Carga una máscara independiente y verificada sobre la cuadrícula de la
+        predicción. GeoTIFF Byte de una banda, con 0 para sin pérdida, 1 para
+        pérdida y 255 para sin etiqueta. Máximo 64 MB y 25 millones de píxeles.
+      </p>
       <ResultDownload artifact={prediction}>
         Descargar predicción GeoTIFF
       </ResultDownload>
       <fieldset disabled={busy} className="space-y-4">
-        <Field label="Máscara de referencia GeoTIFF">
-          <input
-            className="w-full rounded-lg"
-            type="file"
-            name="reference"
-            accept=".tif,.tiff"
-            required
-          />
-        </Field>
+        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+          <Field label="Máscara de referencia GeoTIFF">
+            <input
+              ref={fileInput}
+              className="w-full min-w-0 rounded-lg"
+              type="file"
+              name="reference"
+              accept=".tif,.tiff"
+              required
+              onChange={(event) =>
+                setHasFile(event.currentTarget.files.length > 0)
+              }
+            />
+          </Field>
+          {hasFile && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                fileInput.current.value = "";
+                setHasFile(false);
+                setError(null);
+                fileInput.current.focus();
+              }}
+            >
+              <LuX aria-hidden="true" /> Quitar archivo
+            </Button>
+          )}
+        </div>
         <Field
           label="Fuente de las etiquetas"
           name="reference_source"
@@ -103,8 +112,8 @@ function ReferenceForm({ prediction, canEvaluate }) {
             required
           />
           <span>
-            Confirmo que las etiquetas corresponden a esta zona y periodo y se
-            obtuvieron de forma independiente del entrenamiento y ajuste de v9.
+            Confirmo que las etiquetas son independientes de v9 y corresponden a
+            esta zona y periodo.
           </span>
         </label>
       </fieldset>
@@ -131,7 +140,11 @@ function ReferenceForm({ prediction, canEvaluate }) {
       {evaluation && (
         <V9EvaluationMetrics evaluation={evaluation} headingRef={headingRef} />
       )}
-      {saved && <p role="status">Evaluación guardada.</p>}
+      {saved && (
+        <p role="status" className="sr-only">
+          Evaluación guardada.
+        </p>
+      )}
       {canEvaluate &&
         query.data &&
         (evaluation ? (
@@ -185,13 +198,7 @@ export function V9Evaluation({ predictions, canEvaluate }) {
     predictions.find((item) => String(item.id) === id) || predictions.at(-1);
   return (
     <Panel>
-      <p className="fg-eyebrow">Validación por intervalo</p>
       <h2>Evaluación del modelo v9</h2>
-      <p>
-        Cada intervalo tiene su propia predicción y evaluación. Selecciona las
-        fechas para consultar el resultado guardado o calcularlo con IDEAM
-        cuando haya capas compatibles.
-      </p>
       <Field label="Intervalo de la predicción">
         <Select
           value={String(prediction.id)}

@@ -6,6 +6,7 @@ import {
   LuLoader,
   LuTrash2,
   LuUpload,
+  LuX,
 } from "react-icons/lu";
 import { deleteImage, uploadImage } from "../api/images";
 import { Button, Notice } from "../../../shared/components/UI";
@@ -359,7 +360,7 @@ export function UploadImages({
 
   async function removeItem(targetItem) {
     if (busy) return;
-    setItems((current) => current.filter((i) => i !== targetItem));
+    setItems((current) => current.filter((i) => i.file !== targetItem.file));
     if (targetItem.image?.id) {
       if (enforceUniqueDates) {
         await deleteImage(targetItem.image.id).catch(() => {});
@@ -438,9 +439,31 @@ export function UploadImages({
               : "Ningún archivo seleccionado"}
           </span>
           {items.length > 0 && (
-            <p className="max-h-28 w-full overflow-y-auto break-all text-sm text-slate-300">
-              {items.map((item) => item.file.name).join(", ")}
-            </p>
+            <ul
+              className="flex max-h-36 w-full flex-wrap gap-2 overflow-y-auto text-sm text-slate-300"
+              aria-label="Archivos seleccionados"
+            >
+              {items.map((item) => (
+                <li
+                  key={`${item.file.name}-${item.file.size}-${item.file.lastModified}`}
+                  className="inline-flex max-w-full items-center gap-2 rounded-lg border border-white/15 px-2 py-1"
+                >
+                  <span className="min-w-0 break-all">{item.file.name}</span>
+                  {item.state !== "done" && (
+                    <button
+                      type="button"
+                      className="fg-upload-remove shrink-0"
+                      disabled={busy}
+                      aria-label={`Quitar archivo ${item.file.name}`}
+                      onClick={() => removeItem(item)}
+                    >
+                      <LuX aria-hidden="true" />
+                      Quitar
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
           )}
         </div>
         <input

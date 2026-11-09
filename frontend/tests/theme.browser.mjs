@@ -152,13 +152,13 @@ await context.route("**/api/v1/**", async (route) => {
       reference_source: "Capas oficiales de prueba",
       evaluated_at: "2026-11-09T18:00:00Z",
       metrics: {
-        jaccard: 0.25,
-        precision: 0.5,
-        sensibilidad: 1 / 3,
-        verdaderos_positivos: 1,
+        jaccard: 0,
+        precision: 0,
+        sensibilidad: null,
+        verdaderos_positivos: 0,
         falsos_positivos: 1,
-        falsos_negativos: 2,
-        verdaderos_negativos: 4,
+        falsos_negativos: 0,
+        verdaderos_negativos: 7,
         pixeles_evaluados: 8,
         pixeles_prediccion_validos: 10,
       },
@@ -361,17 +361,29 @@ try {
   await ideam
     .getByRole("button", { name: "Evaluar con IDEAM", exact: true })
     .click();
-  await expect(ideam.getByText("25 %", { exact: true })).toBeVisible();
+  await expect(ideam.getByText("0 %", { exact: true })).toHaveCount(2);
+  await expect(ideam.getByText("No evaluable", { exact: true })).toBeVisible();
+  await expect(ideam).toContainText("v9 marcó 1 píxel sin coincidencia");
+  const sourceDetails = ideam.getByText("Capas oficiales de prueba", {
+    exact: false,
+  });
+  await expect(sourceDetails).toBeHidden();
+  const detailsToggle = ideam.getByText("Detalles de la comparación", {
+    exact: true,
+  });
+  await detailsToggle.click();
+  await expect(sourceDetails).toBeVisible();
+  await detailsToggle.click();
   const interval = page.getByRole("combobox", {
     name: "Intervalo de la predicción",
   });
   await interval.click();
   await page.getByRole("option", { name: "2023-01-01 a 2023-03-01" }).click();
   await expect(ideam).toContainText("no contiene un año calendario completo");
-  await expect(ideam.getByText("25 %", { exact: true })).toHaveCount(0);
+  await expect(ideam.getByText("0 %", { exact: true })).toHaveCount(0);
   await interval.click();
   await page.getByRole("option", { name: "2024-01-01 a 2025-01-01" }).click();
-  await expect(ideam.getByText("25 %", { exact: true })).toBeVisible();
+  await expect(ideam.getByText("0 %", { exact: true })).toHaveCount(2);
   const manualToggle = page.getByText("Evaluación con referencia propia", {
     exact: true,
   });
@@ -385,11 +397,20 @@ try {
   await expect(validation).toHaveCount(1);
   await expect(validation).toContainText("Selecciona un archivo");
   await expect(reference).toBeFocused();
-  await reference.setInputFiles({
+  const referenceFile = {
     name: "referencia.tif",
     mimeType: "image/tiff",
     buffer: Buffer.from("mock TIFF for the browser test"),
+  };
+  await reference.setInputFiles(referenceFile);
+  const removeReference = page.getByRole("button", {
+    name: "Quitar archivo",
+    exact: true,
   });
+  await removeReference.click();
+  await expect(reference).toHaveValue("");
+  await expect(removeReference).toHaveCount(0);
+  await reference.setInputFiles(referenceFile);
   const source = page.getByLabel("Fuente de las etiquetas");
   await source.fill("Cuadrícula incorrecta");
   const confirmation = page.getByRole("checkbox", {
@@ -419,7 +440,7 @@ try {
   await screenshot("jaccard-evaluation-light");
   await page.reload();
   await evaluationTab.click();
-  await expect(ideam.getByText("25 %", { exact: true })).toBeVisible();
+  await expect(ideam.getByText("0 %", { exact: true })).toHaveCount(2);
   await manualToggle.click();
   await expect(score.getByText("50 %", { exact: true })).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
@@ -435,7 +456,7 @@ try {
     await expect(page.locator(".fg-page h1")).toBeVisible();
     if (path.includes("/results/")) {
       await evaluationTab.click();
-      await expect(ideam.getByText("25 %", { exact: true })).toBeVisible();
+      await expect(ideam.getByText("0 %", { exact: true })).toHaveCount(2);
     }
     await screenshot(path.replaceAll("/", "-").slice(1) + "-mobile");
     const overflow = await page.evaluate(() =>

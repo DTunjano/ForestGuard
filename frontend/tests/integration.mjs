@@ -779,6 +779,26 @@ try {
     "scene_2024_01_01.tif",
   );
   await page
+    .getByRole("button", {
+      name: "Quitar archivo cloudy_2024_02_02.tif",
+      exact: true,
+    })
+    .click();
+  await expect(page.locator(".fg-upload-dropzone")).toContainText(
+    "2 archivos seleccionados",
+  );
+  await expect(
+    page
+      .locator(".fg-upload-item")
+      .filter({ hasText: "cloudy_2024_02_02.tif" }),
+  ).toHaveCount(0);
+  await page
+    .getByLabel("Archivos Sentinel-2 GeoTIFF")
+    .setInputFiles(join(process.env.FG_TEST_FILES, "cloudy_2024_02_02.tif"));
+  await expect(page.locator(".fg-upload-dropzone")).toContainText(
+    "3 archivos seleccionados",
+  );
+  await page
     .getByRole("button", { name: "Cargar pendientes", exact: true })
     .first()
     .click();

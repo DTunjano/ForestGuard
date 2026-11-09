@@ -59,73 +59,87 @@ export function V9EvaluationMetrics({
   evaluation,
   headingRef,
   official = false,
+  method,
 }) {
   const { metrics } = evaluation;
+  const referenceHasLoss =
+    metrics.verdaderos_positivos + metrics.falsos_negativos > 0;
+  const unmatched = metrics.falsos_positivos;
   return (
     <section
       className="space-y-4"
       aria-label="Resultado guardado de la evaluación v9"
     >
       <h3 ref={headingRef} tabIndex={-1} className="scroll-mt-6">
-        Resultado de la evaluación
+        {official ? "Coincidencia con IDEAM" : "Resultado de la evaluación"}
       </h3>
-      <p className="break-words">
-        Referencia: <strong>{evaluation.reference_name}</strong> ·{" "}
-        {evaluation.reference_source}
-        {" · "}
-        {new Date(evaluation.evaluated_at).toLocaleString("es-CO")}
+      <p className="break-words text-sm text-slate-300">
+        {evaluation.reference_name}
       </p>
       <div className="grid gap-3 lg:grid-cols-3">
         <Metric label="Jaccard (IoU)" value={percentage(metrics.jaccard)}>
-          Superposición entre las zonas de pérdida de v9 y las de la referencia
+          Superposición de pérdidas
         </Metric>
         <Metric label="Precisión" value={percentage(metrics.precision)}>
-          Proporción de los positivos de v9 que coinciden con la referencia
+          Detecciones de v9 que coinciden
         </Metric>
         <Metric label="Sensibilidad" value={percentage(metrics.sensibilidad)}>
-          Proporción de los positivos de referencia que detectó v9
+          Pérdidas de referencia detectadas
         </Metric>
       </div>
-      {metrics.jaccard == null && (
-        <p>
-          Ambas máscaras carecen de positivos en la zona evaluada. Jaccard queda
-          indeterminado.
+      {!referenceHasLoss && (
+        <p className="text-sm text-slate-300">
+          {unmatched
+            ? `${official ? "IDEAM" : "La referencia"} no registró pérdidas. v9 marcó ${number(unmatched)} ${unmatched === 1 ? "píxel sin coincidencia" : "píxeles sin coincidencia"}. La sensibilidad requiere pérdidas en la referencia.`
+            : "Ninguna de las dos máscaras marcó pérdidas en el área evaluada."}
         </p>
       )}
-      <p>
-        Se evaluaron <strong>{number(metrics.pixeles_evaluados)}</strong> de{" "}
-        {number(metrics.pixeles_prediccion_validos)} píxeles válidos de la
-        predicción (
+      <p className="text-sm text-slate-300">
+        <strong>
+          {number(metrics.pixeles_evaluados)} de{" "}
+          {number(metrics.pixeles_prediccion_validos)}
+        </strong>{" "}
+        píxeles evaluados (
         {percentage(
           metrics.pixeles_evaluados / metrics.pixeles_prediccion_validos,
         )}
-        ). El resultado describe este intervalo y la superficie etiquetada.
+        ).
       </p>
-      <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {[
-          ["verdaderos_positivos", "Pérdidas coincidentes"],
-          [
-            "falsos_positivos",
-            official
-              ? "Positivos de v9 sin pérdida en IDEAM"
-              : "Falsas alarmas",
-          ],
-          [
-            "falsos_negativos",
-            official
-              ? "Pérdidas de IDEAM omitidas por v9"
-              : "Pérdidas omitidas",
-          ],
-          ["verdaderos_negativos", "Sin pérdida en ambos"],
-        ].map(([key, label]) => (
-          <div className="fg-metric-kpi-card" key={key}>
-            <dt>{label}</dt>
-            <dd>
-              <strong>{number(metrics[key])}</strong>
-            </dd>
-          </div>
-        ))}
-      </dl>
+      <details className="space-y-3">
+        <summary className="cursor-pointer text-sm font-semibold">
+          Detalles de la comparación
+        </summary>
+        {method && <p className="text-sm text-slate-300">{method}</p>}
+        <p className="break-words text-sm text-slate-300">
+          {evaluation.reference_source} ·{" "}
+          {new Date(evaluation.evaluated_at).toLocaleString("es-CO")}
+        </p>
+        <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            ["verdaderos_positivos", "Pérdidas coincidentes"],
+            [
+              "falsos_positivos",
+              official
+                ? "Positivos de v9 sin pérdida en IDEAM"
+                : "Falsas alarmas",
+            ],
+            [
+              "falsos_negativos",
+              official
+                ? "Pérdidas de IDEAM omitidas por v9"
+                : "Pérdidas omitidas",
+            ],
+            ["verdaderos_negativos", "Sin pérdida en ambos"],
+          ].map(([key, label]) => (
+            <div className="fg-metric-kpi-card" key={key}>
+              <dt>{label}</dt>
+              <dd>
+                <strong>{number(metrics[key])}</strong>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </details>
     </section>
   );
 }
